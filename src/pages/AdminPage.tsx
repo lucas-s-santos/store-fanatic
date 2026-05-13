@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Edit2, Trash2, X, Shield, Package, Save, Loader2, Star } from 'lucide-react'
+import { resolveAssetUrl } from '../lib/assets'
 import { supabase } from '../lib/supabase'
 
 interface Product {
@@ -381,7 +382,7 @@ export function AdminPage() {
                             <td className="p-4 flex items-center gap-4">
                               <div className="h-12 w-10 shrink-0 overflow-hidden rounded bg-white/5">
                                 {product.image_url && (
-                                  <img src={product.image_url} alt={product.title} className="h-full w-full object-cover" />
+                                  <img src={resolveAssetUrl(product.image_url)} alt={product.title} className="h-full w-full object-cover" />
                                 )}
                               </div>
                               <div className="flex flex-col">

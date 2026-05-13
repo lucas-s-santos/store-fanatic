@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeft, Check, Eye, MoveRight, Search, Shield, ShoppingCart, Trophy, X } from 'lucide-react'
 
+import { resolveAssetUrl } from '../lib/assets'
 import { supabase } from '../lib/supabase'
 import { useCartStore } from '../store/cartStore'
 
@@ -87,7 +88,7 @@ function QuickViewModal({ product, onClose }: { product: Product; onClose: () =>
 
   const name = getProductName(product)
   const stock = product.stock_quantity ?? product.stock ?? 0
-  const allImages = [product.image_url, ...(product.images || [])].filter(Boolean)
+  const allImages = [product.image_url, ...(product.images || [])].filter(Boolean).map((url) => resolveAssetUrl(url))
 
   const handleAdd = () => {
     if (!selectedSize) return
@@ -96,7 +97,7 @@ function QuickViewModal({ product, onClose }: { product: Product; onClose: () =>
       id: product.id,
       title: name,
       price: product.price,
-      imageUrl: product.image_url,
+      imageUrl: resolveAssetUrl(product.image_url),
       size: selectedSize,
       quantity: 1,
     })
@@ -240,10 +241,10 @@ export function CatalogPage() {
       if (leagueRes.data && teamRes.data) {
         const builtLeagues = leagueRes.data.map((league) => ({
           ...league,
-          logo: league.logo_url,
+          logo: resolveAssetUrl(league.logo_url),
           teams: teamRes.data
             .filter((team) => team.league_id === league.id)
-            .map((team) => ({ ...team, logo: team.logo_url })),
+            .map((team) => ({ ...team, logo: resolveAssetUrl(team.logo_url) })),
         }))
 
         setDbLeagues(builtLeagues)
@@ -526,7 +527,7 @@ export function CatalogPage() {
                   >
                     <div className="relative aspect-[4/5] overflow-hidden">
                       <img
-                        src={product.image_url || 'https://via.placeholder.com/400x500?text=Sem+Foto'}
+                        src={resolveAssetUrl(product.image_url) || 'https://via.placeholder.com/400x500?text=Sem+Foto'}
                         alt={name}
                         loading="lazy"
                         className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
@@ -644,7 +645,7 @@ export function CatalogPage() {
                           className="flex items-center gap-3 border-b border-white/5 px-4 py-3 transition-colors hover:bg-white/[0.04] last:border-b-0"
                         >
                           <div className="h-10 w-8 shrink-0 overflow-hidden rounded bg-white/5">
-                            <img src={suggestion.image_url || ''} alt={getProductName(suggestion)} className="h-full w-full object-cover" />
+                            <img src={resolveAssetUrl(suggestion.image_url) || ''} alt={getProductName(suggestion)} className="h-full w-full object-cover" />
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-semibold text-white">{getProductName(suggestion)}</p>

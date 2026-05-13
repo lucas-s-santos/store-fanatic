@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, ShoppingBag, Trash2, Plus, Minus, MoveRight, Package } from 'lucide-react'
 import { useCartStore } from '../../store/cartStore'
+import { resolveAssetUrl } from '../../lib/assets'
 import { useSettings } from '../../lib/useSettings'
 
 export function CartDrawer() {
@@ -160,7 +161,7 @@ export function CartDrawer() {
                         {/* Image */}
                         <div className="relative h-20 w-16 shrink-0 overflow-hidden rounded-sm border border-white/10">
                           <img
-                            src={item.imageUrl || 'https://via.placeholder.com/80x100'}
+                            src={resolveAssetUrl(item.imageUrl) || 'https://via.placeholder.com/80x100'}
                             alt={item.title}
                             loading="lazy"
                             className="h-full w-full object-cover"

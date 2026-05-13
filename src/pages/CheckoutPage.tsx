@@ -9,6 +9,7 @@ import {
   CheckCircle2, Lock, ShieldCheck, Zap, CreditCard,
   Copy, Check, Loader2, ArrowLeft, Tag, Percent, Gift
 } from 'lucide-react'
+import { resolveAssetUrl } from '../lib/assets'
 import { supabase } from '../lib/supabase'
 import { createPixPayment } from '../lib/mercadoPago'
 import { useSettings } from '../lib/useSettings'
@@ -643,7 +644,7 @@ export function CheckoutPage() {
                   <li key={`${item.id}-${item.size}`} className="flex justify-between gap-4 text-sm">
                     <div className="flex gap-3 min-w-0">
                       <div className="h-12 w-10 shrink-0 overflow-hidden border border-white/10">
-                        <img src={item.imageUrl} alt={item.title} className="h-full w-full object-cover" />
+                        <img src={resolveAssetUrl(item.imageUrl)} alt={item.title} className="h-full w-full object-cover" />
                       </div>
                       <div className="min-w-0">
                         <p className="line-clamp-1 text-white font-medium">{item.title}</p>

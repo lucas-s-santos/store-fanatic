@@ -27,6 +27,7 @@ import {
   Zap,
 } from 'lucide-react'
 
+import { resolveAssetUrl } from '../lib/assets'
 import { supabase } from '../lib/supabase'
 
 const HERO_INDEX_STORAGE_KEY = 'store-fanatic-hero-index'
@@ -254,7 +255,7 @@ function HeroCarouselCard({
           <AnimatePresence mode="wait" initial={false}>
             <motion.img
               key={`${card.title}-${frame}`}
-              src={card.images[frame]}
+              src={resolveAssetUrl(card.images[frame])}
               alt={card.title}
               className="absolute inset-0 h-full w-full object-cover"
               draggable={false}
@@ -590,7 +591,7 @@ export function HomePage() {
                   className="group relative aspect-[4/5] cursor-pointer overflow-hidden rounded-[1.5rem] border border-border bg-card sm:h-[320px] sm:aspect-auto"
                 >
                   <img
-                    src={category.image}
+                    src={resolveAssetUrl(category.image)}
                     alt={category.name}
                     loading="lazy"
                     className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
@@ -676,7 +677,7 @@ export function HomePage() {
                 >
                   <div className="relative aspect-[4/5] overflow-hidden">
                     <img
-                      src={product.image_url}
+                      src={resolveAssetUrl(product.image_url)}
                       alt={product.title}
                       loading="lazy"
                       className="h-full w-full object-cover transition-transform duration-700 group-hover/card:scale-110"
@@ -730,7 +731,7 @@ export function HomePage() {
                   <div className="flex items-center gap-3">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/10 sm:h-10 sm:w-10">
                       {testimonial.avatar_url ? (
-                        <img src={testimonial.avatar_url} alt={testimonial.name} className="h-full w-full rounded-full object-cover" loading="lazy" />
+                        <img src={resolveAssetUrl(testimonial.avatar_url)} alt={testimonial.name} className="h-full w-full rounded-full object-cover" loading="lazy" />
                       ) : (
                         <Users className="h-3.5 w-3.5 text-primary sm:h-4 sm:w-4" />
                       )}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, MoveRight, AlertTriangle, ShieldCheck, Star, Zap, Shirt } from 'lucide-react'
+import { resolveAssetUrl } from '../lib/assets'
 import { supabase } from '../lib/supabase'
 import { useCartStore } from '../store/cartStore'
 
@@ -68,7 +69,7 @@ export function ProductPage() {
       id: product.id,
       title: productName,
       price: finalPrice,
-      imageUrl: product.image_url || 'https://via.placeholder.com/600x800?text=Sem+Foto',
+      imageUrl: resolveAssetUrl(product.image_url) || 'https://via.placeholder.com/600x800?text=Sem+Foto',
       size: selectedSize,
       quantity: 1,
       personalization: hasPersonalization
@@ -140,7 +141,7 @@ export function ProductPage() {
           >
             <div className="relative aspect-[4/5] min-h-[520px] overflow-hidden group">
               <img
-                src={product.image_url || 'https://via.placeholder.com/600x800?text=Sem+Foto'}
+                src={resolveAssetUrl(product.image_url) || 'https://via.placeholder.com/600x800?text=Sem+Foto'}
                 alt={productName}
                 fetchPriority="high"
                 className="h-full w-full object-cover transition-transform duration-1000 ease-out group-hover:scale-105"
