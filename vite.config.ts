@@ -10,4 +10,8 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    chunkSizeWarningLimit: 1000, // Aumenta limite de aviso de chunk para 1MB
+    copyPublicDir: false, // Não copia arquivos grandes do público durante build
+  },
 })
