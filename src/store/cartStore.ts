@@ -1,6 +1,11 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
+export interface Personalization {
+  name: string
+  number: string
+}
+
 export interface CartItem {
   id: string
   title: string
@@ -8,6 +13,7 @@ export interface CartItem {
   imageUrl: string
   size: string
   quantity: number
+  personalization?: Personalization
 }
 
 interface CartState {

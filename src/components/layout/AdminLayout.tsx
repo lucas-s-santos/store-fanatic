@@ -1,6 +1,7 @@
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { LayoutDashboard, Package, ShoppingCart, LogOut, ArrowLeft } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { CyberBackground } from '../ui/CyberBackground'
 
 export function AdminLayout() {
   const location = useLocation()
@@ -12,9 +13,11 @@ export function AdminLayout() {
   ]
 
   return (
-    <div className="flex min-h-screen bg-[#030303] text-white">
+    <div className="relative flex min-h-screen overflow-hidden bg-[#030303] text-white">
+      <CyberBackground />
+
       {/* Sidebar */}
-      <aside className="w-64 border-r border-white/10 bg-black/50 p-6 flex flex-col gap-8">
+      <aside className="relative z-10 flex w-64 flex-col gap-8 border-r border-white/10 bg-black/45 p-6 backdrop-blur-xl">
         <div className="flex flex-col gap-2">
           <h2 className="text-xl font-display font-bold uppercase tracking-widest text-primary">Admin Panel</h2>
           <p className="font-sans text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Store Fanatic</p>
@@ -63,7 +66,7 @@ export function AdminLayout() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="relative z-10 flex-1 overflow-y-auto">
         <Outlet />
       </main>
     </div>

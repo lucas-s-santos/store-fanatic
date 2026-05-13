@@ -57,7 +57,7 @@ export function CartPage() {
               <div key={`${item.id}-${item.size}`} className="panel clip-path-panel px-5 py-5 sm:px-6">
                 <div className="grid gap-5 md:grid-cols-[140px_1fr]">
                   <div className="clip-path-card overflow-hidden border border-white/10">
-                    <img src={item.imageUrl} alt={item.title} className="h-full w-full object-cover" />
+                    <img src={item.imageUrl} alt={item.title} loading="lazy" className="h-full w-full object-cover" />
                   </div>
 
                   <div className="flex flex-col justify-between gap-6">

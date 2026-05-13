@@ -3,17 +3,16 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, ShoppingBag, Trash2, Plus, Minus, MoveRight, Package } from 'lucide-react'
 import { useCartStore } from '../../store/cartStore'
-
-const SHIPPING_THRESHOLD = 299
-const SHIPPING_COST = 19.9
+import { useSettings } from '../../lib/useSettings'
 
 export function CartDrawer() {
+  const { settings } = useSettings()
   const { items, isDrawerOpen, closeDrawer, removeItem, updateQuantity, getTotalPrice, getTotalItems } = useCartStore()
   const navigate = useNavigate()
   const total = getTotalPrice()
   const totalItems = getTotalItems()
-  const shippingFree = total >= SHIPPING_THRESHOLD
-  const progressPct = Math.min((total / SHIPPING_THRESHOLD) * 100, 100)
+  const shippingFree = total >= settings.shipping_free_threshold
+  const progressPct = Math.min((total / settings.shipping_free_threshold) * 100, 100)
 
   // Lock body scroll when drawer is open
   useEffect(() => {
@@ -94,11 +93,11 @@ export function CartDrawer() {
               <div className="border-b border-white/10 px-6 py-4">
                 <div className="mb-2 flex justify-between">
                   <span className="font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-                    {shippingFree ? '✓ Frete grátis ativado!' : `Faltam R$ ${(SHIPPING_THRESHOLD - total).toFixed(2).replace('.', ',')} para frete grátis`}
+                    {shippingFree ? '✓ Frete grátis ativado!' : `Faltam R$ ${(settings.shipping_free_threshold - total).toFixed(2).replace('.', ',')} para frete grátis`}
                   </span>
                   {!shippingFree && (
                     <span className="font-display text-[10px] uppercase tracking-[0.3em] text-primary/70">
-                      + R$ {SHIPPING_COST.toFixed(2).replace('.', ',')}
+                      + R$ {settings.shipping_cost.toFixed(2).replace('.', ',')}
                     </span>
                   )}
                 </div>
@@ -163,6 +162,7 @@ export function CartDrawer() {
                           <img
                             src={item.imageUrl || 'https://via.placeholder.com/80x100'}
                             alt={item.title}
+                            loading="lazy"
                             className="h-full w-full object-cover"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
@@ -240,11 +240,11 @@ export function CartDrawer() {
                       </p>
                     ) : (
                       <p className="font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-                        R$ {SHIPPING_COST.toFixed(2).replace('.', ',')}
+                        R$ {settings.shipping_cost.toFixed(2).replace('.', ',')}
                       </p>
                     )}
                     <p className="text-3xl font-black text-white">
-                      R$ {(total + (shippingFree ? 0 : SHIPPING_COST)).toFixed(2).replace('.', ',')}
+                      R$ {(total + (shippingFree ? 0 : settings.shipping_cost)).toFixed(2).replace('.', ',')}
                     </p>
                   </div>
                 </div>

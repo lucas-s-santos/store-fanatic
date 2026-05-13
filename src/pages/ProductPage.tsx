@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, CheckCircle2, MoveRight, AlertTriangle, ShieldCheck, Star, Zap } from 'lucide-react'
+import { ArrowLeft, MoveRight, AlertTriangle, ShieldCheck, Star, Zap, Shirt } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useCartStore } from '../store/cartStore'
+
+const PERSONALIZATION_PRICE = 20
 
 interface Product {
   id: string
@@ -17,6 +19,7 @@ interface Product {
   stock_quantity?: number
   stock?: number
   tech_specs?: Record<string, string>
+  personalization_price?: number
 }
 
 const fadeUp = {
@@ -24,7 +27,7 @@ const fadeUp = {
   visible: (i = 0) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1], delay: i * 0.07 },
+    transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] as const, delay: i * 0.07 },
   }),
 }
 
@@ -36,6 +39,8 @@ export function ProductPage() {
   const [loading, setLoading] = useState(true)
   const [selectedSize, setSelectedSize] = useState('')
   const [showSizeGuide, setShowSizeGuide] = useState(false)
+  const [personalizedName, setPersonalizedName] = useState('')
+  const [personalizedNumber, setPersonalizedNumber] = useState('')
   const addItem = useCartStore((state) => state.addItem)
 
   useEffect(() => {
@@ -53,16 +58,22 @@ export function ProductPage() {
   const productName = product?.name || product?.title || ''
   const stockQty = product?.stock_quantity ?? product?.stock ?? 0
   const isLowStock = stockQty > 0 && stockQty <= 5
+  const hasPersonalization = personalizedName.trim().length > 0 || personalizedNumber.trim().length > 0
+  const personalizationCost = hasPersonalization ? (product?.personalization_price ?? PERSONALIZATION_PRICE) : 0
+  const finalPrice = (product?.price ?? 0) + personalizationCost
 
   const handleAddToCart = () => {
     if (!product || !selectedSize) return
     addItem({
       id: product.id,
       title: productName,
-      price: product.price,
+      price: finalPrice,
       imageUrl: product.image_url || 'https://via.placeholder.com/600x800?text=Sem+Foto',
       size: selectedSize,
       quantity: 1,
+      personalization: hasPersonalization
+        ? { name: personalizedName.trim(), number: personalizedNumber.trim() }
+        : undefined,
     })
   }
 
@@ -131,6 +142,7 @@ export function ProductPage() {
               <img
                 src={product.image_url || 'https://via.placeholder.com/600x800?text=Sem+Foto'}
                 alt={productName}
+                fetchPriority="high"
                 className="h-full w-full object-cover transition-transform duration-1000 ease-out group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-[#030303]/30 to-transparent opacity-90" />
@@ -180,14 +192,19 @@ export function ProductPage() {
                   )}
                 </div>
 
-                <div>
-                  <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                    Valor da peça
-                  </p>
-                  <p className="mt-2 text-4xl font-display font-bold text-white sm:text-5xl tracking-tight">
-                    R$ {product.price.toFixed(2).replace('.', ',')}
-                  </p>
-                </div>
+                  <div>
+                    <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                      Valor da peça
+                    </p>
+                    <p className="mt-2 text-4xl font-display font-bold text-white sm:text-5xl tracking-tight">
+                      R$ {finalPrice.toFixed(2).replace('.', ',')}
+                    </p>
+                    {hasPersonalization && personalizationCost > 0 && (
+                      <p className="text-xs text-primary mt-1">
+                        +R$ {personalizationCost.toFixed(2).replace('.', ',')} personalização
+                      </p>
+                    )}
+                  </div>
 
                 <p className="text-sm leading-relaxed text-muted-foreground sm:text-base font-medium">
                   {product.description || 'Camiseta oficial com qualidade premium. Sinta o peso do manto. Escolha seu tamanho e peça pelo WhatsApp com exclusividade.'}
@@ -256,10 +273,59 @@ export function ProductPage() {
                   ))}
                 </div>
 
+                {/* Personalization Section */}
+                <div className="border-t border-border pt-6">
+                  <div className="flex items-center justify-between gap-4 mb-4">
+                    <div className="flex items-center gap-3">
+                      <Shirt className="h-4 w-4 text-primary" />
+                      <h2 className="text-xl font-display font-bold uppercase text-white tracking-tight">
+                        Personalização
+                      </h2>
+                    </div>
+                    <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
+                      Opcional
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1">
+                        Nome
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={15}
+                        value={personalizedName}
+                        onChange={(e) => setPersonalizedName(e.target.value.toUpperCase())}
+                        placeholder="EX: MESSI"
+                        className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white uppercase placeholder:text-white/20 focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1">
+                        Número
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={2}
+                        value={personalizedNumber}
+                        onChange={(e) => setPersonalizedNumber(e.target.value.replace(/\D/g, '').slice(0, 2))}
+                        placeholder="10"
+                        className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                  </div>
+                  {hasPersonalization && (
+                    <div className="mt-3 flex items-center gap-2 rounded-lg bg-primary/5 border border-primary/20 px-3 py-2">
+                      <span className="text-xs text-primary font-semibold">+R$ {(product?.personalization_price ?? PERSONALIZATION_PRICE).toFixed(2).replace('.', ',')}</span>
+                      <span className="text-xs text-muted-foreground">adicional por personalização</span>
+                    </div>
+                  )}
+                </div>
+
                 {/* Separator */}
                 <div className="flex items-center gap-4">
                   <div className="h-px flex-1 bg-border" />
-                  <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">Passo 2</span>
+                  <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">Finalizar</span>
                   <div className="h-px flex-1 bg-border" />
                 </div>
 

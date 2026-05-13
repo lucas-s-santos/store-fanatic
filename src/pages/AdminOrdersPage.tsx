@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ShoppingCart, Package, CheckCircle2, XCircle, Search, Edit2, X, FileText } from 'lucide-react'
+import { Package, X, FileText } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 interface Order {

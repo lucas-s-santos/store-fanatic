@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Menu, ShoppingBag, X } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+
 import { useCartStore } from '../../store/cartStore'
 
 const NAV_ITEMS = [
-  { label: 'Home', to: '/' },
-  { label: 'Catálogo', to: '/produtos' },
+  { label: 'Inicio', to: '/' },
+  { label: 'Catalogo', to: '/produtos' },
 ]
 
 export function Header() {
@@ -28,14 +29,13 @@ export function Header() {
 
   return (
     <header
-      className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 ${
+      className={`fixed inset-x-0 top-0 z-50 transition-all duration-500 ${
         scrolled
-          ? 'bg-background/80 backdrop-blur-xl border-b border-white/[0.06] shadow-[0_4px_30px_rgba(0,0,0,0.4)]'
+          ? 'border-b border-white/[0.06] bg-background/80 shadow-[0_4px_30px_rgba(0,0,0,0.4)] backdrop-blur-xl'
           : 'bg-transparent'
       }`}
     >
       <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-6 px-5 py-4 lg:px-8">
-        {/* Logo */}
         <Link to="/" className="flex min-w-0 items-center gap-3.5">
           <div className="relative">
             <div className="absolute inset-0 rounded-2xl bg-primary/20 blur-[30px]" />
@@ -43,21 +43,17 @@ export function Header() {
               <img src="/store%20fanatic.jpg" alt="Store Fanatic" className="h-full w-full object-cover" />
             </div>
           </div>
+
           <div className="min-w-0">
-            <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-primary/70">
-              Store Fanatic
-            </p>
-            <p className="truncate text-xl font-display font-bold uppercase tracking-tight text-white">
-              Matchday Store
-            </p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary/70">Store Fanatic</p>
+            <p className="truncate text-xl font-display font-bold uppercase tracking-tight text-white">Loja de camisas</p>
           </div>
         </Link>
 
-        {/* Desktop Nav */}
         <nav className="hidden items-center gap-1 lg:flex">
           {NAV_ITEMS.map((item) => {
-            const isActive =
-              item.to === '/' ? location.pathname === item.to : location.pathname.startsWith(item.to)
+            const isActive = item.to === '/' ? location.pathname === item.to : location.pathname.startsWith(item.to)
+
             return (
               <Link
                 key={item.to}
@@ -79,7 +75,6 @@ export function Header() {
           })}
         </nav>
 
-        {/* Desktop Right */}
         <div className="hidden items-center gap-3 lg:flex">
           <button
             onClick={toggleDrawer}
@@ -104,7 +99,6 @@ export function Header() {
           </button>
         </div>
 
-        {/* Mobile Right */}
         <div className="flex items-center gap-2.5 lg:hidden">
           <button
             onClick={toggleDrawer}
@@ -137,7 +131,6 @@ export function Header() {
         </div>
       </div>
 
-      {/* Mobile Nav */}
       <AnimatePresence>
         {isMenuOpen && (
           <motion.div
