@@ -11,7 +11,6 @@ export default defineConfig({
     },
   },
   build: {
-    chunkSizeWarningLimit: 1000, // Aumenta limite de aviso de chunk para 1MB
-    copyPublicDir: false, // Não copia arquivos grandes do público durante build
+    chunkSizeWarningLimit: 1000,
   },
 })
