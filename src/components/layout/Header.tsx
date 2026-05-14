@@ -40,7 +40,7 @@ export function Header() {
           <div className="relative">
             <div className="absolute inset-0 rounded-2xl bg-primary/20 blur-[30px]" />
             <div className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-background/90 shadow-xl">
-              <img src="/store%20fanatic.jpg" alt="Store Fanatic" className="h-full w-full object-cover" />
+              <img src="/store-fanatic.jpg" alt="Store Fanatic" className="h-full w-full object-cover" />
             </div>
           </div>
 
