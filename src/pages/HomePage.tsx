@@ -75,9 +75,9 @@ const HERO_TEAMS: HeroTeamCardData[] = [
   {
     id: 'milan',
     images: [
-      '/jersey/Serie A/Milan/Milan-7.jpeg',
-      '/jersey/Serie A/Milan/Milan-11.jpeg',
-      '/jersey/Serie A/Milan/Milan-14.jpeg',
+      '/jersey/Serie-A/Milan/Milan-7.jpeg',
+      '/jersey/Serie-A/Milan/Milan-11.jpeg',
+      '/jersey/Serie-A/Milan/Milan-14.jpeg',
     ],
     title: 'Milan',
     subtitle: 'Serie A',
@@ -85,9 +85,9 @@ const HERO_TEAMS: HeroTeamCardData[] = [
   {
     id: 'man-city',
     images: [
-      '/jersey/Premier league/Manchester City/Manchester-City-9.jpeg',
-      '/jersey/Premier league/Manchester City/Manchester-City-3.jpeg',
-      '/jersey/Premier league/Manchester City/Manchester-City-18.jpeg',
+      '/jersey/Premier-league/Manchester-City/Manchester-City-9.jpeg',
+      '/jersey/Premier-league/Manchester-City/Manchester-City-3.jpeg',
+      '/jersey/Premier-league/Manchester-City/Manchester-City-18.jpeg',
     ],
     title: 'Man City',
     subtitle: 'Premier League',
@@ -95,9 +95,9 @@ const HERO_TEAMS: HeroTeamCardData[] = [
   {
     id: 'psg',
     images: [
-      '/jersey/Liga1/Paris Saint Germain/PSG-24.jpeg',
-      '/jersey/Liga1/Paris Saint Germain/PSG-35.jpeg',
-      '/jersey/Liga1/Paris Saint Germain/PSG-46.jpeg',
+      '/jersey/Liga1/Paris-Saint-Germain/PSG-24.jpeg',
+      '/jersey/Liga1/Paris-Saint-Germain/PSG-35.jpeg',
+      '/jersey/Liga1/Paris-Saint-Germain/PSG-46.jpeg',
     ],
     title: 'PSG',
     subtitle: 'Ligue 1',
@@ -105,9 +105,9 @@ const HERO_TEAMS: HeroTeamCardData[] = [
   {
     id: 'dortmund',
     images: [
-      '/jersey/Bundesliga/Borussia Dortmund/Borussia-Dortmund-5.jpeg',
-      '/jersey/Bundesliga/Borussia Dortmund/Borussia-Dortmund-1.jpeg',
-      '/jersey/Bundesliga/Borussia Dortmund/Borussia-Dortmund-8.jpeg',
+      '/jersey/Bundesliga/Borussia-Dortmund/Borussia-Dortmund-5.jpeg',
+      '/jersey/Bundesliga/Borussia-Dortmund/Borussia-Dortmund-1.jpeg',
+      '/jersey/Bundesliga/Borussia-Dortmund/Borussia-Dortmund-8.jpeg',
     ],
     title: 'Dortmund',
     subtitle: 'Bundesliga',
@@ -115,9 +115,9 @@ const HERO_TEAMS: HeroTeamCardData[] = [
   {
     id: 'brasil',
     images: [
-      '/jersey/Mundial/Brasil/brasil2026azul 2.jpg',
-      '/jersey/Mundial/Brasil/brasil2026azul.jpg',
-      '/jersey/Mundial/Brasil/brasil2026.jpg',
+      '/jersey/Mundial/Brasil/Brasil-1.jpeg',
+      '/jersey/Mundial/Brasil/Brasil-2.jpeg',
+      '/jersey/Mundial/Brasil/Brasil-3.jpeg',
     ],
     title: 'Brasil',
     subtitle: 'Selecoes',
@@ -141,11 +141,11 @@ const PERKS = [
 const CATEGORIES = [
   { name: 'Brasileirao', league: 'brasileirao', icon: Shirt, image: '/jersey/brasileirao/Corinthians/Corinthians-72.jpeg' },
   { name: 'LaLiga', league: 'laliga', icon: Trophy, image: '/jersey/LaLiga/Real Madrid/Real-Madrid-1.jpeg' },
-  { name: 'Premier League', league: 'premier-league', icon: Globe2, image: '/jersey/Premier league/Manchester City/Manchester-City-9.jpeg' },
-  { name: 'Serie A', league: 'serie-a', icon: Star, image: '/jersey/Serie A/Milan/Milan-7.jpeg' },
-  { name: 'Ligue 1', league: 'ligue-1', icon: ShieldCheck, image: '/jersey/Liga1/Paris Saint Germain/PSG-24.jpeg' },
-  { name: 'Bundesliga', league: 'bundesliga', icon: Trophy, image: '/jersey/Bundesliga/Borussia Dortmund/Borussia-Dortmund-5.jpeg' },
-  { name: 'Selecoes mundiais', league: 'selecoes', icon: Globe2, image: '/jersey/Mundial/Brasil/brasil2026azul 2.jpg' },
+  { name: 'Premier League', league: 'premier-league', icon: Globe2, image: '/jersey/Premier-league/Manchester-City/Manchester-City-9.jpeg' },
+  { name: 'Serie A', league: 'serie-a', icon: Star, image: '/jersey/Serie-A/Milan/Milan-7.jpeg' },
+  { name: 'Ligue 1', league: 'ligue-1', icon: ShieldCheck, image: '/jersey/Liga1/Paris-Saint-Germain/PSG-24.jpeg' },
+  { name: 'Bundesliga', league: 'bundesliga', icon: Trophy, image: '/jersey/Bundesliga/Borussia-Dortmund/Borussia-Dortmund-5.jpeg' },
+  { name: 'Selecoes mundiais', league: 'selecoes', icon: Globe2, image: '/jersey/Mundial/Brasil/Brasil-1.jpeg' },
 ]
 
 function AnimatedCounter({ value, suffix }: { value: number; suffix: string }) {
