@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Package, X, FileText } from 'lucide-react'
+import { Package, X, FileText, Loader2, Truck } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 interface Order {
@@ -12,6 +12,7 @@ interface Order {
   payment_method: string
   total_amount: number
   status: string
+  tracking_code: string
   created_at: string
 }
 
@@ -21,6 +22,32 @@ interface OrderItem {
   size: string
   quantity: number
   price: number
+  personalization: any
+}
+
+const STATUS_OPTIONS = [
+  { value: 'all', label: 'Todos' },
+  { value: 'aguardando_pagamento', label: 'Aguardando' },
+  { value: 'pago', label: 'Pago' },
+  { value: 'enviado', label: 'Enviado' },
+  { value: 'entregue', label: 'Entregue' },
+  { value: 'cancelado', label: 'Cancelado' },
+]
+
+const STATUS_COLOR: Record<string, string> = {
+  aguardando_pagamento: 'text-[#FF9F43] bg-[#FF9F43]/10 border-[#FF9F43]/20',
+  pago: 'text-[#25D366] bg-[#25D366]/10 border-[#25D366]/20',
+  enviado: 'text-primary bg-primary/10 border-primary/20',
+  entregue: 'text-white bg-white/10 border-white/20',
+  cancelado: 'text-destructive bg-destructive/10 border-destructive/20',
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  aguardando_pagamento: 'Aguardando Pagamento',
+  pago: 'Pago',
+  enviado: 'Enviado',
+  entregue: 'Entregue',
+  cancelado: 'Cancelado',
 }
 
 export function AdminOrdersPage() {
@@ -29,6 +56,10 @@ export function AdminOrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [orderItems, setOrderItems] = useState<OrderItem[]>([])
   const [statusUpdating, setStatusUpdating] = useState(false)
+  const [trackingInput, setTrackingInput] = useState('')
+  const [savingTracking, setSavingTracking] = useState(false)
+  const [filterStatus, setFilterStatus] = useState('all')
+  const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
     fetchOrders()
@@ -40,71 +71,95 @@ export function AdminOrdersPage() {
       .from('orders')
       .select('*')
       .order('created_at', { ascending: false })
-    
-    if (error) console.error('Error fetching orders:', error)
-    else setOrders(data || [])
-    
+
+    if (!error) setOrders(data || [])
     setLoading(false)
   }
 
   const handleViewOrder = async (order: Order) => {
     setSelectedOrder(order)
+    setTrackingInput(order.tracking_code || '')
     setOrderItems([])
-    const { data, error } = await supabase
-      .from('order_items')
-      .select('*')
-      .eq('order_id', order.id)
-    
-    if (error) console.error('Error fetching items:', error)
-    else setOrderItems(data || [])
+    const { data } = await supabase.from('order_items').select('*').eq('order_id', order.id)
+    setOrderItems(data || [])
   }
 
   const handleUpdateStatus = async (newStatus: string) => {
     if (!selectedOrder) return
     setStatusUpdating(true)
-    const { error } = await supabase
-      .from('orders')
-      .update({ status: newStatus })
-      .eq('id', selectedOrder.id)
-
+    const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', selectedOrder.id)
     if (error) {
       alert('Erro ao atualizar status: ' + error.message)
     } else {
-      setSelectedOrder({ ...selectedOrder, status: newStatus })
-      setOrders(orders.map(o => o.id === selectedOrder.id ? { ...o, status: newStatus } : o))
+      const updated = { ...selectedOrder, status: newStatus }
+      setSelectedOrder(updated)
+      setOrders(orders.map(o => o.id === selectedOrder.id ? updated : o))
     }
     setStatusUpdating(false)
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'aguardando_pagamento': return 'text-[#FF9F43] bg-[#FF9F43]/10 border-[#FF9F43]/20'
-      case 'pago': return 'text-[#25D366] bg-[#25D366]/10 border-[#25D366]/20'
-      case 'enviado': return 'text-primary bg-primary/10 border-primary/20'
-      case 'entregue': return 'text-white bg-white/10 border-white/20'
-      case 'cancelado': return 'text-destructive bg-destructive/10 border-destructive/20'
-      default: return 'text-muted-foreground bg-white/5 border-white/10'
+  const handleSaveTracking = async () => {
+    if (!selectedOrder) return
+    setSavingTracking(true)
+    const { error } = await supabase
+      .from('orders')
+      .update({ tracking_code: trackingInput })
+      .eq('id', selectedOrder.id)
+
+    if (error) {
+      alert('Erro ao salvar rastreio: ' + error.message)
+    } else {
+      const updated = { ...selectedOrder, tracking_code: trackingInput }
+      setSelectedOrder(updated)
+      setOrders(orders.map(o => o.id === selectedOrder.id ? updated : o))
     }
+    setSavingTracking(false)
   }
 
+  const filteredOrders = orders.filter(o => {
+    const matchStatus = filterStatus === 'all' || o.status === filterStatus
+    const matchSearch = o.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      o.id.includes(searchTerm)
+    return matchStatus && matchSearch
+  })
+
   return (
-    <div className="p-8 sm:p-12 space-y-8">
-      <div>
-        <h1 className="text-3xl font-display font-bold uppercase tracking-tight text-white mb-2">
-          Gerenciar Pedidos
-        </h1>
-        <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-          Histórico e status de vendas
-        </p>
+    <div className="p-6 sm:p-10 space-y-6">
+      <div className="glass-card rounded-[1.5rem] px-6 py-6 sm:px-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-display font-bold uppercase tracking-tight text-white">Gerenciar Pedidos</h1>
+          <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mt-1">
+            Histórico e status de vendas
+          </p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <input
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            placeholder="Buscar por nome ou ID..."
+            className="form-input h-10 text-sm w-full sm:w-52"
+          />
+          <select
+            value={filterStatus}
+            onChange={e => setFilterStatus(e.target.value)}
+            className="form-input h-10 text-sm appearance-none"
+          >
+            {STATUS_OPTIONS.map(s => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="glass-card rounded-[1.5rem] overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-muted-foreground">Carregando pedidos...</div>
-        ) : orders.length === 0 ? (
+          <div className="p-12 flex justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : filteredOrders.length === 0 ? (
           <div className="p-12 text-center text-muted-foreground">
             <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Nenhum pedido recebido ainda.</p>
+            <p>{searchTerm || filterStatus !== 'all' ? 'Nenhum pedido encontrado.' : 'Nenhum pedido recebido ainda.'}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -116,27 +171,31 @@ export function AdminOrdersPage() {
                   <th className="p-4">Data</th>
                   <th className="p-4">Total</th>
                   <th className="p-4">Status</th>
+                  <th className="p-4">Rastreio</th>
                   <th className="p-4 text-right">Ação</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-white/80">
-                {orders.map((order) => (
+                {filteredOrders.map(order => (
                   <tr key={order.id} className="hover:bg-white/[0.02] transition-colors">
                     <td className="p-4 font-mono text-xs text-white/50">{order.id.split('-')[0]}</td>
                     <td className="p-4">
                       <div className="font-medium text-white">{order.customer_name}</div>
-                      <div className="text-xs text-muted-foreground">{order.payment_method.toUpperCase()}</div>
+                      <div className="text-xs text-muted-foreground">{order.payment_method?.toUpperCase()}</div>
                     </td>
-                    <td className="p-4">
+                    <td className="p-4 text-xs">
                       {new Date(order.created_at).toLocaleDateString('pt-BR')}
                     </td>
                     <td className="p-4 font-bold text-white">
                       R$ {Number(order.total_amount).toFixed(2).replace('.', ',')}
                     </td>
                     <td className="p-4">
-                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${getStatusColor(order.status)}`}>
-                        {order.status.replace('_', ' ')}
+                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${STATUS_COLOR[order.status] || 'text-muted-foreground border-white/10 bg-white/5'}`}>
+                        {STATUS_LABEL[order.status] || order.status}
                       </span>
+                    </td>
+                    <td className="p-4 text-xs font-mono text-muted-foreground">
+                      {order.tracking_code || '—'}
                     </td>
                     <td className="p-4 text-right">
                       <button
@@ -178,9 +237,7 @@ export function AdminOrdersPage() {
               </button>
 
               <div className="mb-8">
-                <span className="chip border-primary/20 bg-primary/5 text-primary mb-4">
-                  Detalhes do Pedido
-                </span>
+                <span className="chip border-primary/20 bg-primary/5 text-primary mb-4">Detalhes do Pedido</span>
                 <h2 className="text-2xl font-display font-bold uppercase text-white">
                   Pedido #{selectedOrder.id.split('-')[0]}
                 </h2>
@@ -190,7 +247,7 @@ export function AdminOrdersPage() {
               </div>
 
               <div className="grid md:grid-cols-2 gap-8 mb-8">
-                {/* Cliente Info */}
+                {/* Cliente */}
                 <div className="space-y-4">
                   <h3 className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground border-b border-white/10 pb-2">
                     Cliente e Envio
@@ -199,7 +256,7 @@ export function AdminOrdersPage() {
                     <p><strong className="text-white">Nome:</strong> {selectedOrder.customer_name}</p>
                     <p><strong className="text-white">CPF:</strong> {selectedOrder.customer_cpf}</p>
                     <p><strong className="text-white">Email:</strong> {selectedOrder.customer_email || 'Não informado'}</p>
-                    <p><strong className="text-white">Endereço:</strong> <br/>{selectedOrder.customer_address}</p>
+                    <p><strong className="text-white">Endereço:</strong><br />{selectedOrder.customer_address}</p>
                   </div>
                 </div>
 
@@ -208,24 +265,19 @@ export function AdminOrdersPage() {
                   <h3 className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground border-b border-white/10 pb-2">
                     Pagamento
                   </h3>
-                  <div className="text-sm space-y-2 text-white/80">
-                    <p><strong className="text-white">Método:</strong> {selectedOrder.payment_method.toUpperCase()}</p>
+                  <div className="text-sm space-y-3 text-white/80">
+                    <p><strong className="text-white">Método:</strong> {selectedOrder.payment_method?.toUpperCase()}</p>
                     <p><strong className="text-white">Total:</strong> R$ {Number(selectedOrder.total_amount).toFixed(2).replace('.', ',')}</p>
-                    
-                    <div className="mt-4 pt-4 border-t border-white/10">
-                      <p className="mb-2"><strong className="text-white">Status Atual:</strong></p>
-                      <span className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border inline-block ${getStatusColor(selectedOrder.status)}`}>
-                        {selectedOrder.status.replace('_', ' ')}
-                      </span>
-                    </div>
 
-                    <div className="mt-4">
-                      <label className="text-xs text-muted-foreground mb-1 block">Alterar Status:</label>
+                    <div className="pt-3 border-t border-white/10">
+                      <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-2 block">
+                        Status
+                      </label>
                       <select
                         disabled={statusUpdating}
                         value={selectedOrder.status}
-                        onChange={(e) => handleUpdateStatus(e.target.value)}
-                        className="form-input text-sm p-2 bg-white/5"
+                        onChange={e => handleUpdateStatus(e.target.value)}
+                        className="form-input text-sm"
                       >
                         <option value="aguardando_pagamento">Aguardando Pagamento</option>
                         <option value="pago">Pago</option>
@@ -233,6 +285,35 @@ export function AdminOrdersPage() {
                         <option value="entregue">Entregue</option>
                         <option value="cancelado">Cancelado</option>
                       </select>
+                    </div>
+
+                    {/* Código de Rastreio */}
+                    <div className="pt-3 border-t border-white/10">
+                      <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-2 flex items-center gap-2">
+                        <Truck className="h-3 w-3" />
+                        Código de Rastreio
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          value={trackingInput}
+                          onChange={e => setTrackingInput(e.target.value)}
+                          placeholder="Ex: BR123456789BR"
+                          className="form-input text-sm flex-1 font-mono"
+                        />
+                        <button
+                          onClick={handleSaveTracking}
+                          disabled={savingTracking}
+                          className="btn-glow-primary px-4 text-xs shrink-0 flex items-center gap-1.5"
+                        >
+                          {savingTracking ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                          Salvar
+                        </button>
+                      </div>
+                      {selectedOrder.tracking_code && (
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          Atual: <span className="font-mono text-primary">{selectedOrder.tracking_code}</span>
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -243,22 +324,33 @@ export function AdminOrdersPage() {
                 <h3 className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground border-b border-white/10 pb-2">
                   Itens do Pedido ({orderItems.length})
                 </h3>
-                <ul className="space-y-3">
-                  {orderItems.map(item => (
-                    <li key={item.id} className="flex justify-between items-center bg-white/5 p-4 rounded-xl border border-white/10">
-                      <div>
-                        <p className="font-bold text-white text-sm">{item.product_title}</p>
-                        <p className="text-xs text-muted-foreground">Tamanho: {item.size} | Qtd: {item.quantity}</p>
-                      </div>
-                      <div className="text-right font-bold text-primary">
-                        R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}
-                      </div>
-                    </li>
-                  ))}
-                  {orderItems.length === 0 && <p className="text-sm text-muted-foreground">Carregando itens...</p>}
-                </ul>
+                {orderItems.length === 0 ? (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <ul className="space-y-3">
+                    {orderItems.map(item => (
+                      <li key={item.id} className="flex justify-between items-center bg-white/5 p-4 rounded-xl border border-white/10">
+                        <div>
+                          <p className="font-bold text-white text-sm">{item.product_title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Tamanho: {item.size} · Qtd: {item.quantity}
+                          </p>
+                          {item.personalization && Array.isArray(item.personalization) && item.personalization.length > 0 && (
+                            <p className="text-[10px] text-primary mt-1">
+                              Personalização: {item.personalization.map((p: any) => `${p.name} #${p.number}`).join(', ')}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right font-bold text-primary ml-4">
+                          R$ {(Number(item.price) * Number(item.quantity)).toFixed(2).replace('.', ',')}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
-
             </motion.div>
           </motion.div>
         )}

@@ -29,7 +29,7 @@ export function AdminLoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#030303] px-4">
+    <div className="flex min-h-screen items-center justify-center bg-[#030303] px-4" translate="no">
       <div className="absolute inset-0 grid-overlay pointer-events-none opacity-20" />
 
       <motion.div

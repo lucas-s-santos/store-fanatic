@@ -80,7 +80,7 @@ function ProductSkeleton() {
   )
 }
 
-function QuickViewModal({ product, onClose }: { product: Product; onClose: () => void }) {
+function QuickViewModal({ product, leagueName, teamName, onClose }: { product: Product; leagueName?: string; teamName?: string; onClose: () => void }) {
   const addItem = useCartStore((state) => state.addItem)
   const [selectedSize, setSelectedSize] = useState('')
   const [added, setAdded] = useState(false)
@@ -150,7 +150,7 @@ function QuickViewModal({ product, onClose }: { product: Product; onClose: () =>
 
           <div className="flex-1 space-y-4 p-6">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-primary/60">{product.league} / {product.team}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-primary/60">{leagueName || ''}{leagueName && teamName ? ' / ' : ''}{teamName || ''}</p>
               <h3 className="mt-1 text-xl font-display font-bold uppercase text-white">{name}</h3>
             </div>
 
@@ -277,7 +277,9 @@ export function CatalogPage() {
         }
       }
 
-      const sortedData = allData.sort((a: any, b: any) => {
+      const activeData = allData.filter((p: any) => p.active !== false)
+
+      const sortedData = activeData.sort((a: any, b: any) => {
         const aPriority = a.featured || a.category === 'mundial-copa-2026' ? 1 : 0
         const bPriority = b.featured || b.category === 'mundial-copa-2026' ? 1 : 0
 
@@ -593,7 +595,14 @@ export function CatalogPage() {
   return (
     <div className="section-shell px-3 pt-24 sm:px-4 sm:pt-28">
       <AnimatePresence>
-        {quickViewProduct && <QuickViewModal product={quickViewProduct} onClose={() => setQuickViewProduct(null)} />}
+        {quickViewProduct && (
+          <QuickViewModal
+            product={quickViewProduct}
+            leagueName={dbLeagues.find(l => l.id === quickViewProduct.league)?.name}
+            teamName={dbLeagues.find(l => l.id === quickViewProduct.league)?.teams.find(t => t.id === quickViewProduct.team)?.name}
+            onClose={() => setQuickViewProduct(null)}
+          />
+        )}
       </AnimatePresence>
 
       <div className="mx-auto max-w-[1440px] space-y-6 sm:space-y-8">

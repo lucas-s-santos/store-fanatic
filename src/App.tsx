@@ -9,6 +9,9 @@ import { CheckoutPage } from './pages/CheckoutPage'
 import { AdminPage } from './pages/AdminPage'
 import { AdminDashboardPage } from './pages/AdminDashboardPage'
 import { AdminOrdersPage } from './pages/AdminOrdersPage'
+import { AdminCouponsPage } from './pages/AdminCouponsPage'
+import { AdminSettingsPage } from './pages/AdminSettingsPage'
+import { AdminLeaguesPage } from './pages/AdminLeaguesPage'
 import { AdminProtectedRoute } from './components/layout/AdminProtectedRoute'
 
 function App() {
@@ -24,12 +27,15 @@ function App() {
           <Route path="/checkout" element={<CheckoutPage />} />
         </Route>
 
-        {/* Admin */}
+        {/* Admin (Protegido) */}
         <Route path="/admin" element={<AdminProtectedRoute />}>
           <Route element={<AdminLayout />}>
             <Route index element={<AdminDashboardPage />} />
             <Route path="produtos" element={<AdminPage />} />
             <Route path="pedidos" element={<AdminOrdersPage />} />
+            <Route path="cupons" element={<AdminCouponsPage />} />
+            <Route path="ligas" element={<AdminLeaguesPage />} />
+            <Route path="configuracoes" element={<AdminSettingsPage />} />
           </Route>
         </Route>
       </Routes>

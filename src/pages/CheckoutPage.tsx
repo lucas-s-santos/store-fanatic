@@ -88,6 +88,29 @@ export function CheckoutPage() {
     defaultValues: { paymentMethod: 'pix' },
   })
 
+  const [isFetchingCep, setIsFetchingCep] = useState(false)
+
+  const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const masked = maskCep(e.target.value)
+    setValue('cep', masked)
+
+    const digits = masked.replace(/\D/g, '')
+    if (digits.length !== 8) return
+
+    setIsFetchingCep(true)
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`)
+      const json = await res.json()
+      if (!json.erro) {
+        if (json.logradouro) setValue('address', json.logradouro, { shouldValidate: true })
+      }
+    } catch {
+      // usuário preenche manualmente
+    } finally {
+      setIsFetchingCep(false)
+    }
+  }
+
   const paymentMethod = watch('paymentMethod')
   const total = items.reduce((acc, i) => acc + i.price * i.quantity, 0)
   const shippingFree = total >= settings.shipping_free_threshold
@@ -473,12 +496,20 @@ export function CheckoutPage() {
               <div className="grid gap-5 md:grid-cols-3">
                 <div>
                   <label className="mb-2 block font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">CEP</label>
-                  <input
-                    {...register('cep')}
-                    className="form-input"
-                    placeholder="00000-000"
-                    onChange={(e) => setValue('cep', maskCep(e.target.value))}
-                  />
+                  <div className="relative">
+                    <input
+                      {...register('cep')}
+                      className="form-input pr-10"
+                      placeholder="00000-000"
+                      maxLength={9}
+                      onChange={handleCepChange}
+                    />
+                    {isFetchingCep && (
+                      <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                      </div>
+                    )}
+                  </div>
                   <Err msg={errors.cep?.message} />
                 </div>
                 <div className="md:col-span-2">

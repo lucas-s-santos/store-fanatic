@@ -12,7 +12,7 @@ export function Footer() {
           <div className="space-y-5">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-white/5 shadow-lg">
-                <img src="/store%20fanatic.jpg" alt={settings.store_name} className="h-full w-full object-cover" />
+                <img src="/store-fanatic.jpg" alt={settings.store_name} className="h-full w-full object-cover" />
               </div>
               <div>
                 <p className="text-lg font-display font-bold uppercase tracking-wide text-white">{settings.store_name}</p>

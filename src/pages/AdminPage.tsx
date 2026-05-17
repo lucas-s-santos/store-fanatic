@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Edit2, Trash2, X, Shield, Package, Save, Loader2, Star } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, Shield, Package, Save, Loader2, Star, ToggleLeft, ToggleRight, ChevronDown, Check } from 'lucide-react'
 import { resolveAssetUrl } from '../lib/assets'
 import { supabase } from '../lib/supabase'
+import { ImageUploader } from '../components/ui/ImageUploader'
 
 interface Product {
   id: string
@@ -16,9 +17,85 @@ interface Product {
   sizes: string[]
   image_url: string
   featured: boolean
+  active: boolean
+  type: string
+  personalization_price: number
+}
+
+function AdminSelect({
+  value,
+  onChange,
+  options,
+  placeholder = 'Selecione...',
+  disabled = false,
+}: {
+  value: string
+  onChange: (val: string) => void
+  options: { value: string; label: string }[]
+  placeholder?: string
+  disabled?: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const selected = options.find(o => o.value === value)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  return (
+    <div ref={ref} className="relative" translate="no">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => !disabled && setOpen(o => !o)}
+        className={`form-input w-full flex items-center justify-between gap-2 text-left ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+      >
+        <span className={selected ? 'text-white' : 'text-muted-foreground text-sm'}>
+          {selected?.label ?? placeholder}
+        </span>
+        <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15 }}
+            className="absolute top-full left-0 right-0 z-50 mt-1 rounded-xl border border-white/10 bg-[#0d0d0d] shadow-2xl overflow-hidden max-h-56 overflow-y-auto"
+          >
+            {options.map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => { onChange(opt.value); setOpen(false) }}
+                className={`w-full flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-white/[0.06] ${
+                  opt.value === value ? 'text-primary bg-primary/10' : 'text-white/80'
+                }`}
+              >
+                {opt.label}
+                {opt.value === value && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
 }
 
 const AVAILABLE_SIZES = ['P', 'M', 'G', 'GG', 'XG', '2XG']
+const PRODUCT_TYPES = [
+  { value: 'torcedor', label: 'Torcedor' },
+  { value: 'jogador', label: 'Jogador' },
+  { value: 'retro', label: 'Retrô' },
+]
 
 export function AdminPage() {
   const [products, setProducts] = useState<Product[]>([])
@@ -27,6 +104,7 @@ export function AdminPage() {
   const [isEditing, setIsEditing] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Partial<Product>>({})
   const [saving, setSaving] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
     fetchData()
@@ -34,32 +112,42 @@ export function AdminPage() {
 
   const fetchData = async () => {
     setLoading(true)
-
     const [prodRes, leagueRes, teamRes] = await Promise.all([
       supabase.from('products').select('*').order('created_at', { ascending: false }),
       supabase.from('leagues').select('*').order('name'),
-      supabase.from('teams').select('*').order('name')
+      supabase.from('teams').select('*').order('name'),
     ])
 
     if (leagueRes.data && teamRes.data) {
-      const builtLeagues = leagueRes.data.map(l => ({
+      setDbLeagues(leagueRes.data.map(l => ({
         ...l,
-        logo: l.logo_url,
-        teams: teamRes.data.filter(t => t.league_id === l.id).map(t => ({ ...t, logo: t.logo_url }))
-      }))
-      setDbLeagues(builtLeagues)
+        teams: teamRes.data.filter(t => t.league_id === l.id),
+      })))
     }
 
-    if (prodRes.error) {
-      console.error('Error fetching products:', prodRes.error)
-    } else {
-      setProducts(prodRes.data || [])
-    }
-
+    if (!prodRes.error) setProducts(prodRes.data || [])
     setLoading(false)
   }
 
-  const handleSave = async (e: React.FormEvent) => {
+  const openNew = () => {
+    setEditingProduct({
+      league: dbLeagues[0]?.id || '',
+      team: dbLeagues[0]?.teams?.[0]?.id || '',
+      sizes: ['P', 'M', 'G', 'GG'],
+      featured: false,
+      active: true,
+      type: 'torcedor',
+      personalization_price: 20,
+    })
+    setIsEditing(true)
+  }
+
+  const openEdit = (product: Product) => {
+    setEditingProduct(product)
+    setIsEditing(true)
+  }
+
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setSaving(true)
 
@@ -73,23 +161,17 @@ export function AdminPage() {
       team: editingProduct.team || '',
       sizes: editingProduct.sizes || [],
       image_url: editingProduct.image_url || '',
-      featured: editingProduct.featured || false
+      featured: editingProduct.featured || false,
+      active: editingProduct.active !== false,
+      type: editingProduct.type || 'torcedor',
+      personalization_price: Number(editingProduct.personalization_price) || 0,
     }
 
     if (editingProduct.id) {
-      // Update
-      const { error } = await supabase
-        .from('products')
-        .update(payload)
-        .eq('id', editingProduct.id)
-      
+      const { error } = await supabase.from('products').update(payload).eq('id', editingProduct.id)
       if (error) alert('Erro ao atualizar: ' + error.message)
     } else {
-      // Insert
-      const { error } = await supabase
-        .from('products')
-        .insert([payload])
-      
+      const { error } = await supabase.from('products').insert([payload])
       if (error) alert('Erro ao criar: ' + error.message)
     }
 
@@ -108,334 +190,379 @@ export function AdminPage() {
 
   const handleSizeToggle = (size: string) => {
     const currentSizes = editingProduct.sizes || []
-    if (currentSizes.includes(size)) {
-      setEditingProduct({ ...editingProduct, sizes: currentSizes.filter(s => s !== size) })
-    } else {
-      setEditingProduct({ ...editingProduct, sizes: [...currentSizes, size] })
-    }
+    setEditingProduct({
+      ...editingProduct,
+      sizes: currentSizes.includes(size)
+        ? currentSizes.filter(s => s !== size)
+        : [...currentSizes, size],
+    })
   }
 
   const activeLeague = dbLeagues.find(l => l.id === editingProduct.league)
+  const filteredProducts = products.filter(p =>
+    p.title?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   return (
-    <div className="p-8 sm:p-12 space-y-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass-card rounded-[1.5rem] px-6 py-8 sm:px-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6"
-        >
-          <div>
-            <span className="chip border-primary/20 bg-primary/5 text-primary mb-4">
-              <Shield className="h-4 w-4" />
-              Painel Administrativo
-            </span>
-            <h1 className="text-3xl font-display font-bold uppercase tracking-tight text-white sm:text-4xl">
-              Gerenciar Estoque
-            </h1>
-          </div>
-          <button
-            onClick={() => {
-              setEditingProduct({ 
-                league: dbLeagues[0]?.id || '', 
-                team: dbLeagues[0]?.teams?.[0]?.id || '', 
-                sizes: ['P', 'M', 'G', 'GG'],
-                featured: false 
-              })
-              setIsEditing(true)
-            }}
-            className="btn-glow-primary flex items-center gap-2"
-          >
+    <div className="p-6 sm:p-10 space-y-6">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass-card rounded-[1.5rem] px-6 py-6 sm:px-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+      >
+        <div>
+          <span className="chip border-primary/20 bg-primary/5 text-primary mb-3">
+            <Shield className="h-4 w-4" />
+            Painel Administrativo
+          </span>
+          <h1 className="text-3xl font-display font-bold uppercase tracking-tight text-white">
+            Gerenciar Estoque
+          </h1>
+        </div>
+        <div className="flex items-center gap-3">
+          <input
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            placeholder="Buscar camisa..."
+            className="form-input h-10 text-sm w-48"
+          />
+          <button onClick={openNew} className="btn-glow-primary flex items-center gap-2 shrink-0">
             <Plus className="h-5 w-5" />
-            Adicionar Camisa
+            <span className="hidden sm:inline">Adicionar</span>
           </button>
-        </motion.div>
+        </div>
+      </motion.div>
 
-        <AnimatePresence mode="wait">
-          {isEditing ? (
-            <motion.div
-              key="edit-form"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="overflow-hidden"
-            >
-              <form onSubmit={handleSave} className="glass-card rounded-[1.5rem] p-6 sm:p-8 space-y-6">
-                <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                  <h2 className="text-xl font-display font-bold uppercase text-white">
-                    {editingProduct.id ? 'Editar Camisa' : 'Nova Camisa'}
-                  </h2>
-                  <button type="button" onClick={() => setIsEditing(false)} className="text-muted-foreground hover:text-white">
-                    <X className="h-6 w-6" />
-                  </button>
+      <AnimatePresence mode="wait">
+        {isEditing ? (
+          <motion.div
+            key="edit-form"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+          >
+            <form onSubmit={handleSave} className="glass-card rounded-[1.5rem] p-6 sm:p-8 space-y-6">
+              <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                <h2 className="text-xl font-display font-bold uppercase text-white">
+                  {editingProduct.id ? 'Editar Camisa' : 'Nova Camisa'}
+                </h2>
+                <button type="button" onClick={() => setIsEditing(false)} className="text-muted-foreground hover:text-white">
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+
+              <div className="grid gap-6 md:grid-cols-2">
+                {/* Título */}
+                <div className="space-y-2 md:col-span-2">
+                  <label className="form-label">Título da Camisa</label>
+                  <input
+                    required
+                    value={editingProduct.title || ''}
+                    onChange={e => setEditingProduct({ ...editingProduct, title: e.target.value })}
+                    className="form-input"
+                    placeholder="Ex: Camisa Real Madrid Home 24/25"
+                  />
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="space-y-2 md:col-span-2">
-                    <label className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                      Título da Camisa
-                    </label>
-                    <input
-                      required
-                      value={editingProduct.title || ''}
-                      onChange={e => setEditingProduct({...editingProduct, title: e.target.value})}
-                      className="form-input"
-                      placeholder="Ex: Camisa Real Madrid Home 24/25"
-                    />
-                  </div>
+                {/* Descrição */}
+                <div className="space-y-2 md:col-span-2">
+                  <label className="form-label">Descrição</label>
+                  <textarea
+                    required
+                    rows={3}
+                    value={editingProduct.description || ''}
+                    onChange={e => setEditingProduct({ ...editingProduct, description: e.target.value })}
+                    className="form-input resize-none"
+                    placeholder="Descrição detalhada do produto..."
+                  />
+                </div>
 
-                  <div className="space-y-2 md:col-span-2">
-                    <label className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                      Descrição
-                    </label>
-                    <textarea
-                      required
-                      rows={3}
-                      value={editingProduct.description || ''}
-                      onChange={e => setEditingProduct({...editingProduct, description: e.target.value})}
-                      className="form-input resize-none"
-                      placeholder="Descrição detalhada do produto..."
-                    />
-                  </div>
+                {/* Preço */}
+                <div className="space-y-2">
+                  <label className="form-label">Preço (R$)</label>
+                  <input
+                    required
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={editingProduct.price || ''}
+                    onChange={e => setEditingProduct({ ...editingProduct, price: Number(e.target.value) })}
+                    className="form-input"
+                    placeholder="0.00"
+                  />
+                </div>
 
-                  <div className="space-y-2">
-                    <label className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                      Preço (R$)
-                    </label>
-                    <input
-                      required
-                      type="number"
-                      step="0.01"
-                      value={editingProduct.price || ''}
-                      onChange={e => setEditingProduct({...editingProduct, price: Number(e.target.value)})}
-                      className="form-input"
-                      placeholder="0.00"
-                    />
-                  </div>
+                {/* Preço Personalização */}
+                <div className="space-y-2">
+                  <label className="form-label">Preço da Personalização (R$)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={editingProduct.personalization_price ?? 20}
+                    onChange={e => setEditingProduct({ ...editingProduct, personalization_price: Number(e.target.value) })}
+                    className="form-input"
+                    placeholder="20.00"
+                  />
+                </div>
 
-                  <div className="space-y-2">
-                    <label className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                      Estoque (Unidades)
-                    </label>
-                    <input
-                      required
-                      type="number"
-                      value={editingProduct.stock || ''}
-                      onChange={e => setEditingProduct({...editingProduct, stock: Number(e.target.value)})}
-                      className="form-input"
-                      placeholder="0"
-                    />
-                  </div>
+                {/* Estoque */}
+                <div className="space-y-2">
+                  <label className="form-label">Estoque (Unidades)</label>
+                  <input
+                    required
+                    type="number"
+                    min="0"
+                    value={editingProduct.stock || ''}
+                    onChange={e => setEditingProduct({ ...editingProduct, stock: Number(e.target.value) })}
+                    className="form-input"
+                    placeholder="0"
+                  />
+                </div>
 
-                  <div className="space-y-2">
-                    <label className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                      Liga / Campeonato
-                    </label>
-                    <select
-                      value={editingProduct.league || ''}
-                      onChange={e => {
-                        const newLeagueId = e.target.value
-                        const newLeague = dbLeagues.find(l => l.id === newLeagueId)
-                        setEditingProduct({
-                          ...editingProduct, 
-                          league: newLeagueId,
-                          team: newLeague?.teams?.[0]?.id || ''
-                        })
-                      }}
-                      className="form-input appearance-none"
-                    >
-                      <option value="" disabled>Selecione a Liga</option>
-                      {dbLeagues.map(league => (
-                        <option key={league.id} value={league.id}>{league.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                {/* Tipo */}
+                <div className="space-y-2">
+                  <label className="form-label">Tipo de Camisa</label>
+                  <AdminSelect
+                    value={editingProduct.type || 'torcedor'}
+                    onChange={val => setEditingProduct({ ...editingProduct, type: val })}
+                    options={PRODUCT_TYPES}
+                    placeholder="Selecione o Tipo"
+                  />
+                </div>
 
-                  <div className="space-y-2">
-                    <label className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                      Time / Seleção
-                    </label>
-                    <select
-                      value={editingProduct.team || ''}
-                      onChange={e => setEditingProduct({...editingProduct, team: e.target.value})}
-                      className="form-input appearance-none"
-                      disabled={!editingProduct.league}
-                    >
-                      <option value="" disabled>Selecione o Time</option>
-                      {activeLeague?.teams?.map((team: any) => (
-                        <option key={team.id} value={team.id}>{team.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                {/* Liga */}
+                <div className="space-y-2">
+                  <label className="form-label">Liga / Campeonato</label>
+                  <AdminSelect
+                    value={editingProduct.league || ''}
+                    onChange={val => {
+                      const newLeague = dbLeagues.find(l => l.id === val)
+                      setEditingProduct({
+                        ...editingProduct,
+                        league: val,
+                        team: newLeague?.teams?.[0]?.id || '',
+                      })
+                    }}
+                    options={dbLeagues.map(l => ({ value: l.id, label: l.name }))}
+                    placeholder="Selecione a Liga"
+                  />
+                </div>
 
-                  <div className="space-y-2 md:col-span-2">
-                    <label className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-3 block">
-                      Tamanhos Disponíveis
-                    </label>
-                    <div className="flex flex-wrap gap-3">
-                      {AVAILABLE_SIZES.map(size => {
-                        const isSelected = (editingProduct.sizes || []).includes(size)
-                        return (
-                          <button
-                            type="button"
-                            key={size}
-                            onClick={() => handleSizeToggle(size)}
-                            className={`flex h-10 w-12 items-center justify-center rounded border transition-all ${
-                              isSelected 
-                                ? 'border-primary bg-primary/20 text-primary font-bold shadow-[0_0_10px_rgba(255,170,0,0.2)]' 
-                                : 'border-white/10 bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'
-                            }`}
-                          >
-                            {size}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
+                {/* Time */}
+                <div className="space-y-2">
+                  <label className="form-label">Time / Seleção</label>
+                  <AdminSelect
+                    value={editingProduct.team || ''}
+                    onChange={val => setEditingProduct({ ...editingProduct, team: val })}
+                    options={(activeLeague?.teams || []).map((t: any) => ({ value: t.id, label: t.name }))}
+                    placeholder="Selecione o Time"
+                    disabled={!editingProduct.league}
+                  />
+                </div>
 
-                  <div className="space-y-2 md:col-span-2">
-                    <label className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                      URL da Imagem
-                    </label>
-                    <input
-                      value={editingProduct.image_url || ''}
-                      onChange={e => setEditingProduct({...editingProduct, image_url: e.target.value})}
-                      className="form-input"
-                      placeholder="https://exemplo.com/imagem.jpg"
-                    />
-                  </div>
-
-                  <div className="space-y-2 md:col-span-2">
-                    <label className="flex items-center gap-3 cursor-pointer p-4 border border-white/10 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={editingProduct.featured || false}
-                        onChange={e => setEditingProduct({...editingProduct, featured: e.target.checked})}
-                        className="w-5 h-5 rounded border-white/20 bg-transparent text-primary focus:ring-primary focus:ring-offset-0"
-                      />
-                      <div>
-                        <p className="font-display font-bold uppercase text-white flex items-center gap-2">
-                          <Star className="h-4 w-4 text-primary" /> Produto em Destaque
-                        </p>
-                        <p className="text-xs text-muted-foreground">Marque esta opção para exibir a camisa nas primeiras posições do catálogo.</p>
-                      </div>
-                    </label>
+                {/* Tamanhos */}
+                <div className="space-y-3 md:col-span-2">
+                  <label className="form-label">Tamanhos Disponíveis</label>
+                  <div className="flex flex-wrap gap-3">
+                    {AVAILABLE_SIZES.map(size => {
+                      const selected = (editingProduct.sizes || []).includes(size)
+                      return (
+                        <button
+                          type="button"
+                          key={size}
+                          onClick={() => handleSizeToggle(size)}
+                          className={`flex h-10 w-12 items-center justify-center rounded border transition-all text-sm font-bold ${
+                            selected
+                              ? 'border-primary bg-primary/20 text-primary shadow-[0_0_10px_rgba(255,170,0,0.2)]'
+                              : 'border-white/10 bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'
+                          }`}
+                        >
+                          {size}
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-4 pt-4 border-t border-white/10">
+                {/* Imagem */}
+                <div className="md:col-span-2">
+                  <ImageUploader
+                    value={editingProduct.image_url || ''}
+                    onChange={url => setEditingProduct({ ...editingProduct, image_url: url })}
+                    folder="jersey"
+                    label="Foto da Camisa"
+                    aspectRatio="portrait"
+                  />
+                </div>
+
+                {/* Toggles */}
+                <div className="md:col-span-2 flex flex-col sm:flex-row gap-4">
                   <button
                     type="button"
-                    onClick={() => setIsEditing(false)}
-                    className="btn-outline px-6"
+                    onClick={() => setEditingProduct({ ...editingProduct, featured: !editingProduct.featured })}
+                    className={`flex-1 flex items-center gap-3 p-4 border rounded-xl transition-colors ${
+                      editingProduct.featured
+                        ? 'border-primary/30 bg-primary/10'
+                        : 'border-white/10 bg-white/5 hover:bg-white/10'
+                    }`}
                   >
-                    Cancelar
+                    <Star className={`h-5 w-5 ${editingProduct.featured ? 'text-primary fill-primary' : 'text-muted-foreground'}`} />
+                    <div className="text-left">
+                      <p className="font-display font-bold uppercase text-sm text-white">Produto em Destaque</p>
+                      <p className="text-[10px] text-muted-foreground">Aparece nas primeiras posições</p>
+                    </div>
+                    {editingProduct.featured
+                      ? <ToggleRight className="h-5 w-5 text-primary ml-auto" />
+                      : <ToggleLeft className="h-5 w-5 text-muted-foreground ml-auto" />
+                    }
                   </button>
+
                   <button
-                    type="submit"
-                    disabled={saving}
-                    className="btn-glow-primary px-8 flex items-center gap-2"
+                    type="button"
+                    onClick={() => setEditingProduct({ ...editingProduct, active: !editingProduct.active })}
+                    className={`flex-1 flex items-center gap-3 p-4 border rounded-xl transition-colors ${
+                      editingProduct.active !== false
+                        ? 'border-[#25D366]/30 bg-[#25D366]/10'
+                        : 'border-white/10 bg-white/5 hover:bg-white/10'
+                    }`}
                   >
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    Salvar Camisa
+                    <Package className={`h-5 w-5 ${editingProduct.active !== false ? 'text-[#25D366]' : 'text-muted-foreground'}`} />
+                    <div className="text-left">
+                      <p className="font-display font-bold uppercase text-sm text-white">Produto Ativo</p>
+                      <p className="text-[10px] text-muted-foreground">Visível na loja para clientes</p>
+                    </div>
+                    {editingProduct.active !== false
+                      ? <ToggleRight className="h-5 w-5 text-[#25D366] ml-auto" />
+                      : <ToggleLeft className="h-5 w-5 text-muted-foreground ml-auto" />
+                    }
                   </button>
                 </div>
-              </form>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="product-list"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="glass-card rounded-[1.5rem] overflow-hidden"
-            >
-              {loading ? (
-                <div className="p-12 flex justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : products.length === 0 ? (
-                <div className="p-12 text-center text-muted-foreground">
-                  <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Nenhuma camisa cadastrada.</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-white/5 font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                      <tr>
-                        <th className="p-4">Produto</th>
-                        <th className="p-4">Liga / Time</th>
-                        <th className="p-4">Preço</th>
-                        <th className="p-4">Estoque</th>
-                        <th className="p-4 text-right">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5 text-white/80">
-                      {products.map(product => {
-                        const leagueObj = dbLeagues.find(l => l.id === product.league)
-                        const leagueName = leagueObj?.name || product.league || 'Geral'
-                        const teamName = leagueObj?.teams?.find((t: any) => t.id === product.team)?.name || product.team || '-'
-                        
-                        return (
-                          <tr key={product.id} className="hover:bg-white/[0.02] transition-colors">
-                            <td className="p-4 flex items-center gap-4">
+              </div>
+
+              <div className="flex justify-end gap-4 pt-4 border-t border-white/10">
+                <button type="button" onClick={() => setIsEditing(false)} className="btn-outline px-6">
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="btn-glow-primary px-8 flex items-center gap-2"
+                >
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Salvar Camisa
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="product-list"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="glass-card rounded-[1.5rem] overflow-hidden"
+          >
+            {loading ? (
+              <div className="p-12 flex justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : filteredProducts.length === 0 ? (
+              <div className="p-12 text-center text-muted-foreground">
+                <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>{searchTerm ? 'Nenhuma camisa encontrada.' : 'Nenhuma camisa cadastrada.'}</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-white/5 font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                    <tr>
+                      <th className="p-4">Produto</th>
+                      <th className="p-4">Liga / Time</th>
+                      <th className="p-4">Tipo</th>
+                      <th className="p-4">Preço</th>
+                      <th className="p-4">Estoque</th>
+                      <th className="p-4">Status</th>
+                      <th className="p-4 text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5 text-white/80">
+                    {filteredProducts.map(product => {
+                      const leagueObj = dbLeagues.find(l => l.id === product.league)
+                      const leagueName = leagueObj?.name || product.league || 'Geral'
+                      const teamName = leagueObj?.teams?.find((t: any) => t.id === product.team)?.name || product.team || '-'
+
+                      return (
+                        <tr key={product.id} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="p-4">
+                            <div className="flex items-center gap-3">
                               <div className="h-12 w-10 shrink-0 overflow-hidden rounded bg-white/5">
                                 {product.image_url && (
                                   <img src={resolveAssetUrl(product.image_url)} alt={product.title} className="h-full w-full object-cover" />
                                 )}
                               </div>
-                              <div className="flex flex-col">
-                                <span className="font-medium truncate max-w-[200px] sm:max-w-xs text-white flex items-center gap-2">
-                                  {product.featured && <Star className="h-3 w-3 text-primary fill-primary" />}
+                              <div>
+                                <span className="font-medium text-white flex items-center gap-1.5 truncate max-w-[180px]">
+                                  {product.featured && <Star className="h-3 w-3 text-primary fill-primary shrink-0" />}
                                   {product.title}
                                 </span>
-                                <span className="text-[10px] text-muted-foreground mt-0.5">{(product.sizes || []).join(', ')}</span>
+                                <span className="text-[10px] text-muted-foreground">{(product.sizes || []).join(', ')}</span>
                               </div>
-                            </td>
-                            <td className="p-4">
-                              <div className="flex flex-col">
-                                <span className="text-white text-xs">{leagueName}</span>
-                                <span className="text-[10px] text-muted-foreground uppercase">{teamName}</span>
-                              </div>
-                            </td>
-                            <td className="p-4 font-medium">R$ {product.price.toFixed(2).replace('.', ',')}</td>
-                            <td className="p-4">
-                              <span className={`px-2 py-1 rounded text-xs ${
-                                product.stock > 0 ? 'bg-[#25D366]/10 text-[#25D366]' : 'bg-destructive/10 text-destructive'
-                              }`}>
-                                {product.stock > 0 ? `${product.stock} un.` : 'Esgotado'}
-                              </span>
-                            </td>
-                            <td className="p-4 text-right space-x-2">
-                              <button
-                                onClick={() => {
-                                  setEditingProduct(product)
-                                  setIsEditing(true)
-                                }}
-                                className="p-2 text-primary hover:bg-primary/10 rounded-md transition-colors"
-                                title="Editar"
-                              >
-                                <Edit2 className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(product.id)}
-                                className="p-2 text-destructive hover:bg-destructive/10 rounded-md transition-colors"
-                                title="Excluir"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <span className="text-xs text-white block">{leagueName}</span>
+                            <span className="text-[10px] text-muted-foreground uppercase">{teamName}</span>
+                          </td>
+                          <td className="p-4">
+                            <span className="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-white/10 text-white/70">
+                              {product.type || 'torcedor'}
+                            </span>
+                          </td>
+                          <td className="p-4 font-medium">R$ {Number(product.price).toFixed(2).replace('.', ',')}</td>
+                          <td className="p-4">
+                            <span className={`px-2 py-1 rounded text-xs font-bold ${
+                              product.stock > 0 ? 'bg-[#25D366]/10 text-[#25D366]' : 'bg-destructive/10 text-destructive'
+                            }`}>
+                              {product.stock > 0 ? `${product.stock} un.` : 'Esgotado'}
+                            </span>
+                          </td>
+                          <td className="p-4">
+                            <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
+                              product.active !== false
+                                ? 'bg-[#25D366]/10 text-[#25D366]'
+                                : 'bg-white/10 text-white/40'
+                            }`}>
+                              {product.active !== false ? 'Ativo' : 'Inativo'}
+                            </span>
+                          </td>
+                          <td className="p-4 text-right space-x-1">
+                            <button
+                              onClick={() => openEdit(product)}
+                              className="p-2 text-primary hover:bg-primary/10 rounded-md transition-colors"
+                              title="Editar"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(product.id)}
+                              className="p-2 text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                              title="Excluir"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
