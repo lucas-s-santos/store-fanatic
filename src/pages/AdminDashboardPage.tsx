@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { DollarSign, ShoppingCart, Package, AlertTriangle, TrendingUp, Clock } from 'lucide-react'
+import { DollarSign, ShoppingCart, AlertTriangle, TrendingUp, Clock } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 interface Order {
