@@ -6,8 +6,8 @@ import { Menu, ShoppingBag, X } from 'lucide-react'
 import { useCartStore } from '../../store/cartStore'
 
 const NAV_ITEMS = [
-  { label: 'Inicio', to: '/' },
-  { label: 'Catalogo', to: '/produtos' },
+  { label: 'Início', to: '/' },
+  { label: 'Catálogo', to: '/produtos' },
 ]
 
 export function Header() {

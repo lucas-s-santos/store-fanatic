@@ -120,7 +120,7 @@ const HERO_TEAMS: HeroTeamCardData[] = [
       '/jersey/Mundial/Brasil/Brasil-3.jpeg',
     ],
     title: 'Brasil',
-    subtitle: 'Selecoes',
+    subtitle: 'Seleções',
   },
 ]
 
@@ -133,19 +133,19 @@ const HERO_CAROUSEL_POSITIONS = {
 } as const
 
 const PERKS = [
-  { icon: Truck, label: 'Entrega rapida', desc: 'Postagem agil e envio para todo o Brasil.' },
-  { icon: ShieldCheck, label: 'Qualidade garantida', desc: 'Acabamento premium e revisao antes do envio.' },
-  { icon: Zap, label: 'Atendimento agil', desc: 'Suporte direto para tirar duvidas e fechar pedido.' },
+  { icon: Truck, label: 'Entrega rápida', desc: 'Postagem ágil e envio para todo o Brasil.' },
+  { icon: ShieldCheck, label: 'Qualidade garantida', desc: 'Acabamento premium e revisão antes do envio.' },
+  { icon: Zap, label: 'Atendimento ágil', desc: 'Suporte direto para tirar dúvidas e fechar pedido.' },
 ]
 
 const CATEGORIES = [
-  { name: 'Brasileirao', league: 'brasileirao', icon: Shirt, image: '/jersey/brasileirao/Corinthians/Corinthians-72.jpeg' },
+  { name: 'Brasileirão', league: 'brasileirao', icon: Shirt, image: '/jersey/brasileirao/Corinthians/Corinthians-72.jpeg' },
   { name: 'LaLiga', league: 'laliga', icon: Trophy, image: '/jersey/LaLiga/Real Madrid/Real-Madrid-1.jpeg' },
   { name: 'Premier League', league: 'premier-league', icon: Globe2, image: '/jersey/Premier-league/Manchester-City/Manchester-City-9.jpeg' },
   { name: 'Serie A', league: 'serie-a', icon: Star, image: '/jersey/Serie-A/Milan/Milan-7.jpeg' },
   { name: 'Ligue 1', league: 'ligue-1', icon: ShieldCheck, image: '/jersey/Liga1/Paris-Saint-Germain/PSG-24.jpeg' },
   { name: 'Bundesliga', league: 'bundesliga', icon: Trophy, image: '/jersey/Bundesliga/Borussia-Dortmund/Borussia-Dortmund-5.jpeg' },
-  { name: 'Selecoes mundiais', league: 'selecoes', icon: Globe2, image: '/jersey/Mundial/Brasil/Brasil-1.jpeg' },
+  { name: 'Seleções mundiais', league: 'selecoes', icon: Globe2, image: '/jersey/Mundial/Brasil/Brasil-1.jpeg' },
 ]
 
 function AnimatedCounter({ value, suffix }: { value: number; suffix: string }) {
@@ -449,7 +449,7 @@ export function HomePage() {
                 transition={{ duration: 0.7, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
                 className="mt-6 max-w-lg text-sm leading-7 text-white/68 sm:text-base"
               >
-                Camisas de clubes e selecoes para quem vive futebol no detalhe. Escolha seu manto para o estadio, a resenha ou o dia a dia.
+                Camisas de clubes e seleções para quem vive futebol no detalhe. Escolha seu manto para o estádio, a resenha ou o dia a dia.
               </motion.p>
 
               <motion.div
@@ -650,7 +650,7 @@ export function HomePage() {
                   <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-primary">Copa do Mundo 2026</span>
                 </div>
                 <h2 className="text-3xl font-bold uppercase tracking-tight text-white sm:text-4xl lg:text-5xl">
-                  Selecoes <span className="text-gradient-gold">mundiais</span>
+                  Seleções <span className="text-gradient-gold">mundiais</span>
                 </h2>
               </div>
               <Link to="/produtos" className="group inline-flex shrink-0 items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-primary transition-colors hover:text-white">
@@ -763,7 +763,7 @@ export function HomePage() {
                 <span className="text-gradient-gold">perfeito</span>
               </h2>
               <p className="mx-auto max-w-[500px] text-sm leading-relaxed text-white/60 sm:text-base">
-                Mais de 30 modelos exclusivos entre Brasileirao, Champions e edicoes especiais, com atendimento direto para quem quer comprar sem enrolacao.
+                Mais de 30 modelos exclusivos entre Brasileirão, Champions e edições especiais, com atendimento direto para quem quer comprar sem enrolação.
               </p>
               <Link to="/produtos" className="btn-glow-primary group mx-auto inline-flex">
                 <span className="relative z-10 flex items-center gap-2">

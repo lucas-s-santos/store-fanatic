@@ -180,7 +180,7 @@ function QuickViewModal({ product, leagueName, teamName, onClose }: { product: P
 
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <span className={stock > 0 ? 'text-green-400' : 'text-red-400'}>
-                {stock > 0 ? `${stock} disponivel` : 'Esgotado'}
+                {stock > 0 ? `${stock} disponível` : 'Esgotado'}
               </span>
             </div>
 
@@ -539,7 +539,7 @@ export function CatalogPage() {
                       {isLow && (
                         <div className="absolute right-2 top-2 z-10 sm:right-4 sm:top-4">
                           <span className="rounded-full border border-[#FF453A]/40 bg-[#FF453A]/20 px-2 py-0.5 text-[7px] font-semibold uppercase tracking-wider text-[#FF453A] shadow-lg backdrop-blur-md sm:px-3 sm:py-1.5 sm:text-[9px]">
-                            Ultimas unidades
+                            Últimas unidades
                           </span>
                         </div>
                       )}
@@ -560,7 +560,7 @@ export function CatalogPage() {
 
                       <div className="mt-1 flex items-end justify-between gap-2 border-t border-white/10 pt-2 sm:pt-5">
                         <div>
-                          <p className="text-[7px] font-semibold uppercase tracking-[0.2em] text-primary/70 sm:text-[10px]">Preco</p>
+                          <p className="text-[7px] font-semibold uppercase tracking-[0.2em] text-primary/70 sm:text-[10px]">Preço</p>
                           <p className="mt-0.5 text-sm font-display font-bold tracking-tight text-white sm:mt-1 sm:text-xl lg:text-2xl">
                             R$ {product.price?.toFixed(2).replace('.', ',')}
                           </p>

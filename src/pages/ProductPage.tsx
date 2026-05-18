@@ -94,7 +94,7 @@ export function ProductPage() {
 
   if (loading) {
     return (
-      <div className="px-4 pt-28 pb-12 sm:px-6">
+      <div className="px-3 pt-28 pb-12 sm:px-6 sm:pt-32">
         <div className="mx-auto flex min-h-[60vh] max-w-[1440px] flex-col items-center justify-center gap-6">
           <div className="w-full max-w-4xl grid gap-6 xl:grid-cols-2">
             <div className="aspect-[4/5] w-full animate-pulse bg-white/5 rounded-sm" />
@@ -116,7 +116,7 @@ export function ProductPage() {
 
   if (!product) {
     return (
-      <div className="px-4 pt-28 pb-12 sm:px-6">
+      <div className="px-3 pt-28 pb-12 sm:px-6 sm:pt-32">
         <div className="mx-auto flex min-h-[60vh] max-w-[1440px] flex-col items-center justify-center gap-6 text-center">
           <h2 className="text-4xl font-display uppercase text-white">Produto não encontrado</h2>
           <button
@@ -132,7 +132,7 @@ export function ProductPage() {
   }
 
   return (
-    <div className="px-4 pt-32 pb-16 sm:px-6 bg-background min-h-screen">
+    <div className="px-3 pt-28 pb-16 sm:px-6 sm:pt-32 bg-background min-h-screen">
       <div className="mx-auto max-w-[1440px] space-y-6">
         <motion.button
           onClick={() => navigate(-1)}
@@ -153,7 +153,7 @@ export function ProductPage() {
             transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
             className="relative overflow-hidden rounded-[2rem] bg-card border border-border shadow-2xl"
           >
-            <div className="relative aspect-[4/5] min-h-[520px] overflow-hidden group">
+            <div className="relative aspect-[4/5] min-h-[360px] overflow-hidden group sm:min-h-[480px]">
               <img
                 src={resolveAssetUrl(product.image_url) || 'https://via.placeholder.com/600x800?text=Sem+Foto'}
                 alt={productName}
