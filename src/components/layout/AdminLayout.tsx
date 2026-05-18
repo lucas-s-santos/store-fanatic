@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Package, ShoppingCart, LogOut, ArrowLeft, Tag, Settings, Trophy, Menu, X } from 'lucide-react'
+import { LayoutDashboard, Package, ShoppingCart, LogOut, ArrowLeft, Tag, Settings, Trophy, Menu, X, Users } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { CyberBackground } from '../ui/CyberBackground'
 
@@ -8,6 +8,7 @@ const links = [
   { name: 'Dashboard', path: '/admin', icon: LayoutDashboard, exact: true },
   { name: 'Produtos', path: '/admin/produtos', icon: Package },
   { name: 'Pedidos', path: '/admin/pedidos', icon: ShoppingCart },
+  { name: 'Usuários', path: '/admin/usuarios', icon: Users },
   { name: 'Cupons', path: '/admin/cupons', icon: Tag },
   { name: 'Ligas & Times', path: '/admin/ligas', icon: Trophy },
   { name: 'Configurações', path: '/admin/configuracoes', icon: Settings },

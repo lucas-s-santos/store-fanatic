@@ -12,9 +12,13 @@ import { AdminOrdersPage } from './pages/AdminOrdersPage'
 import { AdminCouponsPage } from './pages/AdminCouponsPage'
 import { AdminSettingsPage } from './pages/AdminSettingsPage'
 import { AdminLeaguesPage } from './pages/AdminLeaguesPage'
+import { AdminUsersPage } from './pages/AdminUsersPage'
 import { AdminProtectedRoute } from './components/layout/AdminProtectedRoute'
 import { ToastProvider } from './components/ui/Toast'
 import { CheckoutReturnPage } from './pages/CheckoutReturnPage'
+import { OrderTrackingPage } from './pages/OrderTrackingPage'
+import { AuthPage } from './pages/AuthPage'
+import { MyOrdersPage } from './pages/MyOrdersPage'
 
 function App() {
   return (
@@ -29,6 +33,9 @@ function App() {
           <Route path="/carrinho" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/pedido/confirmado" element={<CheckoutReturnPage />} />
+          <Route path="/pedido/:orderId" element={<OrderTrackingPage />} />
+          <Route path="/meus-pedidos" element={<MyOrdersPage />} />
+          <Route path="/login" element={<AuthPage />} />
         </Route>
 
         {/* Admin (Protegido) */}
@@ -37,6 +44,7 @@ function App() {
             <Route index element={<AdminDashboardPage />} />
             <Route path="produtos" element={<AdminPage />} />
             <Route path="pedidos" element={<AdminOrdersPage />} />
+            <Route path="usuarios" element={<AdminUsersPage />} />
             <Route path="cupons" element={<AdminCouponsPage />} />
             <Route path="ligas" element={<AdminLeaguesPage />} />
             <Route path="configuracoes" element={<AdminSettingsPage />} />

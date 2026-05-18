@@ -1,6 +1,6 @@
-import { useSearchParams, useNavigate } from 'react-router-dom'
+import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { CheckCircle2, Clock, XCircle, ShieldCheck, Home, RotateCcw } from 'lucide-react'
+import { CheckCircle2, Clock, XCircle, ShieldCheck, Home, RotateCcw, Package } from 'lucide-react'
 import { useSettings } from '../lib/useSettings'
 
 type PaymentStatus = 'approved' | 'pending' | 'rejected' | 'unknown'
@@ -58,7 +58,7 @@ export function CheckoutReturnPage() {
   const { settings } = useSettings()
 
   const status = resolveStatus(searchParams)
-  const orderId = searchParams.get('external_reference') || ''
+  const orderId = searchParams.get('external_reference') || sessionStorage.getItem('last_order_id') || ''
   const paymentType = searchParams.get('payment_type') || ''
 
   const cfg = statusConfig[status]
@@ -124,6 +124,16 @@ export function CheckoutReturnPage() {
 
         {/* Ações */}
         <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto mt-2">
+          {(status === 'approved' || status === 'pending' || status === 'unknown') && orderId && (
+            <Link
+              to={`/pedido/${orderId}`}
+              className="flex items-center justify-center gap-2 rounded-full bg-primary px-8 py-4 font-sans text-xs font-bold uppercase tracking-[0.2em] text-primary-foreground transition-all hover:opacity-90 hover:scale-105 active:scale-95"
+            >
+              <Package className="h-4 w-4" />
+              Acompanhar meu pedido
+            </Link>
+          )}
+
           {(status === 'approved' || status === 'pending' || status === 'unknown') && (
             <a
               href={waLink}

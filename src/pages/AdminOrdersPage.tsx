@@ -7,6 +7,7 @@ import {
   AlertTriangle, ShieldCheck, ArrowRight,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { useToast } from '../components/ui/Toast'
 
 interface Order {
   id: string
@@ -273,6 +274,7 @@ function OrderStatusStepper({
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export function AdminOrdersPage() {
+  const { toast } = useToast()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
@@ -312,10 +314,13 @@ export function AdminOrdersPage() {
     if (!selectedOrder) return
     setStatusUpdating(true)
     const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', selectedOrder.id)
-    if (!error) {
+    if (error) {
+      toast(`Erro ao atualizar status: ${error.message}`, 'error')
+    } else {
       const updated = { ...selectedOrder, status: newStatus }
       setSelectedOrder(updated)
       setOrders(prev => prev.map(o => o.id === selectedOrder.id ? updated : o))
+      toast('Status atualizado com sucesso', 'success')
     }
     setStatusUpdating(false)
     setCancelConfirm(false)
@@ -328,10 +333,13 @@ export function AdminOrdersPage() {
       .from('orders')
       .update({ tracking_code: trackingInput })
       .eq('id', selectedOrder.id)
-    if (!error) {
+    if (error) {
+      toast(`Erro ao salvar rastreio: ${error.message}`, 'error')
+    } else {
       const updated = { ...selectedOrder, tracking_code: trackingInput }
       setSelectedOrder(updated)
       setOrders(prev => prev.map(o => o.id === selectedOrder.id ? updated : o))
+      toast('Código de rastreio salvo', 'success')
     }
     setSavingTracking(false)
   }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCartStore } from '../store/cartStore'
+import { useAuth } from '../lib/useAuth'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -66,6 +67,7 @@ export function CheckoutPage() {
   const navigate = useNavigate()
   const { settings } = useSettings()
   const { toast } = useToast()
+  const { user, loading: authLoading } = useAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isFetchingCep, setIsFetchingCep] = useState(false)
 
@@ -98,6 +100,10 @@ export function CheckoutPage() {
   useEffect(() => {
     if (items.length === 0) navigate('/carrinho')
   }, [items.length, navigate])
+
+  useEffect(() => {
+    if (!authLoading && !user) navigate('/login?next=/checkout')
+  }, [user, authLoading, navigate])
 
   // ── CEP ──────────────────────────────────────────────────────────────────
   const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -175,6 +181,7 @@ export function CheckoutPage() {
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .insert({
+          user_id: user?.id ?? null,
           customer_name: data.fullName,
           customer_cpf: data.cpf,
           customer_email: data.email,
@@ -193,7 +200,7 @@ export function CheckoutPage() {
         .select()
         .single()
 
-      if (orderError) throw orderError
+      if (orderError) throw new Error(orderError.message || orderError.details || 'Erro ao registrar pedido.')
 
       // 3. Criar itens do pedido
       const { error: itemsError } = await supabase.from('order_items').insert(
@@ -206,7 +213,7 @@ export function CheckoutPage() {
           personalization: item.personalization ? [item.personalization] : [],
         }))
       )
-      if (itemsError) throw itemsError
+      if (itemsError) throw new Error(itemsError.message || 'Erro ao registrar itens do pedido.')
 
       // 4. Atualizar uso do cupom
       if (appliedCoupon) {
@@ -243,6 +250,7 @@ export function CheckoutPage() {
         .maybeSingle()
 
       // 7. Limpar carrinho e redirecionar para o Mercado Pago
+      sessionStorage.setItem('last_order_id', orderData.id)
       clearCart()
       window.location.href = preference.init_point
 

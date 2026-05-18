@@ -6,18 +6,31 @@ import { Loader2 } from 'lucide-react'
 
 export function AdminProtectedRoute() {
   const [session, setSession] = useState<any>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
 
+  async function checkAdmin(userId: string) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single()
+    setIsAdmin(data?.role === 'admin')
+  }
+
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session)
+      if (session?.user) await checkAdmin(session.user.id)
       setLoading(false)
     })
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session)
+      if (session?.user) await checkAdmin(session.user.id)
+      else setIsAdmin(false)
     })
 
     return () => subscription.unsubscribe()
@@ -31,7 +44,7 @@ export function AdminProtectedRoute() {
     )
   }
 
-  if (!session) {
+  if (!session || !isAdmin) {
     return <AdminLoginPage />
   }
 

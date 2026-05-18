@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Menu, ShoppingBag, X } from 'lucide-react'
+import { Menu, ShoppingBag, X, User, LogIn, Package, LogOut, ChevronDown, Shield } from 'lucide-react'
 
 import { useCartStore } from '../../store/cartStore'
+import { useAuth } from '../../lib/useAuth'
 
 const NAV_ITEMS = [
   { label: 'Início', to: '/' },
@@ -12,10 +13,30 @@ const NAV_ITEMS = [
 
 export function Header() {
   const location = useLocation()
+  const navigate = useNavigate()
   const { getTotalItems, toggleDrawer } = useCartStore()
   const totalItems = getTotalItems()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const userMenuRef = useRef<HTMLDivElement>(null)
+  const { user, isAdmin, signOut } = useAuth()
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [])
+
+  const handleSignOut = async () => {
+    await signOut()
+    setUserMenuOpen(false)
+    navigate('/')
+  }
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40)
@@ -76,6 +97,71 @@ export function Header() {
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
+          {/* Botão de usuário */}
+          {user ? (
+            <div ref={userMenuRef} className="relative">
+              <button
+                onClick={() => setUserMenuOpen(v => !v)}
+                className="flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm font-semibold text-primary transition-all hover:bg-primary/10"
+              >
+                <User className="h-4 w-4" />
+                <span className="max-w-[120px] truncate">{user.email?.split('@')[0]}</span>
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+              <AnimatePresence>
+                {userMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 6, scale: 0.97 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-2 w-52 rounded-2xl border border-white/10 bg-[#0a0a0a] shadow-2xl overflow-hidden"
+                  >
+                    <div className="px-4 py-3 border-b border-white/[0.06]">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Minha conta</p>
+                      <p className="mt-0.5 text-xs text-white truncate">{user.email}</p>
+                    </div>
+                    <div className="p-1.5">
+                      {isAdmin && (
+                        <Link
+                          to="/admin"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-primary/90 transition-colors hover:bg-primary/10 hover:text-primary font-semibold"
+                        >
+                          <Shield className="h-4 w-4" />
+                          Admin Panel
+                        </Link>
+                      )}
+                      <Link
+                        to="/meus-pedidos"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-white/80 transition-colors hover:bg-white/[0.06] hover:text-white"
+                      >
+                        <Package className="h-4 w-4 text-primary" />
+                        Meus pedidos
+                      </Link>
+                      <button
+                        onClick={handleSignOut}
+                        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-white/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Sair
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          ) : (
+            <Link
+              to="/login"
+              className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.02] px-5 py-2.5 text-sm font-semibold text-white/70 transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-white"
+            >
+              <LogIn className="h-4 w-4" />
+              Entrar
+            </Link>
+          )}
+
           <button
             onClick={toggleDrawer}
             className="relative flex items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.02] px-5 py-2.5 text-sm font-semibold text-white/70 transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-white hover:shadow-[0_0_20px_rgba(229,192,123,0.15)]"
@@ -150,6 +236,42 @@ export function Header() {
                   {item.label}
                 </Link>
               ))}
+              <div className="my-1 h-px bg-white/[0.06]" />
+              {user ? (
+                <>
+                  {isAdmin && (
+                    <Link
+                      to="/admin"
+                      className="flex items-center gap-2.5 rounded-lg px-4 py-3.5 text-sm font-semibold text-primary transition-colors hover:bg-primary/10"
+                    >
+                      <Shield className="h-4 w-4" />
+                      Admin Panel
+                    </Link>
+                  )}
+                  <Link
+                    to="/meus-pedidos"
+                    className="flex items-center gap-2.5 rounded-lg px-4 py-3.5 text-sm font-medium text-white/70 transition-colors hover:bg-white/[0.04] hover:text-white"
+                  >
+                    <Package className="h-4 w-4 text-primary" />
+                    Meus pedidos
+                  </Link>
+                  <button
+                    onClick={handleSignOut}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-4 py-3.5 text-left text-sm font-medium text-white/50 transition-colors hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sair
+                  </button>
+                </>
+              ) : (
+                <Link
+                  to="/login"
+                  className="flex items-center gap-2.5 rounded-lg px-4 py-3.5 text-sm font-medium text-white/70 transition-colors hover:bg-white/[0.04] hover:text-white"
+                >
+                  <LogIn className="h-4 w-4 text-primary" />
+                  Entrar / Cadastrar
+                </Link>
+              )}
             </div>
           </motion.div>
         )}
