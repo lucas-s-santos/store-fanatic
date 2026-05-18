@@ -13,6 +13,7 @@ export interface CartItem {
   imageUrl: string
   size: string
   quantity: number
+  stockQuantity?: number
   personalization?: Personalization
 }
 

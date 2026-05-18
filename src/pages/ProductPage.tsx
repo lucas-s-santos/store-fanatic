@@ -5,6 +5,7 @@ import { ArrowLeft, MoveRight, AlertTriangle, ShieldCheck, Star, Zap, Shirt } fr
 import { resolveAssetUrl } from '../lib/assets'
 import { supabase } from '../lib/supabase'
 import { useCartStore } from '../store/cartStore'
+import { useToast } from '../components/ui/Toast'
 
 const PERSONALIZATION_PRICE = 20
 
@@ -43,6 +44,8 @@ export function ProductPage() {
   const [personalizedName, setPersonalizedName] = useState('')
   const [personalizedNumber, setPersonalizedNumber] = useState('')
   const addItem = useCartStore((state) => state.addItem)
+  const cartItems = useCartStore((state) => state.items)
+  const { toast } = useToast()
 
   useEffect(() => {
     async function fetchProduct() {
@@ -65,6 +68,15 @@ export function ProductPage() {
 
   const handleAddToCart = () => {
     if (!product || !selectedSize) return
+
+    const existing = cartItems.find((i) => i.id === product.id && i.size === selectedSize)
+    const currentQty = existing?.quantity ?? 0
+
+    if (stockQty > 0 && currentQty >= stockQty) {
+      toast(`Estoque esgotado para o tamanho ${selectedSize}. Máximo: ${stockQty} unidade(s).`, 'warning')
+      return
+    }
+
     addItem({
       id: product.id,
       title: productName,
@@ -72,10 +84,12 @@ export function ProductPage() {
       imageUrl: resolveAssetUrl(product.image_url) || 'https://via.placeholder.com/600x800?text=Sem+Foto',
       size: selectedSize,
       quantity: 1,
+      stockQuantity: stockQty,
       personalization: hasPersonalization
         ? { name: personalizedName.trim(), number: personalizedNumber.trim() }
         : undefined,
     })
+    toast(`${productName} adicionado ao carrinho!`, 'success')
   }
 
   if (loading) {

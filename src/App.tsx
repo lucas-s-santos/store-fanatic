@@ -13,9 +13,12 @@ import { AdminCouponsPage } from './pages/AdminCouponsPage'
 import { AdminSettingsPage } from './pages/AdminSettingsPage'
 import { AdminLeaguesPage } from './pages/AdminLeaguesPage'
 import { AdminProtectedRoute } from './components/layout/AdminProtectedRoute'
+import { ToastProvider } from './components/ui/Toast'
+import { CheckoutReturnPage } from './pages/CheckoutReturnPage'
 
 function App() {
   return (
+    <ToastProvider>
     <Router>
       <Routes>
         {/* Loja (Público) */}
@@ -25,6 +28,7 @@ function App() {
           <Route path="/produtos/:id" element={<ProductPage />} />
           <Route path="/carrinho" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/pedido/confirmado" element={<CheckoutReturnPage />} />
         </Route>
 
         {/* Admin (Protegido) */}
@@ -40,6 +44,7 @@ function App() {
         </Route>
       </Routes>
     </Router>
+    </ToastProvider>
   )
 }
 

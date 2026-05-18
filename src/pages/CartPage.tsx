@@ -91,7 +91,12 @@ export function CartPage() {
                         </span>
                         <button
                           onClick={() => updateQuantity(item.id, item.size, item.quantity + 1)}
-                          className="px-4 py-3 text-white"
+                          disabled={item.stockQuantity !== undefined && item.quantity >= item.stockQuantity}
+                          className={`px-4 py-3 transition-colors ${
+                            item.stockQuantity !== undefined && item.quantity >= item.stockQuantity
+                              ? 'text-white/20 cursor-not-allowed'
+                              : 'text-white'
+                          }`}
                         >
                           <Plus className="h-4 w-4" />
                         </button>

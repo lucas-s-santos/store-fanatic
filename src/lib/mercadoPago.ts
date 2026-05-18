@@ -1,75 +1,45 @@
-const MP_PUBLIC_KEY = import.meta.env.VITE_MP_PUBLIC_KEY || ''
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
-
-interface PaymentItem {
-  title: string
-  quantity: number
-  unit_price: number
-}
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 interface PayerInfo {
   email: string
   first_name?: string
   last_name?: string
+  cpf?: string
 }
 
-export async function createPixPayment(
-  items: PaymentItem[],
-  payer: PayerInfo,
-  orderId: string
-) {
-  try {
-    const { data, error } = await supabaseCall('create-payment', {
-      items,
-      payer,
-      payment_method: 'pix',
-      order_id: orderId,
-    })
-    if (error) throw new Error(error)
-    return data
-  } catch (err) {
-    console.error('Erro ao criar pagamento PIX:', err)
-    return null
-  }
+interface BackUrls {
+  success: string
+  failure: string
+  pending: string
 }
 
-export async function createCardPayment(
-  items: PaymentItem[],
+export async function createCheckoutPreference(
+  grandTotal: number,
   payer: PayerInfo,
   orderId: string,
-  token: string,
-  transactionAmount: number,
-  installments: number = 1,
-  paymentMethodId: string = 'master'
+  backUrls: BackUrls,
+  itemsDescription?: string,
 ) {
-  try {
-    const { data, error } = await supabaseCall('create-payment', {
-      items,
-      payer,
-      payment_method: 'credit_card',
-      order_id: orderId,
-      token,
-      transaction_amount: transactionAmount,
-      installments,
-      payment_method_id: paymentMethodId,
-    })
-    if (error) throw new Error(error)
-    return data
-  } catch (err) {
-    console.error('Erro ao criar pagamento cartão:', err)
-    return null
-  }
+  const { data, error } = await supabaseCall('create-payment', {
+    grand_total: grandTotal,
+    payer,
+    order_id: orderId,
+    back_urls: backUrls,
+    items_description: itemsDescription,
+  })
+  if (error) throw new Error(error)
+  return data as { preference_id: string; init_point: string; sandbox_init_point: string }
 }
 
-async function supabaseCall(functionName: string, body: any) {
+async function supabaseCall(functionName: string, body: unknown) {
   const url = `${SUPABASE_URL}/functions/v1/${functionName}`
-  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
   const res = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${anonKey}`,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
     },
     body: JSON.stringify(body),
   })
@@ -81,8 +51,4 @@ async function supabaseCall(functionName: string, body: any) {
 
   const data = await res.json()
   return { data, error: null }
-}
-
-export function getMpPublicKey() {
-  return MP_PUBLIC_KEY
 }
