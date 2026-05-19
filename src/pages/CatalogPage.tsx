@@ -130,7 +130,12 @@ function QuickViewModal({ product, leagueName, teamName, onClose }: { product: P
           <div className="relative w-full shrink-0 bg-black/20 sm:w-72">
             {allImages.length > 0 ? (
               <>
-                <img src={allImages[imgIdx]} alt={name} className="aspect-[3/4] w-full object-cover" />
+                <img
+                  src={allImages[imgIdx]}
+                  alt={name}
+                  className="aspect-[3/4] w-full object-cover"
+                  onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                />
                 {allImages.length > 1 && (
                   <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
                     {allImages.map((_, index) => (
@@ -216,6 +221,7 @@ export function CatalogPage() {
   const [searchParams] = useSearchParams()
   const [products, setProducts] = useState<Product[]>([])
   const [dbLeagues, setDbLeagues] = useState<League[]>([])
+  const [leaguesLoading, setLeaguesLoading] = useState(true)
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<ViewState>('leagues')
   const [selectedLeagueId, setSelectedLeagueId] = useState<string | null>(null)
@@ -229,27 +235,37 @@ export function CatalogPage() {
   const searchInputRef = useRef<HTMLInputElement>(null)
   const leagueParam = searchParams.get('liga') || searchParams.get('league')
 
+  // Busca ligas e times de forma independente — rápida, não bloqueia os produtos
   useEffect(() => {
-    async function fetchData() {
-      setLoading(true)
-
+    let cancelled = false
+    async function fetchLeagues() {
+      setLeaguesLoading(true)
       const [leagueRes, teamRes] = await Promise.all([
         supabase.from('leagues').select('*').order('name'),
         supabase.from('teams').select('*').order('name'),
       ])
-
-      if (leagueRes.data && teamRes.data) {
+      if (cancelled) return
+      if (leagueRes.data) {
         const builtLeagues = leagueRes.data.map((league) => ({
           ...league,
           logo: resolveAssetUrl(league.logo_url),
-          teams: teamRes.data
+          teams: (teamRes.data || [])
             .filter((team) => team.league_id === league.id)
             .map((team) => ({ ...team, logo: resolveAssetUrl(team.logo_url) })),
         }))
-
         setDbLeagues(builtLeagues)
       }
+      setLeaguesLoading(false)
+    }
+    fetchLeagues()
+    return () => { cancelled = true }
+  }, [])
 
+  // Busca produtos de forma independente — paginada, pode demorar mais
+  useEffect(() => {
+    let cancelled = false
+    async function fetchProducts() {
+      setLoading(true)
       let allData: Product[] = []
       let hasMore = true
       let page = 0
@@ -263,6 +279,7 @@ export function CatalogPage() {
           .order('id', { ascending: true })
           .range(page * limit, (page + 1) * limit - 1)
 
+        if (cancelled) return
         if (error) break
 
         if (data) {
@@ -277,14 +294,13 @@ export function CatalogPage() {
         }
       }
 
-      const activeData = allData.filter((p: any) => p.active !== false)
+      if (cancelled) return
 
+      const activeData = allData.filter((p: any) => p.active !== false)
       const sortedData = activeData.sort((a: any, b: any) => {
         const aPriority = a.featured || a.category === 'mundial-copa-2026' ? 1 : 0
         const bPriority = b.featured || b.category === 'mundial-copa-2026' ? 1 : 0
-
         if (aPriority !== bPriority) return bPriority - aPriority
-
         return getProductName(a).localeCompare(getProductName(b), undefined, {
           numeric: true,
           sensitivity: 'base',
@@ -294,8 +310,8 @@ export function CatalogPage() {
       setProducts(sortedData)
       setLoading(false)
     }
-
-    fetchData()
+    fetchProducts()
+    return () => { cancelled = true }
   }, [])
 
   const updateSuggestions = useCallback((query: string) => {
@@ -363,7 +379,13 @@ export function CatalogPage() {
   const isSearching = normalizedQuery.length > 0
   const currentView = isSearching ? 'all' : view
 
-  const renderLeagues = () => (
+  const renderLeagues = () => leaguesLoading ? (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+      {[...Array(8)].map((_, i) => (
+        <div key={i} className="animate-pulse min-h-[220px] rounded-2xl border border-white/[0.06] bg-white/[0.02] sm:min-h-[260px]" />
+      ))}
+    </div>
+  ) : (
     <motion.div layout className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
       {dbLeagues.map((league, index) => (
         <motion.button
@@ -389,7 +411,12 @@ export function CatalogPage() {
                 <p className="mt-1.5 text-xs font-medium text-muted-foreground">{league.country}</p>
               </div>
               <div className="h-14 w-14 shrink-0 rounded-xl bg-white/90 p-2 opacity-80 transition-all duration-700 group-hover:rotate-3 group-hover:scale-110 group-hover:opacity-100 sm:h-16 sm:w-16">
-                <img src={league.logo} alt={league.name} className="h-full w-full object-contain" />
+                <img
+                  src={league.logo}
+                  alt={league.name}
+                  className="h-full w-full object-contain"
+                  onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                />
               </div>
             </div>
 
@@ -406,6 +433,7 @@ export function CatalogPage() {
   )
 
   const renderTeams = () => {
+
     if (!activeLeague) return null
 
     return (
@@ -426,7 +454,12 @@ export function CatalogPage() {
           className="flex flex-col gap-4 rounded-[1.5rem] border border-white/5 bg-white/[0.02] px-5 py-6 shadow-2xl backdrop-blur-xl sm:gap-5 sm:rounded-[2rem] sm:px-8 sm:py-8 lg:flex-row lg:items-center lg:justify-between"
         >
           <div className="flex items-center gap-4 sm:gap-5">
-            <img src={activeLeague.logo} alt={activeLeague.name} className="h-12 w-12 object-contain sm:h-16 sm:w-16" />
+            <img
+              src={activeLeague.logo}
+              alt={activeLeague.name}
+              className="h-12 w-12 object-contain sm:h-16 sm:w-16"
+              onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+            />
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">Escolha um time</p>
               <h2 className="mt-1 text-2xl font-display font-bold uppercase tracking-tight text-white sm:mt-2 sm:text-3xl">{activeLeague.name}</h2>
@@ -454,7 +487,12 @@ export function CatalogPage() {
               }}
               className="group flex min-h-[160px] flex-col items-center justify-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] px-3 py-5 backdrop-blur-md transition-all duration-500 hover:border-primary/30 hover:bg-white/[0.04] hover:shadow-[0_10px_30px_rgba(255,170,0,0.08)] sm:min-h-[200px] sm:gap-5 sm:px-5 sm:py-7"
             >
-              <img src={team.logo} alt={team.name} className="h-14 w-14 object-contain transition-transform duration-500 group-hover:scale-110 sm:h-20 sm:w-20" />
+              <img
+                src={team.logo}
+                alt={team.name}
+                className="h-14 w-14 object-contain transition-transform duration-500 group-hover:scale-110 sm:h-20 sm:w-20"
+                onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+              />
               <span className="text-center text-xs font-display uppercase leading-tight text-white sm:text-base">{team.name}</span>
             </motion.button>
           ))}
@@ -482,7 +520,12 @@ export function CatalogPage() {
 
             {activeTeam && (
               <div className="chip text-xs">
-                <img src={activeTeam.logo} alt={activeTeam.name} className="h-3.5 w-3.5 object-contain" />
+                <img
+                  src={activeTeam.logo}
+                  alt={activeTeam.name}
+                  className="h-3.5 w-3.5 object-contain"
+                  onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                />
                 {activeTeam.name}
               </div>
             )}
@@ -529,10 +572,21 @@ export function CatalogPage() {
                   >
                     <div className="relative aspect-[4/5] overflow-hidden">
                       <img
-                        src={resolveAssetUrl(product.image_url) || 'https://via.placeholder.com/400x500?text=Sem+Foto'}
+                        src={resolveAssetUrl(product.image_url)}
                         alt={name}
                         loading="lazy"
                         className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                        onError={e => {
+                          const img = e.target as HTMLImageElement
+                          img.style.display = 'none'
+                          const parent = img.parentElement
+                          if (parent && !parent.querySelector('.img-fallback')) {
+                            const fb = document.createElement('div')
+                            fb.className = 'img-fallback absolute inset-0 flex items-center justify-center'
+                            fb.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-white/10"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.57a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.57a2 2 0 0 0-1.34-2.23z"/></svg>'
+                            parent.appendChild(fb)
+                          }
+                        }}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-[#030303]/40 to-transparent opacity-80 transition-opacity duration-500 group-hover:opacity-40" />
 
@@ -667,17 +721,6 @@ export function CatalogPage() {
                 </AnimatePresence>
               </div>
 
-              <button
-                onClick={() => {
-                  setSearchQuery('')
-                  setSelectedLeagueId(null)
-                  setSelectedTeamId(null)
-                  setView('all')
-                }}
-                className="btn-outline py-2.5 text-[10px] sm:py-3 sm:text-xs"
-              >
-                Ver todos os produtos
-              </button>
             </div>
           </div>
         </motion.div>

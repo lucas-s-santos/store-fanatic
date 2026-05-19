@@ -499,7 +499,12 @@ export function AdminPage() {
                             <div className="flex items-center gap-3">
                               <div className="h-12 w-10 shrink-0 overflow-hidden rounded bg-white/5">
                                 {product.image_url && (
-                                  <img src={resolveAssetUrl(product.image_url)} alt={product.title} className="h-full w-full object-cover" />
+                                  <img
+                                    src={resolveAssetUrl(product.image_url)}
+                                    alt={product.title}
+                                    className="h-full w-full object-cover"
+                                    onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                                  />
                                 )}
                               </div>
                               <div>

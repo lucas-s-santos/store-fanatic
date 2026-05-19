@@ -276,12 +276,20 @@ export function AdminLeaguesPage() {
               {/* League Row */}
               <div className="flex items-center gap-4 px-5 py-4">
                 {league.logo_url ? (
-                  <img src={league.logo_url} alt={league.name} className="h-8 w-8 object-contain shrink-0" />
-                ) : (
-                  <div className="h-8 w-8 rounded bg-white/10 shrink-0 flex items-center justify-center">
-                    <Trophy className="h-4 w-4 text-white/30" />
-                  </div>
-                )}
+                  <img
+                    src={league.logo_url}
+                    alt={league.name}
+                    className="h-8 w-8 object-contain shrink-0"
+                    onError={e => {
+                      const img = e.target as HTMLImageElement
+                      img.style.display = 'none'
+                      img.nextElementSibling?.classList.remove('hidden')
+                    }}
+                  />
+                ) : null}
+                <div className={`h-8 w-8 rounded bg-white/10 shrink-0 flex items-center justify-center ${league.logo_url ? 'hidden' : ''}`}>
+                  <Trophy className="h-4 w-4 text-white/30" />
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-white text-sm">{league.name}</p>
                   {league.country && (
@@ -344,7 +352,12 @@ export function AdminLeaguesPage() {
                         {league.teams.map(team => (
                           <div key={team.id} className="flex items-center gap-4 px-6 py-3 bg-white/[0.015] hover:bg-white/[0.03] transition-colors">
                             {team.logo_url ? (
-                              <img src={team.logo_url} alt={team.name} className="h-6 w-6 object-contain shrink-0" />
+                              <img
+                                src={team.logo_url}
+                                alt={team.name}
+                                className="h-6 w-6 object-contain shrink-0"
+                                onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                              />
                             ) : (
                               <div className="h-6 w-6 rounded bg-white/10 shrink-0" />
                             )}

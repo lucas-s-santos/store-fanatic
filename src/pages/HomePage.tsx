@@ -148,6 +148,8 @@ const CATEGORIES = [
   { name: 'Seleções mundiais', league: 'selecoes', icon: Globe2, image: '/jersey/Mundial/Brasil/Brasil-1.jpeg' },
 ]
 
+const MUNDIAL_PER_PAGE = 4
+
 function AnimatedCounter({ value, suffix }: { value: number; suffix: string }) {
   const ref = useRef<HTMLSpanElement>(null)
   const inView = useInView(ref, { once: true })
@@ -262,7 +264,7 @@ function HeroCarouselCard({
               initial={{ opacity: 0, y: 36, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -36, scale: 1.03 }}
-              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             />
           </AnimatePresence>
           <div className="absolute inset-0 bg-gradient-to-t from-[#020202] via-[#020202]/20 to-transparent" />
@@ -292,7 +294,9 @@ function HeroCarouselCard({
 export function HomePage() {
   const heroRef = useRef<HTMLDivElement>(null)
   const shouldReduceMotion = useReducedMotion() ?? false
+  const AUTO_PLAY_MS = 4000
   const [carouselIndex, setCarouselIndex] = useState(0)
+  const [autoPlayKey, setAutoPlayKey] = useState(0)
 
   const { scrollYProgress } = useScroll({
     target: heroRef,
@@ -324,6 +328,21 @@ export function HomePage() {
   const [siteStats, setSiteStats] = useState<SiteStat[]>([])
   const [mundialProducts, setMundialProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Testimonials carousel state
+  const [testimonialIndex, setTestimonialIndex] = useState(0)
+  const [isTestimonialsPaused, setIsTestimonialsPaused] = useState(false)
+
+  // Mundial paginated carousel state
+  const [mundialPage, setMundialPage] = useState(0)
+  const [isMundialPaused, setIsMundialPaused] = useState(false)
+  const [mundialDirection, setMundialDirection] = useState(1)
+
+  const totalMundialPages = Math.ceil(mundialProducts.length / MUNDIAL_PER_PAGE)
+  const currentMundialProducts = mundialProducts.slice(
+    mundialPage * MUNDIAL_PER_PAGE,
+    (mundialPage + 1) * MUNDIAL_PER_PAGE,
+  )
 
   useEffect(() => {
     async function fetchSiteData() {
@@ -357,6 +376,33 @@ export function HomePage() {
     window.localStorage.setItem(HERO_INDEX_STORAGE_KEY, String(carouselIndex))
   }, [carouselIndex])
 
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setCarouselIndex((c) => (c + 1) % HERO_TEAMS.length)
+      setAutoPlayKey((k) => k + 1)
+    }, AUTO_PLAY_MS)
+    return () => clearTimeout(id)
+  }, [carouselIndex])
+
+  // Testimonials auto-play
+  useEffect(() => {
+    if (isTestimonialsPaused || testimonials.length === 0) return
+    const timer = setInterval(() => {
+      setTestimonialIndex((i) => (i + 1) % testimonials.length)
+    }, 5000)
+    return () => clearInterval(timer)
+  }, [isTestimonialsPaused, testimonials.length])
+
+  // Mundial auto-play
+  useEffect(() => {
+    if (isMundialPaused || mundialProducts.length === 0 || totalMundialPages <= 1) return
+    const timer = setInterval(() => {
+      setMundialDirection(1)
+      setMundialPage((p) => (p + 1) % totalMundialPages)
+    }, 3500)
+    return () => clearInterval(timer)
+  }, [isMundialPaused, mundialProducts.length, totalMundialPages])
+
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
     if (shouldReduceMotion) return
 
@@ -386,14 +432,35 @@ export function HomePage() {
 
   const goToNextTeam = () => {
     setCarouselIndex((current) => (current + 1) % HERO_TEAMS.length)
+    setAutoPlayKey((k) => k + 1)
   }
 
   const goToPreviousTeam = () => {
     setCarouselIndex((current) => (current - 1 + HERO_TEAMS.length) % HERO_TEAMS.length)
+    setAutoPlayKey((k) => k + 1)
+  }
+
+  const goMundialPrev = () => {
+    setMundialDirection(-1)
+    setMundialPage((p) => (p - 1 + totalMundialPages) % totalMundialPages)
+  }
+
+  const goMundialNext = () => {
+    setMundialDirection(1)
+    setMundialPage((p) => (p + 1) % totalMundialPages)
+  }
+
+  const goTestimonialPrev = () => {
+    setTestimonialIndex((i) => (i - 1 + testimonials.length) % testimonials.length)
+  }
+
+  const goTestimonialNext = () => {
+    setTestimonialIndex((i) => (i + 1) % testimonials.length)
   }
 
   return (
     <div className="pb-12">
+      {/* ── Hero ── */}
       <section
         ref={heroRef}
         onPointerMove={handlePointerMove}
@@ -402,7 +469,7 @@ export function HomePage() {
       >
         <motion.div style={{ opacity: heroOpacity }} className="absolute inset-0">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#1f1a12_0%,#090909_45%,#030303_100%)]" />
-          <div className="hero-grid absolute inset-0 opacity-60" />
+          <div className="hero-grid absolute inset-0 opacity-20" />
           <motion.div
             style={{ x: orbLeftX, y: orbLeftY }}
             className="absolute left-[8%] top-[14%] h-56 w-56 rounded-full bg-primary/12 blur-[120px]"
@@ -413,7 +480,7 @@ export function HomePage() {
           />
           <motion.div
             style={{ y: heroDepth, scale: heroScale }}
-            className="absolute inset-x-0 bottom-[-12rem] mx-auto h-[24rem] w-[24rem] rounded-full bg-primary/10 blur-[140px]"
+            className="absolute inset-x-0 bottom-[-12rem] mx-auto h-[24rem] w-[24rem] rounded-full bg-primary/6 blur-[140px]"
           />
         </motion.div>
 
@@ -471,7 +538,6 @@ export function HomePage() {
                   Ver categorias
                 </a>
               </motion.div>
-
             </div>
 
             <motion.div
@@ -491,9 +557,6 @@ export function HomePage() {
                 transition={{ duration: 0.8, delay: 0.14, ease: [0.16, 1, 0.3, 1] }}
                 className="relative w-full max-w-[920px]"
               >
-                <div className="absolute inset-x-8 top-8 h-[520px] rounded-[2.5rem] border border-white/8 bg-white/[0.025] backdrop-blur-[18px]" />
-                <div className="absolute left-1/2 top-10 h-56 w-56 -translate-x-1/2 rounded-full bg-primary/14 blur-[130px]" />
-
                 <div className="relative mx-auto h-[620px] max-w-[900px] overflow-hidden">
                   {HERO_TEAMS.map((card, index) => {
                     const slot = getCarouselSlot(index)
@@ -511,37 +574,67 @@ export function HomePage() {
                     )
                   })}
 
-                  <div className="absolute inset-x-0 bottom-0 z-50 flex items-center justify-center gap-3">
+                  <div className="absolute inset-x-0 bottom-2 z-50 flex items-center justify-center gap-4">
                     <button
                       type="button"
                       onClick={goToPreviousTeam}
-                      className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-black/45 text-white/75 backdrop-blur-xl transition-all hover:border-primary/35 hover:bg-primary/10 hover:text-white"
+                      className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-black/40 text-white/65 backdrop-blur-xl transition-all hover:border-primary/35 hover:bg-primary/10 hover:text-white"
                       aria-label="Mostrar time anterior"
                     >
-                      <ChevronLeft className="h-5 w-5" />
+                      <ChevronLeft className="h-4 w-4" />
                     </button>
 
-                    <div className="rounded-full border border-white/10 bg-black/45 px-5 py-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-white/58 backdrop-blur-xl">
-                      {HERO_TEAMS[carouselIndex]?.title}
+                    <div className="flex min-w-[88px] flex-col items-center gap-2">
+                      <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-white/40">
+                        {HERO_TEAMS[carouselIndex]?.title}
+                      </span>
+                      <div className="relative h-[2px] w-20 overflow-hidden rounded-full bg-white/10">
+                        <motion.div
+                          key={autoPlayKey}
+                          className="absolute inset-y-0 left-0 rounded-full bg-primary"
+                          initial={{ width: '0%' }}
+                          animate={{ width: '100%' }}
+                          transition={{ duration: AUTO_PLAY_MS / 1000, ease: 'linear' }}
+                        />
+                      </div>
                     </div>
 
                     <button
                       type="button"
                       onClick={goToNextTeam}
-                      className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-black/45 text-white/75 backdrop-blur-xl transition-all hover:border-primary/35 hover:bg-primary/10 hover:text-white"
-                      aria-label="Mostrar proximo time"
+                      className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-black/40 text-white/65 backdrop-blur-xl transition-all hover:border-primary/35 hover:bg-primary/10 hover:text-white"
+                      aria-label="Mostrar próximo time"
                     >
-                      <ChevronRight className="h-5 w-5" />
+                      <ChevronRight className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
-
               </motion.div>
             </motion.div>
           </div>
         </div>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.6, duration: 0.8 }}
+          className="pointer-events-none absolute bottom-7 left-1/2 z-20 -translate-x-1/2"
+        >
+          <motion.div
+            animate={{ y: [0, 5, 0] }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+            className="flex h-8 w-5 items-start justify-center rounded-full border border-white/15 pt-[5px]"
+          >
+            <motion.div
+              animate={{ opacity: [0.55, 0.15, 0.55], y: [0, 3, 0] }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+              className="h-[6px] w-[3px] rounded-full bg-white/40"
+            />
+          </motion.div>
+        </motion.div>
       </section>
 
+      {/* ── Perks ── */}
       <section className="relative z-10 -mt-10 px-4 sm:px-6">
         <ScrollSection className="mx-auto max-w-[1440px]">
           <div className="grid gap-4 sm:grid-cols-3">
@@ -564,6 +657,113 @@ export function HomePage() {
         </ScrollSection>
       </section>
 
+      {/* ── Testimonials (carousel) ── */}
+      {testimonials.length > 0 && (
+        <section className="section-shell px-4 sm:px-6">
+          <div className="mx-auto max-w-[1440px]">
+            <ScrollSection>
+              <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <span className="h-px w-8 bg-primary/50" />
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-primary">Depoimentos</span>
+                  </div>
+                  <h2 className="text-3xl font-bold uppercase tracking-tight text-white sm:text-4xl lg:text-5xl">
+                    O que dizem nossos <span className="text-gradient-gold">clientes</span>
+                  </h2>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={goTestimonialPrev}
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-white/60 transition-all hover:border-primary/40 hover:bg-primary/8 hover:text-white"
+                    aria-label="Depoimento anterior"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={goTestimonialNext}
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-white/60 transition-all hover:border-primary/40 hover:bg-primary/8 hover:text-white"
+                    aria-label="Próximo depoimento"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </ScrollSection>
+
+            <div
+              className="relative"
+              onMouseEnter={() => setIsTestimonialsPaused(true)}
+              onMouseLeave={() => setIsTestimonialsPaused(false)}
+            >
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={testimonialIndex}
+                  initial={{ opacity: 0, x: 32 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -32 }}
+                  transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                  className="relative overflow-hidden rounded-[2rem] border border-white/8 bg-white/[0.025] p-8 backdrop-blur-xl sm:p-12 lg:p-16"
+                >
+                  <div className="pointer-events-none absolute right-8 top-4 select-none text-[7rem] font-black leading-none text-primary/6 sm:text-[10rem]">
+                    "
+                  </div>
+
+                  <div className="mb-5 flex gap-1">
+                    {Array.from({ length: testimonials[testimonialIndex].rating }).map((_, i) => (
+                      <Star key={i} className="h-5 w-5 fill-primary text-primary" />
+                    ))}
+                  </div>
+
+                  <p className="relative z-10 max-w-4xl text-base font-light leading-relaxed text-white/85 sm:text-xl lg:text-2xl">
+                    "{testimonials[testimonialIndex].text}"
+                  </p>
+
+                  <div className="mt-8 flex items-center gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10">
+                      {testimonials[testimonialIndex].avatar_url ? (
+                        <img
+                          src={resolveAssetUrl(testimonials[testimonialIndex].avatar_url!)}
+                          alt={testimonials[testimonialIndex].name}
+                          className="h-full w-full rounded-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <Users className="h-5 w-5 text-primary" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-bold text-white">{testimonials[testimonialIndex].name}</p>
+                      <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/60">
+                        Cliente verificado
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+
+              {/* Progress dots */}
+              <div className="mt-6 flex items-center justify-center gap-2">
+                {testimonials.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setTestimonialIndex(i)}
+                    aria-label={`Ir para depoimento ${i + 1}`}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                      i === testimonialIndex ? 'w-8 bg-primary' : 'w-1.5 bg-white/20 hover:bg-white/35'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── Categorias ── */}
       <section id="categorias" className="section-shell px-4 sm:px-6">
         <div className="mx-auto max-w-[1440px]">
           <ScrollSection>
@@ -588,7 +788,7 @@ export function HomePage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.08, duration: 0.6 }}
-                  className="group relative aspect-[4/5] cursor-pointer overflow-hidden rounded-[1.5rem] border border-border bg-card sm:h-[320px] sm:aspect-auto"
+                  className="group relative aspect-[4/5] cursor-pointer overflow-hidden rounded-[1.5rem] border border-border bg-card sm:aspect-auto sm:h-[320px]"
                 >
                   <img
                     src={resolveAssetUrl(category.image)}
@@ -610,6 +810,7 @@ export function HomePage() {
         </div>
       </section>
 
+      {/* ── Stats ── */}
       <section className="section-shell px-4 sm:px-6">
         <ScrollSection className="mx-auto max-w-[1440px]">
           <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[#0a0a0a] px-6 py-16 sm:px-8">
@@ -640,137 +841,199 @@ export function HomePage() {
         </ScrollSection>
       </section>
 
+      {/* ── Mundial carousel (paginated, pause on hover, navigation) ── */}
       {mundialProducts.length > 0 && (
-        <section className="section-shell overflow-hidden px-0 py-10">
-          <div className="mx-auto mb-8 max-w-[1440px] px-4 sm:px-6">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <span className="h-px w-8 bg-primary/50" />
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-primary">Copa do Mundo 2026</span>
-                </div>
-                <h2 className="text-3xl font-bold uppercase tracking-tight text-white sm:text-4xl lg:text-5xl">
-                  Seleções <span className="text-gradient-gold">mundiais</span>
-                </h2>
-              </div>
-              <Link to="/produtos" className="group inline-flex shrink-0 items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-primary transition-colors hover:text-white">
-                Ver todas
-                <MoveRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Link>
-            </div>
-          </div>
-
-          <div className="relative flex w-full overflow-x-hidden pb-8">
-            <div className="absolute left-0 top-0 z-10 h-full w-8 bg-gradient-to-r from-background to-transparent sm:w-16" />
-            <div className="absolute right-0 top-0 z-10 h-full w-8 bg-gradient-to-l from-background to-transparent sm:w-16" />
-
-            <motion.div
-              className="flex min-w-max shrink-0 gap-4 px-4 sm:gap-6"
-              animate={{ x: ['0%', '-50%'] }}
-              transition={{ duration: Math.max(40, mundialProducts.length * 3), ease: 'linear', repeat: Infinity }}
-            >
-              {[...mundialProducts, ...mundialProducts].map((product, index) => (
-                <Link
-                  key={`${product.id}-${index}`}
-                  to={`/produtos/${product.id}`}
-                  className="group/card relative block w-[200px] shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-card transition-all hover:border-primary/50 sm:w-[260px] lg:w-[300px]"
-                >
-                  <div className="relative aspect-[4/5] overflow-hidden">
-                    <img
-                      src={resolveAssetUrl(product.image_url)}
-                      alt={product.title}
-                      loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-700 group-hover/card:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-[#030303]/40 to-transparent opacity-80" />
-                  </div>
-                  <div className="absolute bottom-0 left-0 right-0 z-10 p-4 sm:p-5">
-                    <h3 className="line-clamp-1 text-lg font-bold tracking-tight text-white transition-colors group-hover/card:text-primary sm:text-xl">
-                      {product.title}
-                    </h3>
-                    <p className="mt-1 text-xs font-semibold text-white/70 sm:text-sm">R$ {product.price?.toFixed(2).replace('.', ',')}</p>
-                  </div>
-                </Link>
-              ))}
-            </motion.div>
-          </div>
-        </section>
-      )}
-
-      {testimonials.length > 0 && (
         <section className="section-shell px-4 sm:px-6">
           <div className="mx-auto max-w-[1440px]">
-            <div className="mb-10 text-center sm:mb-12">
-              <div className="space-y-4">
-                <div className="flex items-center justify-center gap-3">
-                  <span className="h-px w-8 bg-primary/50" />
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-primary">Depoimentos</span>
-                  <span className="h-px w-8 bg-primary/50" />
-                </div>
-                <h2 className="text-3xl font-bold uppercase tracking-tight text-white sm:text-4xl lg:text-5xl">
-                  O que dizem nossos <span className="text-gradient-gold">clientes</span>
-                </h2>
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
-              {testimonials.map((testimonial) => (
-                <motion.div
-                  key={testimonial.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  className="group rounded-2xl border border-white/5 bg-white/[0.02] p-6 backdrop-blur-xl transition-all duration-500 hover:border-primary/20 sm:p-8"
-                >
-                  <div className="mb-4 flex gap-1">
-                    {Array.from({ length: testimonial.rating }).map((_, index) => (
-                      <Star key={index} className="h-3.5 w-3.5 fill-primary text-primary sm:h-4 sm:w-4" />
-                    ))}
-                  </div>
-                  <p className="mb-6 text-xs leading-relaxed text-white/70 sm:text-sm">"{testimonial.text}"</p>
+            <ScrollSection>
+              <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/10 sm:h-10 sm:w-10">
-                      {testimonial.avatar_url ? (
-                        <img src={resolveAssetUrl(testimonial.avatar_url)} alt={testimonial.name} className="h-full w-full rounded-full object-cover" loading="lazy" />
-                      ) : (
-                        <Users className="h-3.5 w-3.5 text-primary sm:h-4 sm:w-4" />
-                      )}
-                    </div>
-                    <p className="text-xs font-semibold text-white sm:text-sm">{testimonial.name}</p>
+                    <span className="h-px w-8 bg-primary/50" />
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-primary">Copa do Mundo 2026</span>
                   </div>
+                  <h2 className="text-3xl font-bold uppercase tracking-tight text-white sm:text-4xl lg:text-5xl">
+                    Seleções <span className="text-gradient-gold">mundiais</span>
+                  </h2>
+                </div>
+                <Link
+                  to="/produtos"
+                  className="group inline-flex shrink-0 items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-primary transition-colors hover:text-white"
+                >
+                  Ver todas
+                  <MoveRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </Link>
+              </div>
+            </ScrollSection>
+
+            <div
+              className="relative"
+              onMouseEnter={() => setIsMundialPaused(true)}
+              onMouseLeave={() => setIsMundialPaused(false)}
+            >
+              {/* Prev arrow */}
+              {totalMundialPages > 1 && (
+                <button
+                  type="button"
+                  onClick={goMundialPrev}
+                  aria-label="Página anterior"
+                  className="absolute -left-5 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#0a0a0a] text-white/60 shadow-lg transition-all hover:border-primary/40 hover:bg-primary/10 hover:text-white sm:-left-6"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+              )}
+
+              {/* Cards */}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={mundialPage}
+                  initial={{ opacity: 0, x: mundialDirection * 40 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: mundialDirection * -40 }}
+                  transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                  className="grid grid-cols-2 gap-4 lg:grid-cols-4"
+                >
+                  {currentMundialProducts.map((product, i) => (
+                    <motion.div
+                      key={product.id}
+                      initial={{ opacity: 0, y: 16 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.06, duration: 0.4 }}
+                    >
+                      <Link
+                        to={`/produtos/${product.id}`}
+                        className="group/card relative block overflow-hidden rounded-2xl border border-white/10 bg-card transition-all hover:border-primary/50 hover:shadow-[0_20px_50px_rgba(229,192,123,0.12)]"
+                      >
+                        <div className="relative aspect-[4/5] overflow-hidden">
+                          <img
+                            src={resolveAssetUrl(product.image_url)}
+                            alt={product.title}
+                            loading="lazy"
+                            className="h-full w-full object-cover transition-transform duration-700 group-hover/card:scale-110"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-[#030303]/40 to-transparent opacity-80" />
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 z-10 p-4 sm:p-5">
+                          <h3 className="line-clamp-1 text-base font-bold tracking-tight text-white transition-colors group-hover/card:text-primary sm:text-lg">
+                            {product.title}
+                          </h3>
+                          <p className="mt-1 text-xs font-semibold text-white/70 sm:text-sm">
+                            R$ {product.price?.toFixed(2).replace('.', ',')}
+                          </p>
+                        </div>
+                      </Link>
+                    </motion.div>
+                  ))}
                 </motion.div>
-              ))}
+              </AnimatePresence>
+
+              {/* Next arrow */}
+              {totalMundialPages > 1 && (
+                <button
+                  type="button"
+                  onClick={goMundialNext}
+                  aria-label="Próxima página"
+                  className="absolute -right-5 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#0a0a0a] text-white/60 shadow-lg transition-all hover:border-primary/40 hover:bg-primary/10 hover:text-white sm:-right-6"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              )}
+
+              {/* Page dots + auto-play progress */}
+              {totalMundialPages > 1 && (
+                <div className="mt-8 flex items-center justify-center gap-2">
+                  {Array.from({ length: totalMundialPages }).map((_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => {
+                        setMundialDirection(i > mundialPage ? 1 : -1)
+                        setMundialPage(i)
+                      }}
+                      aria-label={`Ir para página ${i + 1}`}
+                      className={`h-1.5 rounded-full transition-all duration-300 ${
+                        i === mundialPage ? 'w-8 bg-primary' : 'w-1.5 bg-white/20 hover:bg-white/35'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </section>
       )}
 
-      <section className="px-4 pb-8 sm:px-6">
+      {/* ── CTA final ── */}
+      <section className="px-4 pb-8 pt-6 sm:px-6">
         <div className="mx-auto max-w-[1440px]">
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[#0a0a0a] px-6 py-16 text-center shadow-2xl sm:px-14 sm:py-24"
+            transition={{ duration: 0.7 }}
+            className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[#0a0a0a] shadow-2xl"
           >
-            <div className="absolute left-1/2 top-0 h-full w-full max-w-[800px] -translate-x-1/2 rounded-full bg-primary/10 blur-[120px]" />
-            <div className="relative z-10 mx-auto max-w-2xl space-y-8">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-primary/20 bg-primary/5 sm:h-20 sm:w-20">
-                <Trophy className="h-8 w-8 text-primary drop-shadow-[0_0_10px_rgba(229,192,123,0.5)] sm:h-10 sm:w-10" strokeWidth={1.5} />
+            <div className="absolute left-1/2 top-0 h-full w-full max-w-[900px] -translate-x-1/2 rounded-full bg-primary/8 blur-[140px]" />
+            <div className="hero-grid absolute inset-0 opacity-[0.07]" />
+
+            <div className="relative z-10 grid gap-0 lg:grid-cols-2">
+              {/* Left: CTA */}
+              <div className="flex flex-col justify-center px-8 py-16 sm:px-14 sm:py-20">
+                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full border border-primary/20 bg-primary/5">
+                  <Trophy className="h-8 w-8 text-primary drop-shadow-[0_0_10px_rgba(229,192,123,0.5)]" strokeWidth={1.5} />
+                </div>
+                <h2 className="text-3xl font-bold uppercase tracking-tight text-white sm:text-4xl lg:text-5xl">
+                  Encontre o manto <br />
+                  <span className="text-gradient-gold">perfeito</span>
+                </h2>
+                <p className="mt-6 max-w-[480px] text-sm leading-relaxed text-white/58 sm:text-base">
+                  Mais de 30 modelos exclusivos entre Brasileirão, Champions e edições especiais. Atendimento direto para quem quer comprar sem enrolação.
+                </p>
+                <div className="mt-8 flex flex-wrap gap-4">
+                  <Link to="/produtos" className="btn-glow-primary group">
+                    <span className="relative z-10 flex items-center gap-2">
+                      Explorar coleção
+                      <MoveRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                    </span>
+                  </Link>
+                  <Link
+                    to="/produtos?liga=selecoes"
+                    className="inline-flex h-14 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-8 text-sm font-semibold uppercase tracking-[0.12em] text-white/80 backdrop-blur-xl transition-all duration-300 hover:border-primary/40 hover:bg-primary/10 hover:text-white"
+                  >
+                    Ver seleções
+                  </Link>
+                </div>
               </div>
-              <h2 className="text-3xl font-bold uppercase tracking-tight text-white sm:text-4xl lg:text-5xl">
-                Encontre o manto <br />
-                <span className="text-gradient-gold">perfeito</span>
-              </h2>
-              <p className="mx-auto max-w-[500px] text-sm leading-relaxed text-white/60 sm:text-base">
-                Mais de 30 modelos exclusivos entre Brasileirão, Champions e edições especiais, com atendimento direto para quem quer comprar sem enrolação.
-              </p>
-              <Link to="/produtos" className="btn-glow-primary group mx-auto inline-flex">
-                <span className="relative z-10 flex items-center gap-2">
-                  Explorar colecao
-                  <MoveRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-                </span>
-              </Link>
+
+              {/* Right: feature list */}
+              <div className="flex flex-col justify-center border-t border-white/5 px-8 py-14 sm:px-14 sm:py-20 lg:border-l lg:border-t-0">
+                <p className="mb-8 text-[10px] font-semibold uppercase tracking-[0.22em] text-primary">Por que a Store Fanatic?</p>
+                <div className="space-y-7">
+                  {PERKS.map((perk) => (
+                    <div key={perk.label} className="flex items-start gap-4">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/8">
+                        <perk.icon className="h-4.5 w-4.5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-white">{perk.label}</p>
+                        <p className="mt-0.5 text-xs leading-relaxed text-white/50">{perk.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Star rating badge */}
+                <div className="mt-10 flex items-center gap-3 rounded-2xl border border-primary/15 bg-primary/5 px-5 py-4">
+                  <div className="flex gap-0.5">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} className="h-3.5 w-3.5 fill-primary text-primary" />
+                    ))}
+                  </div>
+                  <p className="text-xs font-semibold text-white/75">
+                    Avaliação 5 estrelas pelos nossos clientes
+                  </p>
+                </div>
+              </div>
             </div>
           </motion.div>
         </div>

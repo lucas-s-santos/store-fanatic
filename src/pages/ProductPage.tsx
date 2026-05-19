@@ -155,10 +155,11 @@ export function ProductPage() {
           >
             <div className="relative aspect-[4/5] min-h-[360px] overflow-hidden group sm:min-h-[480px]">
               <img
-                src={resolveAssetUrl(product.image_url) || 'https://via.placeholder.com/600x800?text=Sem+Foto'}
+                src={resolveAssetUrl(product.image_url)}
                 alt={productName}
                 fetchPriority="high"
                 className="h-full w-full object-cover transition-transform duration-1000 ease-out group-hover:scale-105"
+                onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-[#030303]/30 to-transparent opacity-90" />
 

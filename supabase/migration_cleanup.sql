@@ -62,6 +62,3 @@ CREATE POLICY "feedback_select" ON public.order_feedback
 CREATE POLICY "feedback_insert" ON public.order_feedback
   FOR INSERT WITH CHECK (true);
 
--- 3. Limpa dados antigos de logs de pagamento caso a tabela já tenha sido removida acima
---    (não faz nada se já removeu, apenas garante)
-VACUUM ANALYZE;
