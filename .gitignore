@@ -20,6 +20,7 @@ dist-ssr
 # Large Media
 public/jersey/
 public/logos/
+public/camisasBrasileirao/
 
 # Editor directories and files
 .vscode/*
@@ -31,3 +32,4 @@ public/logos/
 *.njsproj
 *.sln
 *.sw?
+.vercel
