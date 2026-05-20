@@ -230,6 +230,7 @@ export function CatalogPage() {
   const [suggestions, setSuggestions] = useState<Product[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null)
+  const [dbError, setDbError] = useState<string | null>(null)
 
   const searchRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -245,6 +246,11 @@ export function CatalogPage() {
         supabase.from('teams').select('*').order('name'),
       ])
       if (cancelled) return
+      if (leagueRes.error) {
+        console.error('[Catalog] Erro ao buscar ligas:', leagueRes.error)
+        setDbError('Erro ao conectar ao banco de dados. Verifique o Supabase.')
+      }
+      if (teamRes.error) console.error('[Catalog] Erro ao buscar times:', teamRes.error)
       if (leagueRes.data) {
         const builtLeagues = leagueRes.data.map((league) => ({
           ...league,
@@ -280,7 +286,7 @@ export function CatalogPage() {
           .range(page * limit, (page + 1) * limit - 1)
 
         if (cancelled) return
-        if (error) break
+        if (error) { console.error('[Catalog] Erro ao buscar produtos:', error); break }
 
         if (data) {
           allData = [...allData, ...data]
@@ -379,7 +385,18 @@ export function CatalogPage() {
   const isSearching = normalizedQuery.length > 0
   const currentView = isSearching ? 'all' : view
 
-  const renderLeagues = () => leaguesLoading ? (
+  const renderLeagues = () => dbError ? (
+    <div className="flex min-h-[300px] flex-col items-center justify-center gap-4 rounded-sm border border-destructive/30 bg-destructive/5 px-6 py-12 text-center">
+      <Trophy className="h-10 w-10 text-destructive/50" />
+      <div>
+        <h3 className="text-lg font-bold text-white">Erro de conexão</h3>
+        <p className="mt-2 text-sm text-white/50">{dbError}</p>
+        <button onClick={() => { setDbError(null); window.location.reload() }} className="mt-4 rounded-lg border border-white/20 px-4 py-2 text-xs text-white/70 hover:text-white">
+          Tentar novamente
+        </button>
+      </div>
+    </div>
+  ) : leaguesLoading ? (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
       {[...Array(8)].map((_, i) => (
         <div key={i} className="animate-pulse min-h-[220px] rounded-2xl border border-white/[0.06] bg-white/[0.02] sm:min-h-[260px]" />

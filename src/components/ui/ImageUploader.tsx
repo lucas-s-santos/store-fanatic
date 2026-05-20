@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
 import { Upload, X, Loader2, ImageIcon } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
+
+const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME as string
+const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET as string
 
 interface ImageUploaderProps {
   value: string
@@ -14,7 +16,6 @@ interface ImageUploaderProps {
 export function ImageUploader({
   value,
   onChange,
-  bucket = 'jersey-images',
   folder = 'jersey',
   label,
   aspectRatio = 'square',
@@ -28,17 +29,20 @@ export function ImageUploader({
     setUploading(true)
 
     try {
-      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-      const path = `${folder}/${Date.now()}.${ext}`
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET)
+      formData.append('folder', folder)
 
-      const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(path, file, { upsert: true })
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+        { method: 'POST', body: formData }
+      )
 
-      if (uploadError) throw uploadError
+      if (!res.ok) throw new Error(`Erro ${res.status}`)
 
-      const { data } = supabase.storage.from(bucket).getPublicUrl(path)
-      onChange(data.publicUrl)
+      const data = await res.json()
+      onChange(data.secure_url)
     } catch (err: any) {
       setError('Erro no upload: ' + (err.message || 'tente novamente'))
     } finally {

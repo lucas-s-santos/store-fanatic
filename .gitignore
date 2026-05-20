@@ -33,3 +33,5 @@ public/camisasBrasileirao/
 *.sln
 *.sw?
 .vercel
+.claude/
+supabase/.temp/

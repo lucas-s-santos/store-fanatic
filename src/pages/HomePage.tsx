@@ -61,57 +61,7 @@ type HeroTeamCardData = {
   subtitle: string
 }
 
-const HERO_TEAMS: HeroTeamCardData[] = [
-  {
-    id: 'real-madrid',
-    images: [
-      '/jersey/LaLiga/Real Madrid/Real-Madrid-1.jpeg',
-      '/jersey/LaLiga/Real Madrid/Real-Madrid-2.jpeg',
-      '/jersey/LaLiga/Real Madrid/Real-Madrid-5.jpeg',
-    ],
-    title: 'Real Madrid',
-    subtitle: 'LaLiga',
-  },
-  {
-    id: 'milan',
-    images: [
-      '/jersey/Serie-A/Milan/Milan-7.jpeg',
-      '/jersey/Serie-A/Milan/Milan-11.jpeg',
-      '/jersey/Serie-A/Milan/Milan-14.jpeg',
-    ],
-    title: 'Milan',
-    subtitle: 'Serie A',
-  },
-  {
-    id: 'man-city',
-    images: [
-      '/jersey/Premier-league/Manchester-City/Manchester-City-9.jpeg',
-      '/jersey/Premier-league/Manchester-City/Manchester-City-3.jpeg',
-      '/jersey/Premier-league/Manchester-City/Manchester-City-18.jpeg',
-    ],
-    title: 'Man City',
-    subtitle: 'Premier League',
-  },
-  {
-    id: 'psg',
-    images: [
-      '/jersey/Liga1/Paris-Saint-Germain/PSG-24.jpeg',
-      '/jersey/Liga1/Paris-Saint-Germain/PSG-35.jpeg',
-      '/jersey/Liga1/Paris-Saint-Germain/PSG-46.jpeg',
-    ],
-    title: 'PSG',
-    subtitle: 'Ligue 1',
-  },
-  {
-    id: 'dortmund',
-    images: [
-      '/jersey/Bundesliga/Borussia-Dortmund/Borussia-Dortmund-5.jpeg',
-      '/jersey/Bundesliga/Borussia-Dortmund/Borussia-Dortmund-1.jpeg',
-      '/jersey/Bundesliga/Borussia-Dortmund/Borussia-Dortmund-8.jpeg',
-    ],
-    title: 'Dortmund',
-    subtitle: 'Bundesliga',
-  },
+const HERO_FALLBACK: HeroTeamCardData[] = [
   {
     id: 'brasil',
     images: [
@@ -120,7 +70,7 @@ const HERO_TEAMS: HeroTeamCardData[] = [
       '/jersey/Mundial/Brasil/Brasil-3.jpeg',
     ],
     title: 'Brasil',
-    subtitle: 'Seleções',
+    subtitle: 'Copa 2026',
   },
 ]
 
@@ -138,13 +88,8 @@ const PERKS = [
   { icon: Zap, label: 'Atendimento ágil', desc: 'Suporte direto para tirar dúvidas e fechar pedido.' },
 ]
 
-const CATEGORIES = [
+const CATEGORIES_FALLBACK = [
   { name: 'Brasileirão', league: 'brasileirao', icon: Shirt, image: '/jersey/brasileirao/Corinthians/Corinthians-72.jpeg' },
-  { name: 'LaLiga', league: 'laliga', icon: Trophy, image: '/jersey/LaLiga/Real Madrid/Real-Madrid-1.jpeg' },
-  { name: 'Premier League', league: 'premier-league', icon: Globe2, image: '/jersey/Premier-league/Manchester-City/Manchester-City-9.jpeg' },
-  { name: 'Serie A', league: 'serie-a', icon: Star, image: '/jersey/Serie-A/Milan/Milan-7.jpeg' },
-  { name: 'Ligue 1', league: 'ligue-1', icon: ShieldCheck, image: '/jersey/Liga1/Paris-Saint-Germain/PSG-24.jpeg' },
-  { name: 'Bundesliga', league: 'bundesliga', icon: Trophy, image: '/jersey/Bundesliga/Borussia-Dortmund/Borussia-Dortmund-5.jpeg' },
   { name: 'Seleções mundiais', league: 'selecoes', icon: Globe2, image: '/jersey/Mundial/Brasil/Brasil-1.jpeg' },
 ]
 
@@ -328,6 +273,8 @@ export function HomePage() {
   const [siteStats, setSiteStats] = useState<SiteStat[]>([])
   const [mundialProducts, setMundialProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
+  const [heroCards, setHeroCards] = useState<HeroTeamCardData[]>(HERO_FALLBACK)
+  const [categories, setCategories] = useState(CATEGORIES_FALLBACK)
 
   // Testimonials carousel state
   const [testimonialIndex, setTestimonialIndex] = useState(0)
@@ -346,15 +293,60 @@ export function HomePage() {
 
   useEffect(() => {
     async function fetchSiteData() {
-      const [testimonialsRes, statsRes, productsRes] = await Promise.all([
+      const [testimonialsRes, statsRes, productsRes, heroRes, leaguesRes] = await Promise.all([
         supabase.from('testimonials').select('*').eq('active', true).order('order_priority', { ascending: true }),
         supabase.from('site_stats').select('*').order('order_priority', { ascending: true }),
         supabase.from('products').select('*').eq('league', 'selecoes').eq('featured', true).order('order_priority', { ascending: true }),
+        supabase.from('products').select('id, title, name, image_url, league, team').eq('active', true).order('team').limit(120),
+        supabase.from('leagues').select('id, name, logo_url').order('name'),
       ])
 
       if (testimonialsRes.data) setTestimonials(testimonialsRes.data as Testimonial[])
       if (statsRes.data) setSiteStats(statsRes.data as SiteStat[])
       if (productsRes.data) setMundialProducts(productsRes.data as Product[])
+
+      // Build hero cards from real products grouped by team
+      if (heroRes.data && heroRes.data.length > 0) {
+        const teamMap = new Map<string, HeroTeamCardData>()
+        for (const p of heroRes.data) {
+          const key = (p.team || p.id) as string
+          if (!teamMap.has(key) && teamMap.size < 6) {
+            teamMap.set(key, {
+              id: key,
+              images: [],
+              title: (p.name || p.title || key) as string,
+              subtitle: p.league === 'selecoes' ? 'Copa 2026' : 'Brasileirão',
+            })
+          }
+          const card = teamMap.get(key)
+          if (card && card.images.length < 3 && p.image_url) {
+            card.images.push(resolveAssetUrl(p.image_url))
+          }
+        }
+        const cards = Array.from(teamMap.values()).filter(c => c.images.length > 0)
+        if (cards.length > 0) setHeroCards(cards)
+      }
+
+      // Build categories from leagues in DB
+      if (leaguesRes.data && leaguesRes.data.length > 0) {
+        const ICON_MAP: Record<string, typeof Shirt> = {
+          brasileirao: Shirt,
+          selecoes: Globe2,
+        }
+        // Map each league to a category; image from first product of that league
+        const leagueProducts = heroRes.data || []
+        const built = leaguesRes.data.map(l => {
+          const firstProduct = leagueProducts.find((p: any) => p.league === l.id && p.image_url)
+          return {
+            name: l.name as string,
+            league: l.id as string,
+            icon: ICON_MAP[l.id] || Trophy,
+            image: firstProduct ? resolveAssetUrl(firstProduct.image_url) : resolveAssetUrl(l.logo_url || ''),
+          }
+        }).filter(c => c.image)
+        if (built.length > 0) setCategories(built)
+      }
+
       setLoading(false)
     }
 
@@ -362,15 +354,16 @@ export function HomePage() {
   }, [])
 
   useEffect(() => {
+    if (heroCards.length === 0) return
     const lastIndex = Number(window.localStorage.getItem(HERO_INDEX_STORAGE_KEY) ?? -1)
-    let nextIndex = Math.floor(Math.random() * HERO_TEAMS.length)
+    let nextIndex = Math.floor(Math.random() * heroCards.length)
 
-    if (HERO_TEAMS.length > 1 && nextIndex === lastIndex) {
-      nextIndex = (nextIndex + 1) % HERO_TEAMS.length
+    if (heroCards.length > 1 && nextIndex === lastIndex) {
+      nextIndex = (nextIndex + 1) % heroCards.length
     }
 
     setCarouselIndex(nextIndex)
-  }, [])
+  }, [heroCards.length])
 
   useEffect(() => {
     window.localStorage.setItem(HERO_INDEX_STORAGE_KEY, String(carouselIndex))
@@ -378,7 +371,7 @@ export function HomePage() {
 
   useEffect(() => {
     const id = setTimeout(() => {
-      setCarouselIndex((c) => (c + 1) % HERO_TEAMS.length)
+      setCarouselIndex((c) => (c + 1) % heroCards.length)
       setAutoPlayKey((k) => k + 1)
     }, AUTO_PLAY_MS)
     return () => clearTimeout(id)
@@ -422,7 +415,7 @@ export function HomePage() {
   }
 
   const getCarouselSlot = (teamIndex: number) => {
-    const total = HERO_TEAMS.length
+    const total = heroCards.length
     const raw = (teamIndex - carouselIndex + total) % total
     const normalized = raw > total / 2 ? raw - total : raw
 
@@ -431,12 +424,12 @@ export function HomePage() {
   }
 
   const goToNextTeam = () => {
-    setCarouselIndex((current) => (current + 1) % HERO_TEAMS.length)
+    setCarouselIndex((current) => (current + 1) % heroCards.length)
     setAutoPlayKey((k) => k + 1)
   }
 
   const goToPreviousTeam = () => {
-    setCarouselIndex((current) => (current - 1 + HERO_TEAMS.length) % HERO_TEAMS.length)
+    setCarouselIndex((current) => (current - 1 + heroCards.length) % heroCards.length)
     setAutoPlayKey((k) => k + 1)
   }
 
@@ -558,7 +551,7 @@ export function HomePage() {
                 className="relative w-full max-w-[920px]"
               >
                 <div className="relative mx-auto h-[620px] max-w-[900px] overflow-hidden">
-                  {HERO_TEAMS.map((card, index) => {
+                  {heroCards.map((card, index) => {
                     const slot = getCarouselSlot(index)
                     if (slot === null) return null
 
@@ -586,7 +579,7 @@ export function HomePage() {
 
                     <div className="flex min-w-[88px] flex-col items-center gap-2">
                       <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-white/40">
-                        {HERO_TEAMS[carouselIndex]?.title}
+                        {heroCards[carouselIndex]?.title}
                       </span>
                       <div className="relative h-[2px] w-20 overflow-hidden rounded-full bg-white/10">
                         <motion.div
@@ -781,7 +774,7 @@ export function HomePage() {
           </ScrollSection>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {CATEGORIES.map((category, index) => (
+            {categories.map((category, index) => (
               <Link key={category.name} to={`/produtos?liga=${category.league}`} className="block">
                 <motion.div
                   initial={{ opacity: 0, y: 30 }}
