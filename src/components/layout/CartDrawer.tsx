@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, ShoppingBag, Trash2, Plus, Minus, MoveRight, Package } from 'lucide-react'
+import { X, ShoppingBag, Trash2, Plus, Minus, MoveRight, ShoppingCart, Sparkles } from 'lucide-react'
 import { useCartStore } from '../../store/cartStore'
 import { resolveAssetUrl } from '../../lib/assets'
 import { useSettings } from '../../lib/useSettings'
@@ -119,27 +119,42 @@ export function CartDrawer() {
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="flex h-full flex-col items-center justify-center gap-6 text-center"
+                  transition={{ duration: 0.4 }}
+                  className="flex h-full flex-col items-center justify-center gap-8 text-center px-4"
                 >
-                  <div className="relative">
-                    <div className="absolute inset-0 rounded-full bg-primary/10 blur-2xl" />
-                    <Package className="relative h-16 w-16 text-primary/40" />
+                  {/* Ícone com glow */}
+                  <div className="relative flex items-center justify-center">
+                    <div className="absolute h-32 w-32 rounded-full bg-primary/10 blur-3xl" />
+                    <div className="absolute h-20 w-20 rounded-full bg-primary/15 blur-xl" />
+                    <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10">
+                      <ShoppingCart className="h-9 w-9 text-primary/70" />
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-display text-xs uppercase tracking-[0.38em] text-primary/60">
+
+                  {/* Texto */}
+                  <div className="space-y-2">
+                    <p className="font-display text-[11px] uppercase tracking-[0.4em] text-primary/50">
                       Carrinho vazio
                     </p>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      Nenhum item adicionado ao sistema.
+                    <h3 className="text-xl font-black uppercase tracking-tight text-white">
+                      Nada por aqui ainda
+                    </h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed max-w-[220px] mx-auto">
+                      Explore o catálogo e adicione suas camisas favoritas.
                     </p>
                   </div>
-                  <button
-                    onClick={() => { closeDrawer() }}
-                    className="data-chip border-primary/30 bg-primary/10 text-white"
+
+                  {/* CTA */}
+                  <motion.button
+                    onClick={closeDrawer}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="btn-glow-primary w-full flex items-center justify-center gap-2"
                   >
+                    <Sparkles className="h-4 w-4" />
                     Explorar catálogo
                     <MoveRight className="h-4 w-4" />
-                  </button>
+                  </motion.button>
                 </motion.div>
               ) : (
                 <AnimatePresence>
