@@ -89,8 +89,8 @@ const PERKS = [
 ]
 
 const CATEGORIES_FALLBACK = [
-  { name: 'Brasileirão', league: 'brasileirao', icon: Shirt, image: '/jersey/brasileirao/Corinthians/Corinthians-72.jpeg' },
-  { name: 'Seleções mundiais', league: 'selecoes', icon: Globe2, image: '/jersey/Mundial/Brasil/Brasil-1.jpeg' },
+  { name: 'Brasileirão', league: 'brasileirao', icon: Shirt, image: '/jersey/brasileirao/Corinthians/Corinthians-72.jpeg', logo_url: 'https://res.cloudinary.com/drdxlvlk4/image/upload/campeonatos/campeonato_brasileiro_de_futebol.png' },
+  { name: 'Seleções Mundiais', league: 'selecoes', icon: Globe2, image: '/jersey/Mundial/Brasil/Brasil-1.jpeg', logo_url: 'https://res.cloudinary.com/drdxlvlk4/image/upload/campeonatos/logo-fifa.png' },
 ]
 
 const MUNDIAL_PER_PAGE = 4
@@ -341,9 +341,10 @@ export function HomePage() {
             name: l.name as string,
             league: l.id as string,
             icon: ICON_MAP[l.id] || Trophy,
-            image: firstProduct ? resolveAssetUrl(firstProduct.image_url) : resolveAssetUrl(l.logo_url || ''),
+            image: firstProduct ? resolveAssetUrl(firstProduct.image_url) : '',
+            logo_url: l.logo_url ? resolveAssetUrl(l.logo_url) : '',
           }
-        }).filter(c => c.image)
+        }).filter(c => c.logo_url || c.image)
         if (built.length > 0) setCategories(built)
       }
 
@@ -577,19 +578,14 @@ export function HomePage() {
                       <ChevronLeft className="h-4 w-4" />
                     </button>
 
-                    <div className="flex min-w-[88px] flex-col items-center gap-2">
-                      <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-white/40">
-                        {heroCards[carouselIndex]?.title}
-                      </span>
-                      <div className="relative h-[2px] w-20 overflow-hidden rounded-full bg-white/10">
-                        <motion.div
-                          key={autoPlayKey}
-                          className="absolute inset-y-0 left-0 rounded-full bg-primary"
-                          initial={{ width: '0%' }}
-                          animate={{ width: '100%' }}
-                          transition={{ duration: AUTO_PLAY_MS / 1000, ease: 'linear' }}
-                        />
-                      </div>
+                    <div className="relative h-[2px] w-20 overflow-hidden rounded-full bg-white/10">
+                      <motion.div
+                        key={autoPlayKey}
+                        className="absolute inset-y-0 left-0 rounded-full bg-primary"
+                        initial={{ width: '0%' }}
+                        animate={{ width: '100%' }}
+                        transition={{ duration: AUTO_PLAY_MS / 1000, ease: 'linear' }}
+                      />
                     </div>
 
                     <button
@@ -648,6 +644,92 @@ export function HomePage() {
             ))}
           </div>
         </ScrollSection>
+      </section>
+
+      {/* ── Categorias / Ligas ── */}
+      <section id="categorias" className="section-shell px-4 sm:px-6">
+        <div className="mx-auto max-w-[1440px]">
+          <ScrollSection>
+            <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <span className="h-px w-8 bg-primary/50" />
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-primary">Navegue por campeonato</span>
+                </div>
+                <h2 className="text-4xl font-bold uppercase tracking-tight text-white sm:text-5xl lg:text-6xl">
+                  Ligas <span className="text-gradient-gold">& Seleções</span>
+                </h2>
+              </div>
+              <Link
+                to="/produtos"
+                className="group inline-flex shrink-0 items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-primary transition-colors hover:text-white"
+              >
+                Ver todo catálogo
+                <MoveRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </div>
+          </ScrollSection>
+
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {categories.map((category, index) => (
+              <Link key={category.league} to={`/produtos?liga=${category.league}`} className="block">
+                <motion.div
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.07, duration: 0.55 }}
+                  whileHover={{ y: -5 }}
+                  className="group relative h-[220px] cursor-pointer overflow-hidden rounded-[1.75rem] border border-white/8 bg-[#0c0c0c] transition-all duration-500 hover:border-primary/30 hover:shadow-[0_20px_50px_rgba(0,0,0,0.6)] sm:h-[240px]"
+                >
+                  {/* Background: product image blurred */}
+                  {category.image && (
+                    <img
+                      src={category.image}
+                      alt=""
+                      aria-hidden
+                      loading="lazy"
+                      className="absolute inset-0 h-full w-full scale-110 object-cover opacity-15 blur-[3px] transition-all duration-700 group-hover:opacity-25 group-hover:blur-0 group-hover:scale-105"
+                    />
+                  )}
+
+                  {/* Gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/10 to-black/75" />
+
+                  {/* Glow on hover */}
+                  <div className="absolute inset-0 rounded-[1.75rem] opacity-0 transition-opacity duration-500 group-hover:opacity-100 [background:radial-gradient(circle_at_50%_0%,rgba(229,192,123,0.06),transparent_65%)]" />
+
+                  {/* Content centered */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-5">
+                    {category.logo_url ? (
+                      <div className="relative flex items-center justify-center">
+                        <div className="absolute h-20 w-20 rounded-full bg-white/5 blur-2xl" />
+                        <img
+                          src={category.logo_url}
+                          alt={category.name}
+                          loading="lazy"
+                          className="relative h-[68px] w-[68px] object-contain drop-shadow-[0_4px_18px_rgba(255,255,255,0.18)] transition-transform duration-500 group-hover:scale-110"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex h-14 w-14 items-center justify-center rounded-full border border-primary/20 bg-primary/8 transition-all duration-500 group-hover:border-primary/45 group-hover:bg-primary/15">
+                        <category.icon className="h-7 w-7 text-primary" />
+                      </div>
+                    )}
+
+                    <h3 className="text-center text-sm font-bold uppercase tracking-[0.07em] text-white transition-colors duration-300 group-hover:text-primary sm:text-base">
+                      {category.name}
+                    </h3>
+
+                    <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-white/55 transition-all duration-300 group-hover:border-primary/40 group-hover:bg-primary/10 group-hover:text-primary">
+                      Ver coleção
+                      <MoveRight className="h-3 w-3" />
+                    </div>
+                  </div>
+                </motion.div>
+              </Link>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* ── Testimonials (carousel) ── */}
@@ -755,53 +837,6 @@ export function HomePage() {
           </div>
         </section>
       )}
-
-      {/* ── Categorias ── */}
-      <section id="categorias" className="section-shell px-4 sm:px-6">
-        <div className="mx-auto max-w-[1440px]">
-          <ScrollSection>
-            <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <span className="h-px w-8 bg-primary/50" />
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-primary">Navegue por</span>
-                </div>
-                <h2 className="text-4xl font-bold uppercase tracking-tight text-white sm:text-5xl lg:text-6xl">
-                  Categorias <span className="text-gradient-gold">premium</span>
-                </h2>
-              </div>
-            </div>
-          </ScrollSection>
-
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {categories.map((category, index) => (
-              <Link key={category.name} to={`/produtos?liga=${category.league}`} className="block">
-                <motion.div
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.08, duration: 0.6 }}
-                  className="group relative aspect-[4/5] cursor-pointer overflow-hidden rounded-[1.5rem] border border-border bg-card sm:aspect-auto sm:h-[320px]"
-                >
-                  <img
-                    src={resolveAssetUrl(category.image)}
-                    alt={category.name}
-                    loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-[#030303]/60 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-6">
-                    <div className="mb-2 flex items-center gap-3">
-                      <category.icon className="h-5 w-5 shrink-0 text-primary" />
-                      <h3 className="text-xl font-bold tracking-tight text-white sm:text-2xl">{category.name}</h3>
-                    </div>
-                  </div>
-                </motion.div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* ── Stats ── */}
       <section className="section-shell px-4 sm:px-6">

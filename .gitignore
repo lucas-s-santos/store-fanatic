@@ -21,6 +21,15 @@ dist-ssr
 public/jersey/
 public/logos/
 public/camisasBrasileirao/
+public/Bundesliga/
+public/LaLiga/
+public/Liga1/
+public/Premier league/
+public/campeonatos/
+public/logostimesbundesliga/
+public/logostimeslaliga/
+public/logostimesliga1/
+public/logotimespremier/
 
 # Editor directories and files
 .vscode/*
