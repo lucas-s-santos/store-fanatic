@@ -83,6 +83,24 @@
   }
 }
 
+@layer components {
+  .form-input {
+    width: 100%;
+    border: 1px solid var(--color-border);
+    background: rgba(255, 255, 255, 0.02);
+    padding: 0.875rem 1rem;
+    color: var(--color-foreground);
+    border-radius: var(--radius-md);
+    transition: all 200ms ease;
+  }
+
+  .form-input:focus {
+    border-color: var(--color-primary);
+    background: rgba(255, 255, 255, 0.04);
+    box-shadow: 0 0 0 4px rgba(229, 192, 123, 0.1);
+  }
+}
+
 @layer utilities {
   .font-display { font-family: var(--font-display); }
   .font-mono-styled { font-family: var(--font-mono); }
@@ -186,21 +204,6 @@
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--color-border); }
 
-  .form-input {
-    width: 100%;
-    border: 1px solid var(--color-border);
-    background: rgba(255, 255, 255, 0.02);
-    padding: 1rem 1.25rem;
-    color: var(--color-foreground);
-    border-radius: var(--radius-md);
-    transition: all 200ms ease;
-  }
-
-  .form-input:focus {
-    border-color: var(--color-primary);
-    background: rgba(255, 255, 255, 0.04);
-    box-shadow: 0 0 0 4px rgba(229, 192, 123, 0.1);
-  }
 
   .video-hero-section {
     position: relative;

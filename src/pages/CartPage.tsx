@@ -46,7 +46,7 @@ export function CartPage() {
 
   return (
     <div className="section-shell px-3 sm:px-5">
-      <div className="mx-auto max-w-[1440px] space-y-8">
+      <div className="mx-auto max-w-[1440px] space-y-8 pb-32 lg:pb-0">
 
         {/* Header */}
         <motion.div
@@ -71,7 +71,7 @@ export function CartPage() {
           </div>
         </motion.div>
 
-        <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           {/* Items */}
           <div className="space-y-4">
             {items.map((item, index) => (
@@ -155,7 +155,7 @@ export function CartPage() {
           </div>
 
           {/* Resumo */}
-          <aside className="glass-card rounded-[1.5rem] h-fit px-6 py-8 sm:px-8 xl:sticky xl:top-28">
+          <aside className="glass-card rounded-[1.5rem] h-fit px-6 py-8 sm:px-8 lg:sticky lg:top-28">
             <div className="space-y-6">
               <h2 className="text-2xl font-display font-bold uppercase tracking-tight text-white">
                 Resumo
@@ -225,6 +225,23 @@ export function CartPage() {
               </button>
             </div>
           </aside>
+        </div>
+      </div>
+
+      {/* Barra flutuante mobile */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/[0.08] bg-background/95 px-4 py-3 backdrop-blur-xl lg:hidden">
+        <div className="mx-auto flex max-w-[1440px] items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Total</p>
+            <p className="text-xl font-display font-bold text-white">R$ {total.toFixed(2).replace('.', ',')}</p>
+          </div>
+          <button
+            onClick={() => navigate('/checkout')}
+            className="flex shrink-0 items-center gap-2 rounded-full bg-primary px-6 py-3.5 font-display text-xs font-bold uppercase tracking-wider text-primary-foreground transition-all hover:opacity-90"
+          >
+            Finalizar pedido
+            <MoveRight className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </div>

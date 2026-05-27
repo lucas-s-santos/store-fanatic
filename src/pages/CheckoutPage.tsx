@@ -272,7 +272,7 @@ export function CheckoutPage() {
 
   return (
     <div className="section-shell px-3 sm:px-5">
-      <div className="mx-auto max-w-[1440px] space-y-8">
+      <div className="mx-auto max-w-[1440px] space-y-8 pb-32 lg:pb-0">
 
         {/* Header */}
         <motion.div
@@ -301,7 +301,7 @@ export function CheckoutPage() {
           </div>
         </motion.div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+        <form id="checkout-form" onSubmit={handleSubmit(onSubmit)} className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="space-y-6">
 
             {/* Identificação */}
@@ -400,7 +400,7 @@ export function CheckoutPage() {
           </div>
 
           {/* Sidebar — Resumo */}
-          <aside className="glass-card rounded-[1.5rem] h-fit px-6 py-8 sm:px-8 xl:sticky xl:top-28">
+          <aside className="glass-card rounded-[1.5rem] h-fit px-6 py-8 sm:px-8 lg:sticky lg:top-28">
             <div className="space-y-6">
               <div className="flex items-center justify-between gap-4">
                 <h3 className="text-2xl font-display font-bold uppercase tracking-tight text-white">Resumo</h3>
@@ -550,6 +550,25 @@ export function CheckoutPage() {
             </div>
           </aside>
         </form>
+      </div>
+
+      {/* Barra flutuante mobile */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/[0.08] bg-background/95 px-4 py-3 backdrop-blur-xl lg:hidden">
+        <div className="mx-auto flex max-w-[1440px] items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Total</p>
+            <p className="text-xl font-display font-bold text-white">R$ {grandTotal.toFixed(2).replace('.', ',')}</p>
+          </div>
+          <button
+            type="submit"
+            form="checkout-form"
+            disabled={isSubmitting}
+            className="flex shrink-0 items-center gap-2 rounded-full px-6 py-3.5 font-display text-xs font-bold uppercase tracking-wider text-white transition-all disabled:opacity-60"
+            style={{ background: '#009EE3' }}
+          >
+            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Pagar'}
+          </button>
+        </div>
       </div>
     </div>
   )

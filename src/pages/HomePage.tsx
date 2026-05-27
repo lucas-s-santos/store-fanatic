@@ -497,7 +497,7 @@ export function HomePage() {
                 initial={{ opacity: 0, y: 28 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.85, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-                className="max-w-3xl text-5xl font-black uppercase leading-[0.92] tracking-normal text-white sm:text-6xl lg:text-[5.4rem]"
+                className="max-w-3xl text-4xl font-black uppercase leading-[0.92] tracking-normal text-white sm:text-5xl md:text-6xl lg:text-[5.4rem]"
               >
                 Vista o
                 <span className="block text-gradient-gold">manto.</span>
@@ -536,7 +536,7 @@ export function HomePage() {
 
             <motion.div
               style={{ y: heroDepth }}
-              className="relative flex min-h-[640px] items-center justify-center"
+              className="relative flex min-h-[300px] items-center justify-center sm:min-h-[440px] lg:min-h-[640px]"
             >
               <motion.div
                 style={{
@@ -551,7 +551,7 @@ export function HomePage() {
                 transition={{ duration: 0.8, delay: 0.14, ease: [0.16, 1, 0.3, 1] }}
                 className="relative w-full max-w-[920px]"
               >
-                <div className="relative mx-auto h-[620px] max-w-[900px] overflow-hidden">
+                <div className="relative mx-auto h-[280px] max-w-[900px] overflow-hidden sm:h-[420px] md:h-[620px]">
                   {heroCards.map((card, index) => {
                     const slot = getCarouselSlot(index)
                     if (slot === null) return null

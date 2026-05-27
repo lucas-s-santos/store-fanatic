@@ -145,7 +145,7 @@ export function ProductPage() {
           Voltar
         </motion.button>
 
-        <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+        <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
           {/* ─── Image panel ─── */}
           <motion.div
             initial={{ opacity: 0, scale: 0.97 }}

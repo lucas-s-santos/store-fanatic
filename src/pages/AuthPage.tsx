@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Mail, Eye, EyeOff, Loader2, User, Lock,
-  ArrowLeft, CheckCircle2, ShoppingBag,
+  ArrowLeft, CheckCircle2, ShoppingBag, Phone,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
@@ -65,11 +65,13 @@ interface FieldProps {
 function Field({ label, icon: Icon, type = 'text', value, onChange, placeholder, autoComplete, required, right }: FieldProps) {
   return (
     <div>
-      <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+      <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
         {label}
       </label>
       <div className="relative">
-        <Icon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center">
+          <Icon className="h-4 w-4 text-muted-foreground/60" />
+        </span>
         <input
           type={type}
           value={value}
@@ -77,9 +79,13 @@ function Field({ label, icon: Icon, type = 'text', value, onChange, placeholder,
           placeholder={placeholder}
           autoComplete={autoComplete}
           required={required}
-          className="form-input w-full pl-10 pr-10 text-sm"
+          className="form-input w-full pl-11 pr-11 text-sm"
         />
-        {right && <div className="absolute right-3 top-1/2 -translate-y-1/2">{right}</div>}
+        {right && (
+          <span className="absolute inset-y-0 right-4 flex items-center">
+            {right}
+          </span>
+        )}
       </div>
     </div>
   )
@@ -92,6 +98,7 @@ export function AuthPage() {
 
   const [mode, setMode] = useState<Mode>('login')
   const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -129,6 +136,7 @@ export function AuthPage() {
             id: data.user.id,
             email: data.user.email,
             full_name: name.trim(),
+            phone: phone.trim() || null,
           })
         }
 
@@ -162,25 +170,46 @@ export function AuthPage() {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-80px)] items-center justify-center px-4 py-12">
+    <div className="relative flex min-h-[calc(100vh-80px)] items-center justify-center overflow-hidden px-4 py-12">
+      {/* Background decorativo */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 hero-grid opacity-40" />
+        <div className="absolute left-1/2 top-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/[0.06] blur-[120px]" />
+        <div className="absolute left-1/3 top-1/4 h-[250px] w-[250px] rounded-full bg-primary/[0.04] blur-[80px]" />
+      </div>
+
       <motion.div
-        initial={{ opacity: 0, y: 24 }}
+        initial={{ opacity: 0, y: 28 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-md"
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        className="relative w-full max-w-md"
       >
         {/* Logo */}
-        <div className="mb-8 flex flex-col items-center gap-3">
-          <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black/60 shadow-xl">
-            <img src="/store-fanatic.jpg" alt="Store Fanatic" className="h-full w-full object-cover" />
+        <div className="mb-8 flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="absolute inset-0 rounded-2xl bg-primary/25 blur-xl" />
+            <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-primary/25 bg-black/80 shadow-2xl">
+              <img src="/store-fanatic.jpg" alt="Store Fanatic" className="h-full w-full object-cover" />
+            </div>
           </div>
           <div className="text-center">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-primary/70">Store Fanatic</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {mode === 'login' && 'Entre na sua conta'}
-              {mode === 'register' && 'Crie sua conta gratuita'}
-              {mode === 'forgot' && 'Redefinir senha'}
+            <p className="text-gradient-gold font-display text-sm font-bold uppercase tracking-[0.3em]">
+              Store Fanatic
             </p>
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={mode}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.18 }}
+                className="mt-1 text-xs text-muted-foreground"
+              >
+                {mode === 'login' && 'Entre na sua conta'}
+                {mode === 'register' && 'Crie sua conta gratuita'}
+                {mode === 'forgot' && 'Redefinir senha'}
+              </motion.p>
+            </AnimatePresence>
           </div>
         </div>
 
@@ -198,21 +227,21 @@ export function AuthPage() {
                 animate="center"
                 exit="exit"
                 transition={{ duration: 0.22, ease: 'easeOut' }}
-                className="space-y-5"
+                className="space-y-6"
               >
                 <button
                   onClick={() => switchMode('login')}
-                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-white transition-colors"
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-white"
                 >
                   <ArrowLeft className="h-3.5 w-3.5" />
                   Voltar ao login
                 </button>
 
                 <div>
-                  <h2 className="text-xl font-display font-bold uppercase tracking-tight text-white">
+                  <h2 className="font-display text-xl font-bold uppercase tracking-tight text-white">
                     Esqueceu a senha?
                   </h2>
-                  <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                  <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
                     Informe seu e-mail e enviaremos um link para redefinir sua senha.
                   </p>
                 </div>
@@ -234,7 +263,7 @@ export function AuthPage() {
                     </button>
                   </motion.div>
                 ) : (
-                  <form onSubmit={handleSubmit} className="space-y-4">
+                  <form onSubmit={handleSubmit} className="space-y-5">
                     <Field
                       label="E-mail"
                       icon={Mail}
@@ -245,11 +274,15 @@ export function AuthPage() {
                       autoComplete="email"
                       required
                     />
-                    {error && <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-xs text-destructive">{error}</p>}
+                    {error && (
+                      <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-xs text-destructive">
+                        {error}
+                      </p>
+                    )}
                     <button
                       type="submit"
                       disabled={loading}
-                      className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-xs font-bold uppercase tracking-[0.15em] text-primary-foreground transition-all hover:opacity-90 hover:scale-[1.02] active:scale-100 disabled:opacity-50"
+                      className="btn-glow-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Enviar link de redefinição'}
                     </button>
@@ -269,20 +302,25 @@ export function AuthPage() {
                 transition={{ duration: 0.22, ease: 'easeOut' }}
                 className="space-y-6"
               >
-                {/* Tabs */}
-                <div className="flex rounded-xl border border-white/10 bg-white/[0.03] p-1">
+                {/* Tabs com indicador animado */}
+                <div className="relative flex rounded-xl border border-white/10 bg-white/[0.03] p-1">
                   {(['login', 'register'] as const).map(m => (
                     <button
                       key={m}
                       type="button"
                       onClick={() => switchMode(m)}
-                      className={`flex-1 rounded-lg py-2.5 text-xs font-bold uppercase tracking-[0.15em] transition-all duration-200 ${
-                        mode === m
-                          ? 'bg-primary text-primary-foreground shadow-sm'
-                          : 'text-muted-foreground hover:text-white'
-                      }`}
+                      className="relative flex-1 rounded-lg py-2.5 text-xs font-bold uppercase tracking-[0.15em]"
                     >
-                      {m === 'login' ? 'Entrar' : 'Cadastrar'}
+                      {mode === m && (
+                        <motion.div
+                          layoutId="tab-indicator"
+                          className="absolute inset-0 rounded-lg bg-primary"
+                          transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                        />
+                      )}
+                      <span className={`relative z-10 transition-colors duration-200 ${mode === m ? 'text-primary-foreground' : 'text-muted-foreground hover:text-white'}`}>
+                        {m === 'login' ? 'Entrar' : 'Cadastrar'}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -291,9 +329,9 @@ export function AuthPage() {
                 <AnimatePresence>
                   {error && (
                     <motion.p
-                      initial={{ opacity: 0, y: -4 }}
+                      initial={{ opacity: 0, y: -6 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
+                      exit={{ opacity: 0, y: -6 }}
                       className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-xs text-destructive"
                     >
                       {error}
@@ -316,10 +354,11 @@ export function AuthPage() {
                   <AnimatePresence initial={false}>
                     {mode === 'register' && (
                       <motion.div
+                        key="name-field"
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
+                        transition={{ duration: 0.22 }}
                         className="overflow-hidden"
                       >
                         <Field
@@ -327,7 +366,7 @@ export function AuthPage() {
                           icon={User}
                           value={name}
                           onChange={setName}
-                          placeholder="Seu nome"
+                          placeholder="Seu nome completo"
                           autoComplete="name"
                           required
                         />
@@ -346,6 +385,29 @@ export function AuthPage() {
                     required
                   />
 
+                  <AnimatePresence initial={false}>
+                    {mode === 'register' && (
+                      <motion.div
+                        key="phone-field"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.22 }}
+                        className="overflow-hidden"
+                      >
+                        <Field
+                          label="WhatsApp / Telefone"
+                          icon={Phone}
+                          type="tel"
+                          value={phone}
+                          onChange={setPhone}
+                          placeholder="(11) 99999-9999"
+                          autoComplete="tel"
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
                   <div>
                     <Field
                       label="Senha"
@@ -360,7 +422,7 @@ export function AuthPage() {
                         <button
                           type="button"
                           onClick={() => setShowPassword(v => !v)}
-                          className="text-muted-foreground transition-colors hover:text-white"
+                          className="text-muted-foreground/60 transition-colors hover:text-white"
                         >
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -372,10 +434,11 @@ export function AuthPage() {
                   <AnimatePresence initial={false}>
                     {mode === 'register' && (
                       <motion.div
+                        key="confirm-field"
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
+                        transition={{ duration: 0.22 }}
                         className="overflow-hidden"
                       >
                         <Field
@@ -391,7 +454,7 @@ export function AuthPage() {
                             <button
                               type="button"
                               onClick={() => setShowConfirm(v => !v)}
-                              className="text-muted-foreground transition-colors hover:text-white"
+                              className="text-muted-foreground/60 transition-colors hover:text-white"
                             >
                               {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </button>
@@ -421,19 +484,21 @@ export function AuthPage() {
                     </div>
                   )}
 
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 text-xs font-bold uppercase tracking-[0.2em] text-primary-foreground transition-all hover:opacity-90 hover:scale-[1.02] active:scale-100 disabled:opacity-50 disabled:scale-100"
-                  >
-                    {loading
-                      ? <Loader2 className="h-4 w-4 animate-spin" />
-                      : mode === 'login' ? 'Entrar na conta' : 'Criar minha conta'}
-                  </button>
+                  <div className="pt-1">
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="btn-glow-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {loading
+                        ? <Loader2 className="h-4 w-4 animate-spin" />
+                        : mode === 'login' ? 'Entrar na conta' : 'Criar minha conta'}
+                    </button>
+                  </div>
                 </form>
 
-                {/* Link para loja */}
-                <div className="flex items-center justify-center gap-2 pt-2">
+                {/* Continuar sem conta */}
+                <div className="flex items-center justify-center gap-2 border-t border-white/[0.06] pt-5">
                   <Link
                     to="/"
                     className="flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-white"
@@ -446,6 +511,14 @@ export function AuthPage() {
             )}
           </AnimatePresence>
         </div>
+
+        {/* Termos */}
+        <p className="mt-5 text-center text-[10px] text-muted-foreground/40">
+          Ao continuar, você concorda com nossos{' '}
+          <span className="cursor-pointer text-muted-foreground/60 transition-colors hover:text-primary">Termos de Uso</span>
+          {' '}e{' '}
+          <span className="cursor-pointer text-muted-foreground/60 transition-colors hover:text-primary">Política de Privacidade</span>
+        </p>
       </motion.div>
     </div>
   )
