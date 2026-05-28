@@ -29,7 +29,7 @@ interface OrderItem {
   product_title: string
   size: string
   quantity: number
-  price: number
+  unit_price: number
   personalization: { name?: string; number?: string }[] | null
 }
 
@@ -440,7 +440,7 @@ export function OrderTrackingPage() {
                     )}
                   </div>
                   <p className="shrink-0 text-base font-bold text-primary">
-                    R$ {(Number(item.price) * item.quantity).toFixed(2).replace('.', ',')}
+                    R$ {(Number(item.unit_price) * item.quantity).toFixed(2).replace('.', ',')}
                   </p>
                 </div>
               </li>

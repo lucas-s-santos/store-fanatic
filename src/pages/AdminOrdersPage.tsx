@@ -32,7 +32,7 @@ interface OrderItem {
   product_title: string
   size: string
   quantity: number
-  price: number
+  unit_price: number
   personalization: { name?: string; number?: string }[] | null
 }
 
@@ -765,7 +765,7 @@ export function AdminOrdersPage() {
                                   {[
                                     `Tam. ${item.size}`,
                                     `Qtd. ${item.quantity}`,
-                                    `Unit. R$ ${Number(item.price).toFixed(2).replace('.', ',')}`,
+                                    `Unit. R$ ${Number(item.unit_price).toFixed(2).replace('.', ',')}`,
                                   ].map(tag => (
                                     <span key={tag} className="rounded-full border border-white/10 px-2.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
                                       {tag}
@@ -783,7 +783,7 @@ export function AdminOrdersPage() {
                                 )}
                               </div>
                               <p className="shrink-0 text-base font-bold text-primary">
-                                R$ {(Number(item.price) * Number(item.quantity)).toFixed(2).replace('.', ',')}
+                                R$ {(Number(item.unit_price) * Number(item.quantity)).toFixed(2).replace('.', ',')}
                               </p>
                             </div>
                           </li>

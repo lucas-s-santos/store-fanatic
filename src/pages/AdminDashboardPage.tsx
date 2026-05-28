@@ -47,7 +47,7 @@ export function AdminDashboardPage() {
       const [ordersRes, productsRes, itemsRes] = await Promise.all([
         supabase.from('orders').select('*').order('created_at', { ascending: false }),
         supabase.from('products').select('*'),
-        supabase.from('order_items').select('product_title, quantity, price'),
+        supabase.from('order_items').select('product_title, quantity, unit_price'),
       ])
 
       const orders: Order[] = ordersRes.data || []
@@ -75,7 +75,7 @@ export function AdminDashboardPage() {
         const key = item.product_title || 'Sem título'
         if (!map[key]) map[key] = { product_title: key, total_qty: 0, total_revenue: 0 }
         map[key].total_qty += Number(item.quantity)
-        map[key].total_revenue += Number(item.price) * Number(item.quantity)
+        map[key].total_revenue += Number(item.unit_price) * Number(item.quantity)
       }
       const sorted = Object.values(map).sort((a, b) => b.total_qty - a.total_qty).slice(0, 5)
       setTopProducts(sorted)

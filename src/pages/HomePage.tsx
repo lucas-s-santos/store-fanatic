@@ -333,18 +333,26 @@ export function HomePage() {
           brasileirao: Shirt,
           selecoes: Globe2,
         }
-        // Map each league to a category; image from first product of that league
-        const leagueProducts = heroRes.data || []
-        const built = leaguesRes.data.map(l => {
-          const firstProduct = leagueProducts.find((p: any) => p.league === l.id && p.image_url)
-          return {
-            name: l.name as string,
-            league: l.id as string,
-            icon: ICON_MAP[l.id] || Trophy,
-            image: firstProduct ? resolveAssetUrl(firstProduct.image_url) : '',
-            logo_url: l.logo_url ? resolveAssetUrl(l.logo_url) : '',
-          }
-        }).filter(c => c.logo_url || c.image)
+
+        // Fetch one background image per league in parallel
+        const bgResults = await Promise.all(
+          leaguesRes.data.map(l =>
+            supabase.from('products').select('league, image_url').eq('league', l.id).eq('active', true).not('image_url', 'is', null).limit(1)
+          )
+        )
+        const bgMap: Record<string, string> = {}
+        bgResults.forEach(r => {
+          if (r.data?.[0]?.image_url) bgMap[r.data[0].league] = r.data[0].image_url
+        })
+
+        const built = leaguesRes.data.map(l => ({
+          name: l.name as string,
+          league: l.id as string,
+          icon: ICON_MAP[l.id] || Trophy,
+          image: bgMap[l.id] ? resolveAssetUrl(bgMap[l.id]) : '',
+          logo_url: l.logo_url ? resolveAssetUrl(l.logo_url) : '',
+        })).filter(c => c.logo_url || c.image)
+
         if (built.length > 0) setCategories(built)
       }
 
