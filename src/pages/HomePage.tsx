@@ -189,7 +189,7 @@ function HeroCarouselCard({
         rotate: position.rotate,
       }}
       whileHover={shouldReduceMotion || slot !== 0 ? undefined : { y: position.y - 8, scale: 1.02 }}
-      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
       className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
     >
       <motion.div
@@ -242,6 +242,7 @@ export function HomePage() {
   const AUTO_PLAY_MS = 4000
   const [carouselIndex, setCarouselIndex] = useState(0)
   const [autoPlayKey, setAutoPlayKey] = useState(0)
+  const [isHeroPaused, setIsHeroPaused] = useState(false)
 
   const { scrollYProgress } = useScroll({
     target: heroRef,
@@ -379,12 +380,13 @@ export function HomePage() {
   }, [carouselIndex])
 
   useEffect(() => {
+    if (isHeroPaused) return
     const id = setTimeout(() => {
       setCarouselIndex((c) => (c + 1) % heroCards.length)
       setAutoPlayKey((k) => k + 1)
     }, AUTO_PLAY_MS)
     return () => clearTimeout(id)
-  }, [carouselIndex])
+  }, [carouselIndex, isHeroPaused])
 
   // Testimonials auto-play
   useEffect(() => {
@@ -559,7 +561,11 @@ export function HomePage() {
                 transition={{ duration: 0.8, delay: 0.14, ease: [0.16, 1, 0.3, 1] }}
                 className="relative w-full max-w-[920px]"
               >
-                <div className="relative mx-auto h-[280px] max-w-[900px] overflow-hidden sm:h-[420px] md:h-[620px]">
+                <div
+                  className="relative mx-auto h-[280px] max-w-[900px] overflow-hidden sm:h-[420px] md:h-[620px]"
+                  onMouseEnter={() => setIsHeroPaused(true)}
+                  onMouseLeave={() => setIsHeroPaused(false)}
+                >
                   {heroCards.map((card, index) => {
                     const slot = getCarouselSlot(index)
                     if (slot === null) return null
@@ -588,11 +594,11 @@ export function HomePage() {
 
                     <div className="relative h-[2px] w-20 overflow-hidden rounded-full bg-white/10">
                       <motion.div
-                        key={autoPlayKey}
+                        key={`${autoPlayKey}${isHeroPaused ? '-p' : ''}`}
                         className="absolute inset-y-0 left-0 rounded-full bg-primary"
                         initial={{ width: '0%' }}
-                        animate={{ width: '100%' }}
-                        transition={{ duration: AUTO_PLAY_MS / 1000, ease: 'linear' }}
+                        animate={{ width: isHeroPaused ? '0%' : '100%' }}
+                        transition={isHeroPaused ? { duration: 0.2 } : { duration: AUTO_PLAY_MS / 1000, ease: 'linear' }}
                       />
                     </div>
 
