@@ -311,7 +311,7 @@ export function HomePage() {
         const teamMap = new Map<string, HeroTeamCardData>()
         for (const p of heroRes.data) {
           const key = (p.team || p.id) as string
-          if (!teamMap.has(key) && teamMap.size < 6) {
+          if (!teamMap.has(key)) {
             teamMap.set(key, {
               id: key,
               images: [],
@@ -324,8 +324,9 @@ export function HomePage() {
             card.images.push(resolveAssetUrl(p.image_url))
           }
         }
-        const cards = Array.from(teamMap.values()).filter(c => c.images.length > 0)
-        if (cards.length > 0) setHeroCards(cards)
+        const allCards = Array.from(teamMap.values()).filter(c => c.images.length > 0)
+        const shuffled = allCards.sort(() => Math.random() - 0.5).slice(0, 6)
+        if (shuffled.length > 0) setHeroCards(shuffled)
       }
 
       // Build categories from leagues in DB
