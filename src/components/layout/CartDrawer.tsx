@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, ShoppingBag, Trash2, Plus, Minus, MoveRight, ShoppingCart, Sparkles } from 'lucide-react'
 import { useCartStore } from '../../store/cartStore'
-import { resolveAssetUrl } from '../../lib/assets'
+import { Button } from '../ui/button'
+import { optimizedImageUrl } from '../../lib/assets'
 import { useSettings } from '../../lib/useSettings'
 
 export function CartDrawer() {
@@ -52,18 +53,8 @@ export function CartDrawer() {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-            className="fixed inset-y-0 right-0 z-[1000] flex w-full max-w-md flex-col"
-            style={{
-              background: 'linear-gradient(180deg, rgba(10,14,24,0.98), rgba(6,10,18,0.99))',
-              borderLeft: '1px solid rgba(255,170,0,0.1)',
-              boxShadow: '-20px 0 80px rgba(0,0,0,0.5)',
-            }}
+            className="fixed inset-y-0 right-0 z-[1000] flex w-full max-w-md flex-col border-l border-primary/10 bg-card shadow-[-20px_0_80px_rgba(0,0,0,0.5)]"
           >
-            {/* Scanline effect */}
-            <div className="pointer-events-none absolute inset-0 overflow-hidden">
-              <div className="scanline opacity-40" />
-            </div>
-
             {/* Header */}
             <div className="relative flex items-center justify-between border-b border-white/10 px-6 py-5">
               <div className="flex items-center gap-3">
@@ -80,13 +71,9 @@ export function CartDrawer() {
                   </p>
                 </div>
               </div>
-              <button
-                onClick={closeDrawer}
-                className="data-chip border-white/10 bg-white/5 px-3 py-3 text-white hover:border-primary/30 hover:bg-primary/10"
-                aria-label="Fechar carrinho"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <Button variant="outline" size="icon" onClick={closeDrawer} aria-label="Fechar carrinho">
+                <X />
+              </Button>
             </div>
 
             {/* Frete Progress Bar */}
@@ -104,7 +91,7 @@ export function CartDrawer() {
                 </div>
                 <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
                   <motion.div
-                    className="h-full rounded-full bg-gradient-to-r from-primary to-accent"
+                    className="h-full rounded-full bg-gradient-to-r from-primary to-success"
                     initial={{ width: 0 }}
                     animate={{ width: `${progressPct}%` }}
                     transition={{ duration: 0.6, ease: 'easeOut' }}
@@ -167,16 +154,12 @@ export function CartDrawer() {
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 30, height: 0, marginBottom: 0 }}
                         transition={{ duration: 0.25 }}
-                        className="group relative flex gap-4 rounded-sm border border-white/8 bg-white/3 p-4 hover:border-primary/20 transition-colors"
-                        style={{
-                          background: 'rgba(10,18,35,0.7)',
-                          border: '1px solid rgba(255,255,255,0.07)',
-                        }}
+                        className="group relative flex gap-4 rounded-xl border border-border bg-white/[0.03] p-4 transition-colors hover:border-primary/20"
                       >
                         {/* Image */}
-                        <div className="relative h-20 w-16 shrink-0 overflow-hidden rounded-sm border border-white/10">
+                        <div className="relative h-20 w-16 shrink-0 overflow-hidden rounded-md border border-white/10">
                           <img
-                            src={resolveAssetUrl(item.imageUrl) || 'https://via.placeholder.com/80x100'}
+                            src={optimizedImageUrl(item.imageUrl, 160)}
                             alt={item.title}
                             loading="lazy"
                             className="h-full w-full object-cover"
@@ -187,15 +170,16 @@ export function CartDrawer() {
                         {/* Info */}
                         <div className="flex min-w-0 flex-1 flex-col justify-between">
                           <div>
-                            <h4 className="line-clamp-1 text-sm font-bold text-white">{item.title}</h4>
+                            <h4 className="line-clamp-1 pr-6 text-sm font-bold text-white">{item.title}</h4>
                             <p className="mt-1 font-display text-[10px] uppercase tracking-[0.28em] text-primary/70">
                               Tam. {item.size}
                             </p>
                           </div>
                           <div className="flex items-center justify-between gap-4">
                             {/* Quantity Controls */}
-                            <div className="flex items-center gap-2 border border-white/10 bg-white/5">
+                            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5">
                               <button
+                                aria-label={item.quantity <= 1 ? `Remover ${item.title}` : 'Diminuir quantidade'}
                                 onClick={() => {
                                   if (item.quantity <= 1) {
                                     removeItem(item.id, item.size)
@@ -211,6 +195,7 @@ export function CartDrawer() {
                                 {item.quantity}
                               </span>
                               <button
+                                aria-label="Aumentar quantidade"
                                 onClick={() => updateQuantity(item.id, item.size, item.quantity + 1)}
                                 disabled={item.stockQuantity !== undefined && item.quantity >= item.stockQuantity}
                                 className={`flex h-7 w-7 items-center justify-center transition-colors ${
@@ -231,7 +216,8 @@ export function CartDrawer() {
                         {/* Delete */}
                         <button
                           onClick={() => removeItem(item.id, item.size)}
-                          className="absolute right-3 top-3 p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive"
+                          aria-label={`Remover ${item.title}`}
+                          className="absolute right-3 top-3 p-1 text-muted-foreground transition-opacity hover:text-destructive focus-visible:opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -256,7 +242,7 @@ export function CartDrawer() {
                   </div>
                   <div className="text-right">
                     {shippingFree ? (
-                      <p className="font-display text-[10px] uppercase tracking-[0.3em] text-accent">
+                      <p className="font-display text-[10px] uppercase tracking-[0.3em] text-success">
                         Grátis ✓
                       </p>
                     ) : (

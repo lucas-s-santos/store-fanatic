@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Menu, ShoppingBag, X, User, LogIn, Package, LogOut, ChevronDown, Shield } from 'lucide-react'
 
+import { Button } from '../ui/button'
 import { useCartStore } from '../../store/cartStore'
 import { useAuth } from '../../lib/useAuth'
 
@@ -66,8 +67,8 @@ export function Header() {
           </div>
 
           <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary/70">Store Fanatic</p>
-            <p className="truncate text-xl font-display font-bold uppercase tracking-tight text-white">Loja de camisas</p>
+            <p className="truncate text-xl font-display font-bold uppercase tracking-tight text-white">Store Fanatic</p>
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-primary/80">Loja de camisas</p>
           </div>
         </Link>
 
@@ -153,21 +154,21 @@ export function Header() {
               </AnimatePresence>
             </div>
           ) : (
-            <Link
-              to="/login"
-              className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.02] px-5 py-2.5 text-sm font-semibold text-white/70 transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-white"
-            >
-              <LogIn className="h-4 w-4" />
-              Entrar
-            </Link>
+            <Button variant="outline" className="font-semibold text-white/80" asChild>
+              <Link to="/login">
+                <LogIn />
+                Entrar
+              </Link>
+            </Button>
           )}
 
-          <button
+          <Button
+            variant="outline"
             onClick={toggleDrawer}
-            className="relative flex items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.02] px-5 py-2.5 text-sm font-semibold text-white/70 transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-white hover:shadow-[0_0_20px_rgba(229,192,123,0.15)]"
+            className="font-semibold text-white/80"
             aria-label="Abrir carrinho"
           >
-            <ShoppingBag className="h-4 w-4" />
+            <ShoppingBag />
             Carrinho
             <AnimatePresence>
               {totalItems > 0 && (
@@ -182,16 +183,18 @@ export function Header() {
                 </motion.span>
               )}
             </AnimatePresence>
-          </button>
+          </Button>
         </div>
 
         <div className="flex items-center gap-2.5 lg:hidden">
-          <button
+          <Button
+            variant="outline"
+            size="icon"
             onClick={toggleDrawer}
-            className="relative flex items-center justify-center rounded-sm border border-white/10 bg-white/[0.04] p-2.5"
+            className="relative text-white/80"
             aria-label="Abrir carrinho"
           >
-            <ShoppingBag className="h-4 w-4 text-white/70" />
+            <ShoppingBag />
             <AnimatePresence>
               {totalItems > 0 && (
                 <motion.span
@@ -205,15 +208,18 @@ export function Header() {
                 </motion.span>
               )}
             </AnimatePresence>
-          </button>
+          </Button>
 
-          <button
+          <Button
+            variant="outline"
+            size="icon"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="flex items-center justify-center rounded-sm border border-white/10 bg-white/[0.04] p-2.5"
-            aria-label="Abrir menu"
+            className="text-white/80"
+            aria-label={isMenuOpen ? 'Fechar menu' : 'Abrir menu'}
+            aria-expanded={isMenuOpen}
           >
-            {isMenuOpen ? <X className="h-4 w-4 text-white/70" /> : <Menu className="h-4 w-4 text-white/70" />}
-          </button>
+            {isMenuOpen ? <X /> : <Menu />}
+          </Button>
         </div>
       </div>
 

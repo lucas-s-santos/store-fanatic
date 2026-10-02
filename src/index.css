@@ -1,63 +1,95 @@
-@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap");
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Tokens da marca. O site só tem tema escuro: o <html> leva a classe "dark"
+ * para que as variantes dark: dos componentes shadcn também se apliquem.
+ */
+:root {
+  --radius: 1rem;
+
+  --background: #030303;
+  --foreground: #fafafa;
+  --card: #0a0a0a;
+  --card-foreground: #fafafa;
+  --popover: #0a0a0a;
+  --popover-foreground: #fafafa;
+  --primary: #e5c07b;
+  --primary-foreground: #000000;
+  --secondary: #151515;
+  --secondary-foreground: #fafafa;
+  --muted: #1a1a1a;
+  --muted-foreground: #888888;
+  /* Superfície de hover dos menus e botões ghost do shadcn. */
+  --accent: #1c1c1c;
+  --accent-foreground: #fafafa;
+  --destructive: #ff453a;
+  --destructive-foreground: #ffffff;
+  /* Verde do WhatsApp: estoque disponível, frete grátis, confirmações. */
+  --success: #25d366;
+  --success-foreground: #000000;
+  --border: rgb(255 255 255 / 0.08);
+  --input: rgb(255 255 255 / 0.12);
+  --ring: #e5c07b;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Escala crescente: xs < sm < md < lg < xl < 2xl < 3xl < 4xl. */
+  --radius-xs: calc(var(--radius) * 0.375);
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.75);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.25);
+  --radius-2xl: calc(var(--radius) * 1.5);
+  --radius-3xl: calc(var(--radius) * 2);
+  --radius-4xl: calc(var(--radius) * 2.5);
+}
 
 @theme {
-  --color-background: #030303;
-  --color-foreground: #fafafa;
-
-  --color-card: rgba(20, 20, 20, 0.4);
-  --color-card-foreground: #fafafa;
-
-  --color-popover: #0a0a0a;
-  --color-popover-foreground: #fafafa;
-
-  --color-primary: #e5c07b;
-  --color-primary-foreground: #000000;
-
-  --color-secondary: #111111;
-  --color-secondary-foreground: #fafafa;
-
-  --color-muted: #1a1a1a;
-  --color-muted-foreground: #888888;
-
-  --color-accent: #25d366;
-  --color-accent-foreground: #000000;
-
-  --color-destructive: #ff453a;
-  --color-destructive-foreground: #ffffff;
-
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-input: rgba(255, 255, 255, 0.05);
-  --color-ring: #e5c07b;
-
-  --font-sans: "Inter", sans-serif;
-  --font-display: "Outfit", sans-serif;
-  --font-mono: "Outfit", sans-serif;
-
-  --radius-lg: 1rem;
-  --radius-md: 0.75rem;
-  --radius-sm: 0.5rem;
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-display);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 @layer base {
   * {
-    border-color: var(--color-border);
-  }
-
-  :root {
-    color-scheme: dark;
+    @apply border-border outline-ring/50;
   }
 
   html {
+    color-scheme: dark;
     scroll-behavior: smooth;
   }
 
   body {
     min-height: 100vh;
-    background: var(--color-background);
-    color: var(--color-foreground);
-    font-family: var(--font-sans);
-    @apply antialiased overflow-x-hidden;
+    @apply bg-background font-sans text-foreground antialiased overflow-x-hidden;
   }
 
   h1,
@@ -70,16 +102,21 @@
     letter-spacing: 0.04em;
   }
 
-  button,
-  input,
-  select,
-  textarea {
-    outline: none;
+  /* Contorno visível só para quem navega pelo teclado. */
+  :where(a, button, [role="button"], input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
   }
 
   ::selection {
-    background: rgba(229, 192, 123, 0.3);
+    background: rgb(229 192 123 / 0.3);
     color: white;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
   }
 }
 
@@ -95,6 +132,7 @@
   }
 
   .form-input:focus {
+    outline: none;
     border-color: var(--color-primary);
     background: rgba(255, 255, 255, 0.04);
     box-shadow: 0 0 0 4px rgba(229, 192, 123, 0.1);
@@ -102,32 +140,12 @@
 }
 
 @layer utilities {
-  .font-display { font-family: var(--font-display); }
-  .font-mono-styled { font-family: var(--font-mono); }
-
-  .text-gradient {
-    background: linear-gradient(to right, #ffffff, #a0a0a0);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
+  .font-mono-styled { font-family: var(--font-display); }
 
   .text-gradient-gold {
     background: linear-gradient(to right, #f3e5ab, #d4af37);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-  }
-
-  .glow-element {
-    box-shadow: 0 0 40px rgba(229, 192, 123, 0.15);
-  }
-
-  .panel {
-    position: relative;
-    overflow: hidden;
-    background: var(--color-card);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    backdrop-filter: blur(20px);
   }
 
   .glass-card {
@@ -137,14 +155,6 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
-
-  .glass {
-    background: rgba(10, 10, 10, 0.4);
-    backdrop-filter: blur(24px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-  }
-
-  .hud-corner {}
 
   .chip {
     display: inline-flex;
@@ -161,25 +171,6 @@
     color: var(--color-foreground);
     border-radius: 9999px;
   }
-
-  .chip-white {
-    border-color: rgba(229, 192, 123, 0.3);
-    background: rgba(229, 192, 123, 0.1);
-    color: var(--color-primary);
-  }
-
-  .data-dot {
-    width: 0.4rem;
-    height: 0.4rem;
-    border-radius: 9999px;
-    background: var(--color-primary);
-    box-shadow: 0 0 10px var(--color-primary);
-  }
-
-  .clip-panel {}
-  .clip-card {}
-  .clip-path-panel {}
-  .clip-path-card {}
 
   .section-shell {
     position: relative;
@@ -203,19 +194,6 @@
   .custom-scrollbar::-webkit-scrollbar { width: 6px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--color-border); }
-
-
-  .video-hero-section {
-    position: relative;
-    height: 300vh;
-  }
-
-  .video-sticky-wrapper {
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    overflow: hidden;
-  }
 
   .hero-grid {
     background-image:
@@ -328,59 +306,4 @@
     background: rgba(229, 192, 123, 0.05);
     color: var(--color-primary);
   }
-
-  .product-tag {
-    position: absolute;
-    top: 1.25rem;
-    left: 1.25rem;
-    font-family: var(--font-display);
-    font-size: 0.65rem;
-    font-weight: 700;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    padding: 0.5rem 1rem;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: var(--color-foreground);
-    border-radius: 9999px;
-  }
-
-  .animate-float {
-    animation: float 7s ease-in-out infinite;
-  }
-
-  .animate-float-slow {
-    animation: float 11s ease-in-out 1.5s infinite;
-  }
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-12px); }
-}
-
-@keyframes scanline {
-  0% { transform: translateY(0); }
-  100% { transform: translateY(500%); }
-}
-
-@keyframes sweep {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-@keyframes pulse-gold {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
-}
-
-@keyframes slide-up {
-  from { opacity: 0; transform: translateY(28px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
 }

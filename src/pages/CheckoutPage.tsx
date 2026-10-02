@@ -11,7 +11,7 @@ import {
   Tag, Percent, Gift, Copy, Check,
   MessageCircle, ClipboardCheck, PackageCheck,
 } from 'lucide-react'
-import { resolveAssetUrl } from '../lib/assets'
+import { optimizedImageUrl } from '../lib/assets'
 import { supabase } from '../lib/supabase'
 import { useSettings } from '../lib/useSettings'
 import { useToast } from '../components/ui/Toast'
@@ -540,7 +540,7 @@ export function CheckoutPage() {
                       <li key={`${item.id}-${item.size}`} className="flex justify-between gap-4 text-sm">
                         <div className="flex gap-3 min-w-0">
                           <div className="h-12 w-10 shrink-0 overflow-hidden border border-white/10">
-                            <img src={resolveAssetUrl(item.imageUrl)} alt={item.title} className="h-full w-full object-cover" />
+                            <img src={optimizedImageUrl(item.imageUrl, 200)} alt={item.title} className="h-full w-full object-cover" />
                           </div>
                           <div className="min-w-0">
                             <p className="line-clamp-1 text-white font-medium">{item.title}</p>
@@ -627,7 +627,7 @@ export function CheckoutPage() {
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Frete</span>
                       {shippingFree
-                        ? <span className="font-bold text-accent">Grátis ✓</span>
+                        ? <span className="font-bold text-success">Grátis ✓</span>
                         : <span className="text-white">R$ {shipping.toFixed(2).replace('.', ',')}</span>}
                     </div>
                     <div className="border-t border-white/10 pt-4 flex items-end justify-between">
