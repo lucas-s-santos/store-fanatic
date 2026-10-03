@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { AlertCircle, ArrowLeft, Minus, MoveRight, Plus, ShoppingBag, Trash2 } from 'lucide-react'
-import { resolveAssetUrl } from '../lib/assets'
+import { optimizedImageUrl } from '../lib/assets'
 import { useCartStore } from '../store/cartStore'
 import { useSettings } from '../lib/useSettings'
 
@@ -86,7 +86,7 @@ export function CartPage() {
                   {/* Imagem */}
                   <div className="h-28 w-20 shrink-0 overflow-hidden rounded-xl border border-white/10 sm:h-32 sm:w-24">
                     <img
-                      src={resolveAssetUrl(item.imageUrl)}
+                      src={optimizedImageUrl(item.imageUrl, 200)}
                       alt={item.title}
                       loading="lazy"
                       className="h-full w-full object-cover"
@@ -177,7 +177,7 @@ export function CartPage() {
                 </div>
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
                   <motion.div
-                    className="h-full rounded-full bg-gradient-to-r from-primary to-accent"
+                    className="h-full rounded-full bg-gradient-to-r from-primary to-success"
                     initial={{ width: 0 }}
                     animate={{ width: `${progressPct}%` }}
                     transition={{ duration: 0.6, ease: 'easeOut' }}
@@ -194,7 +194,7 @@ export function CartPage() {
                 <div className="flex justify-between text-muted-foreground">
                   <span>Frete</span>
                   {shippingFree
-                    ? <span className="font-bold text-accent">Grátis ✓</span>
+                    ? <span className="font-bold text-success">Grátis ✓</span>
                     : <span className="text-white">R$ {shipping.toFixed(2).replace('.', ',')}</span>}
                 </div>
               </div>

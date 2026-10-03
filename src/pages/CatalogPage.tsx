@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowLeft, Check, Eye, MoveRight, Search, Shield, ShoppingCart, Trophy, X } from 'lucide-react'
+import { ArrowLeft, Check, MoveRight, Search, Shield, ShoppingCart, Trophy, X } from 'lucide-react'
 
-import { resolveAssetUrl } from '../lib/assets'
+import { ProductCard, ProductCardSkeleton } from '../components/product/ProductCard'
+import { optimizedImageUrl, resolveAssetUrl } from '../lib/assets'
 import { supabase } from '../lib/supabase'
 import { useCartStore } from '../store/cartStore'
 
@@ -67,19 +68,6 @@ function normalizeRouteValue(value: string) {
     .replace(/^-+|-+$/g, '')
 }
 
-function ProductSkeleton() {
-  return (
-    <div className="animate-pulse overflow-hidden rounded-sm border border-white/[0.06] bg-card">
-      <div className="aspect-[4/5] bg-white/5" />
-      <div className="space-y-3 p-5">
-        <div className="h-2 w-16 rounded bg-white/5" />
-        <div className="h-6 w-3/4 rounded bg-white/5" />
-        <div className="mt-2 h-4 w-1/2 rounded bg-white/5" />
-      </div>
-    </div>
-  )
-}
-
 function QuickViewModal({ product, leagueName, teamName, onClose }: { product: Product; leagueName?: string; teamName?: string; onClose: () => void }) {
   const addItem = useCartStore((state) => state.addItem)
   const [selectedSize, setSelectedSize] = useState('')
@@ -88,7 +76,7 @@ function QuickViewModal({ product, leagueName, teamName, onClose }: { product: P
 
   const name = getProductName(product)
   const stock = product.stock_quantity ?? product.stock ?? 0
-  const allImages = [product.image_url, ...(product.images || [])].filter(Boolean).map((url) => resolveAssetUrl(url))
+  const allImages = [product.image_url, ...(product.images || [])].filter(Boolean).map((url) => optimizedImageUrl(url, 720))
 
   const handleAdd = () => {
     if (!selectedSize) return
@@ -254,10 +242,10 @@ export function CatalogPage() {
       if (leagueRes.data) {
         const builtLeagues = leagueRes.data.map((league) => ({
           ...league,
-          logo: resolveAssetUrl(league.logo_url),
+          logo: optimizedImageUrl(league.logo_url, 160),
           teams: (teamRes.data || [])
             .filter((team) => team.league_id === league.id)
-            .map((team) => ({ ...team, logo: resolveAssetUrl(team.logo_url) })),
+            .map((team) => ({ ...team, logo: optimizedImageUrl(team.logo_url, 160) })),
         }))
         setDbLeagues(builtLeagues)
       }
@@ -370,6 +358,9 @@ export function CatalogPage() {
 
   const activeLeague = dbLeagues.find((league) => league.id === selectedLeagueId)
   const activeTeam = activeLeague?.teams.find((team) => team.id === selectedTeamId)
+  const teamNames = new Map(
+    dbLeagues.flatMap((league) => league.teams.map((team) => [`${league.id}:${team.id}`, team.name] as const)),
+  )
 
   let displayProducts = products
 
@@ -417,7 +408,7 @@ export function CatalogPage() {
             setSelectedTeamId(null)
             setView('teams')
           }}
-          className="group relative min-h-[220px] overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-6 text-left backdrop-blur-md transition-all duration-500 hover:border-primary/30 hover:bg-white/[0.04] hover:shadow-[0_0_40px_rgba(255,170,0,0.08)] sm:min-h-[260px] sm:px-6 sm:py-7"
+          className="group relative min-h-[220px] overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-6 text-left backdrop-blur-md transition-all duration-500 hover:border-primary/30 hover:bg-white/[0.04] hover:shadow-[0_0_40px_rgba(229,192,123,0.08)] sm:min-h-[260px] sm:px-6 sm:py-7"
         >
           <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-primary/0 blur-[60px] transition-all duration-700 group-hover:bg-primary/5" />
           <div className="relative z-10 flex h-full flex-col justify-between">
@@ -502,7 +493,7 @@ export function CatalogPage() {
                 setSelectedTeamId(team.id)
                 setView('products')
               }}
-              className="group flex min-h-[160px] flex-col items-center justify-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] px-3 py-5 backdrop-blur-md transition-all duration-500 hover:border-primary/30 hover:bg-white/[0.04] hover:shadow-[0_10px_30px_rgba(255,170,0,0.08)] sm:min-h-[200px] sm:gap-5 sm:px-5 sm:py-7"
+              className="group flex min-h-[160px] flex-col items-center justify-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] px-3 py-5 backdrop-blur-md transition-all duration-500 hover:border-primary/30 hover:bg-white/[0.04] hover:shadow-[0_10px_30px_rgba(229,192,123,0.08)] sm:min-h-[200px] sm:gap-5 sm:px-5 sm:py-7"
             >
               <img
                 src={team.logo}
@@ -555,9 +546,9 @@ export function CatalogPage() {
       )}
 
       {loading ? (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4 2xl:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4 2xl:grid-cols-5">
           {[...Array(10)].map((_, index) => (
-            <ProductSkeleton key={index} />
+            <ProductCardSkeleton key={index} />
           ))}
         </div>
       ) : displayProducts.length === 0 ? (
@@ -575,88 +566,15 @@ export function CatalogPage() {
       ) : (
         <AnimatePresence>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4 2xl:grid-cols-5">
-            {displayProducts.map((product, index) => {
-              const name = getProductName(product)
-              const stock = product.stock_quantity ?? product.stock ?? 0
-              const isLow = stock > 0 && stock <= 5
-              const outOfStock = stock === 0
-
-              return (
-                <motion.div key={product.id} custom={index} variants={cardVariants} initial="hidden" animate="visible" className="group relative">
-                  <Link
-                    to={`/produtos/${product.id}`}
-                    className="block overflow-hidden rounded-xl border border-white/[0.08] bg-[#0a0a0a] transition-all duration-500 hover:-translate-y-2 hover:border-primary/40 hover:shadow-[0_20px_40px_rgba(255,170,0,0.08)] sm:rounded-[2rem]"
-                  >
-                    <div className="relative aspect-[4/5] overflow-hidden">
-                      <img
-                        src={resolveAssetUrl(product.image_url)}
-                        alt={name}
-                        loading="lazy"
-                        className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                        onError={e => {
-                          const img = e.target as HTMLImageElement
-                          img.style.display = 'none'
-                          const parent = img.parentElement
-                          if (parent && !parent.querySelector('.img-fallback')) {
-                            const fb = document.createElement('div')
-                            fb.className = 'img-fallback absolute inset-0 flex items-center justify-center'
-                            fb.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-white/10"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.57a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.57a2 2 0 0 0-1.34-2.23z"/></svg>'
-                            parent.appendChild(fb)
-                          }
-                        }}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-[#030303]/40 to-transparent opacity-80 transition-opacity duration-500 group-hover:opacity-40" />
-
-                      {isLow && (
-                        <div className="absolute right-2 top-2 z-10 sm:right-4 sm:top-4">
-                          <span className="rounded-full border border-[#FF453A]/40 bg-[#FF453A]/20 px-2 py-0.5 text-[7px] font-semibold uppercase tracking-wider text-[#FF453A] shadow-lg backdrop-blur-md sm:px-3 sm:py-1.5 sm:text-[9px]">
-                            Últimas unidades
-                          </span>
-                        </div>
-                      )}
-
-                      {outOfStock && (
-                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-white/50 sm:text-sm">Esgotado</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="relative space-y-2 bg-[#0a0a0a] p-3 sm:mt-2 sm:space-y-4 sm:p-6 sm:pt-8">
-                      <div>
-                        <h3 className="line-clamp-2 text-xs font-display font-bold uppercase leading-tight tracking-tight text-white transition-colors group-hover:text-primary sm:text-sm md:text-base lg:text-lg">
-                          {name}
-                        </h3>
-                      </div>
-
-                      <div className="mt-1 flex items-end justify-between gap-2 border-t border-white/10 pt-2 sm:pt-5">
-                        <div>
-                          <p className="text-[7px] font-semibold uppercase tracking-[0.2em] text-primary/70 sm:text-[10px]">Preço</p>
-                          <p className="mt-0.5 text-sm font-display font-bold tracking-tight text-white sm:mt-1 sm:text-xl lg:text-2xl">
-                            R$ {product.price?.toFixed(2).replace('.', ',')}
-                          </p>
-                        </div>
-
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-muted-foreground transition-all duration-300 group-hover:border-primary group-hover:bg-primary group-hover:text-primary-foreground group-hover:shadow-[0_0_20px_rgba(255,170,0,0.3)] sm:h-10 sm:w-10 lg:h-12 lg:w-12">
-                          <MoveRight className="h-3 w-3 transition-transform group-hover:translate-x-1 sm:h-4 sm:w-4 lg:h-5 lg:w-5" />
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-
-                  <button
-                    onClick={(event) => {
-                      event.preventDefault()
-                      setQuickViewProduct(product)
-                    }}
-                    className="absolute left-2 top-2 z-10 rounded-full border border-white/10 bg-black/60 p-1.5 text-white/60 opacity-0 transition-all hover:bg-black/80 hover:text-white group-hover:opacity-100 sm:left-4 sm:top-4 sm:p-2"
-                    title="Ver rapidamente"
-                  >
-                    <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
-                  </button>
-                </motion.div>
-              )
-            })}
+            {displayProducts.map((product, index) => (
+              <motion.div key={product.id} custom={index} variants={cardVariants} initial="hidden" animate="visible">
+                <ProductCard
+                  product={product}
+                  eyebrow={isSearching ? teamNames.get(`${product.league}:${product.team}`) : undefined}
+                  onQuickView={() => setQuickViewProduct(product)}
+                />
+              </motion.div>
+            ))}
           </div>
         </AnimatePresence>
       )}
@@ -725,7 +643,7 @@ export function CatalogPage() {
                           className="flex items-center gap-3 border-b border-white/5 px-4 py-3 transition-colors hover:bg-white/[0.04] last:border-b-0"
                         >
                           <div className="h-10 w-8 shrink-0 overflow-hidden rounded bg-white/5">
-                            <img src={resolveAssetUrl(suggestion.image_url) || ''} alt={getProductName(suggestion)} className="h-full w-full object-cover" />
+                            <img src={optimizedImageUrl(suggestion.image_url, 96)} alt={getProductName(suggestion)} className="h-full w-full object-cover" />
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-semibold text-white">{getProductName(suggestion)}</p>

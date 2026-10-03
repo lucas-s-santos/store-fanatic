@@ -21,15 +21,15 @@ export function Footer() {
             </div>
 
             <p className="max-w-sm text-sm leading-7 text-white/40">
-              Camisas de clubes e selecoes com atendimento rapido, compra simples e envio para todo o Brasil.
+              Camisas de clubes e seleções com atendimento rápido, compra simples e envio para todo o Brasil.
             </p>
           </div>
 
           <div>
-            <p className="mb-5 text-[10px] font-semibold uppercase tracking-[0.2em] text-primary/60">Navegacao</p>
+            <p className="mb-5 text-[10px] font-semibold uppercase tracking-[0.2em] text-primary/60">Navegação</p>
             <div className="flex flex-col gap-3 text-sm text-white/40">
-              <Link to="/" className="w-fit transition-colors hover:text-white">Inicio</Link>
-              <Link to="/produtos" className="w-fit transition-colors hover:text-white">Catalogo</Link>
+              <Link to="/" className="w-fit transition-colors hover:text-white">Início</Link>
+              <Link to="/produtos" className="w-fit transition-colors hover:text-white">Catálogo</Link>
               <Link to="/carrinho" className="w-fit transition-colors hover:text-white">Carrinho</Link>
             </div>
           </div>
@@ -50,7 +50,7 @@ export function Footer() {
                   Falar no WhatsApp
                 </a>
               )}
-              <span>Suporte rapido para tirar duvidas e finalizar seu pedido.</span>
+              <span>Suporte rápido para tirar dúvidas e finalizar seu pedido.</span>
             </div>
           </div>
         </div>

@@ -27,7 +27,9 @@ import {
   Zap,
 } from 'lucide-react'
 
-import { resolveAssetUrl } from '../lib/assets'
+import { ProductCard } from '../components/product/ProductCard'
+import { Button } from '../components/ui/button'
+import { optimizedImageUrl, resolveAssetUrl } from '../lib/assets'
 import { supabase } from '../lib/supabase'
 
 const HERO_INDEX_STORAGE_KEY = 'store-fanatic-hero-index'
@@ -321,7 +323,7 @@ export function HomePage() {
           }
           const card = teamMap.get(key)
           if (card && card.images.length < 3 && p.image_url) {
-            card.images.push(resolveAssetUrl(p.image_url))
+            card.images.push(optimizedImageUrl(p.image_url, 800))
           }
         }
         const allCards = Array.from(teamMap.values()).filter(c => c.images.length > 0)
@@ -351,8 +353,8 @@ export function HomePage() {
           name: l.name as string,
           league: l.id as string,
           icon: ICON_MAP[l.id] || Trophy,
-          image: bgMap[l.id] ? resolveAssetUrl(bgMap[l.id]) : '',
-          logo_url: l.logo_url ? resolveAssetUrl(l.logo_url) : '',
+          image: bgMap[l.id] ? optimizedImageUrl(bgMap[l.id], 600) : '',
+          logo_url: l.logo_url ? optimizedImageUrl(l.logo_url, 200) : '',
         })).filter(c => c.logo_url || c.image)
 
         if (built.length > 0) setCategories(built)
@@ -815,7 +817,7 @@ export function HomePage() {
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10">
                       {testimonials[testimonialIndex].avatar_url ? (
                         <img
-                          src={resolveAssetUrl(testimonials[testimonialIndex].avatar_url!)}
+                          src={optimizedImageUrl(testimonials[testimonialIndex].avatar_url, 96)}
                           alt={testimonials[testimonialIndex].name}
                           className="h-full w-full rounded-full object-cover"
                           loading="lazy"
@@ -899,13 +901,25 @@ export function HomePage() {
                     Seleções <span className="text-gradient-gold">mundiais</span>
                   </h2>
                 </div>
-                <Link
-                  to="/produtos"
-                  className="group inline-flex shrink-0 items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-primary transition-colors hover:text-white"
-                >
-                  Ver todas
-                  <MoveRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </Link>
+                <div className="flex items-center gap-4">
+                  <Link
+                    to="/produtos?liga=selecoes"
+                    className="group inline-flex shrink-0 items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-primary transition-colors hover:text-white"
+                  >
+                    Ver todas
+                    <MoveRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </Link>
+                  {totalMundialPages > 1 && (
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="icon" onClick={goMundialPrev} aria-label="Página anterior">
+                        <ChevronLeft />
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={goMundialNext} aria-label="Próxima página">
+                        <ChevronRight />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
             </ScrollSection>
 
@@ -914,19 +928,6 @@ export function HomePage() {
               onMouseEnter={() => setIsMundialPaused(true)}
               onMouseLeave={() => setIsMundialPaused(false)}
             >
-              {/* Prev arrow */}
-              {totalMundialPages > 1 && (
-                <button
-                  type="button"
-                  onClick={goMundialPrev}
-                  aria-label="Página anterior"
-                  className="absolute -left-5 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#0a0a0a] text-white/60 shadow-lg transition-all hover:border-primary/40 hover:bg-primary/10 hover:text-white sm:-left-6"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-              )}
-
-              {/* Cards */}
               <AnimatePresence mode="wait">
                 <motion.div
                   key={mundialPage}
@@ -934,7 +935,7 @@ export function HomePage() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: mundialDirection * -40 }}
                   transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                  className="grid grid-cols-2 gap-4 lg:grid-cols-4"
+                  className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4"
                 >
                   {currentMundialProducts.map((product, i) => (
                     <motion.div
@@ -943,44 +944,11 @@ export function HomePage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.06, duration: 0.4 }}
                     >
-                      <Link
-                        to={`/produtos/${product.id}`}
-                        className="group/card relative block overflow-hidden rounded-2xl border border-white/10 bg-card transition-all hover:border-primary/50 hover:shadow-[0_20px_50px_rgba(229,192,123,0.12)]"
-                      >
-                        <div className="relative aspect-[4/5] overflow-hidden">
-                          <img
-                            src={resolveAssetUrl(product.image_url)}
-                            alt={product.title}
-                            loading="lazy"
-                            className="h-full w-full object-cover transition-transform duration-700 group-hover/card:scale-110"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-[#030303]/40 to-transparent opacity-80" />
-                        </div>
-                        <div className="absolute bottom-0 left-0 right-0 z-10 p-4 sm:p-5">
-                          <h3 className="line-clamp-1 text-base font-bold tracking-tight text-white transition-colors group-hover/card:text-primary sm:text-lg">
-                            {product.title}
-                          </h3>
-                          <p className="mt-1 text-xs font-semibold text-white/70 sm:text-sm">
-                            R$ {product.price?.toFixed(2).replace('.', ',')}
-                          </p>
-                        </div>
-                      </Link>
+                      <ProductCard product={product} />
                     </motion.div>
                   ))}
                 </motion.div>
               </AnimatePresence>
-
-              {/* Next arrow */}
-              {totalMundialPages > 1 && (
-                <button
-                  type="button"
-                  onClick={goMundialNext}
-                  aria-label="Próxima página"
-                  className="absolute -right-5 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#0a0a0a] text-white/60 shadow-lg transition-all hover:border-primary/40 hover:bg-primary/10 hover:text-white sm:-right-6"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              )}
 
               {/* Page dots + auto-play progress */}
               {totalMundialPages > 1 && (

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, MoveRight, AlertTriangle, ShieldCheck, Star, Zap, Shirt } from 'lucide-react'
-import { resolveAssetUrl } from '../lib/assets'
+import { optimizedImageSrcSet, optimizedImageUrl, resolveAssetUrl } from '../lib/assets'
 import { supabase } from '../lib/supabase'
 import { useCartStore } from '../store/cartStore'
 import { useToast } from '../components/ui/Toast'
@@ -155,7 +155,9 @@ export function ProductPage() {
           >
             <div className="relative aspect-[4/5] min-h-[360px] overflow-hidden group sm:min-h-[480px]">
               <img
-                src={resolveAssetUrl(product.image_url)}
+                src={optimizedImageUrl(product.image_url, 1280)}
+                srcSet={optimizedImageSrcSet(product.image_url, [640, 960, 1280])}
+                sizes="(min-width: 1024px) 52vw, 100vw"
                 alt={productName}
                 fetchPriority="high"
                 className="h-full w-full object-cover transition-transform duration-1000 ease-out group-hover:scale-105"

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Edit2, Trash2, X, Shield, Package, Save, Loader2, Star, ToggleLeft, ToggleRight, ChevronDown, Check } from 'lucide-react'
-import { resolveAssetUrl } from '../lib/assets'
+import { optimizedImageUrl } from '../lib/assets'
 import { supabase } from '../lib/supabase'
 import { ImageUploader } from '../components/ui/ImageUploader'
 
@@ -375,7 +375,7 @@ export function AdminPage() {
                           onClick={() => handleSizeToggle(size)}
                           className={`flex h-10 w-12 items-center justify-center rounded border transition-all text-sm font-bold ${
                             selected
-                              ? 'border-primary bg-primary/20 text-primary shadow-[0_0_10px_rgba(255,170,0,0.2)]'
+                              ? 'border-primary bg-primary/20 text-primary shadow-[0_0_10px_rgba(229,192,123,0.2)]'
                               : 'border-white/10 bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'
                           }`}
                         >
@@ -500,7 +500,7 @@ export function AdminPage() {
                               <div className="h-12 w-10 shrink-0 overflow-hidden rounded bg-white/5">
                                 {product.image_url && (
                                   <img
-                                    src={resolveAssetUrl(product.image_url)}
+                                    src={optimizedImageUrl(product.image_url, 160)}
                                     alt={product.title}
                                     className="h-full w-full object-cover"
                                     onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
