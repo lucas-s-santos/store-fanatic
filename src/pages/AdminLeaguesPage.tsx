@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Edit2, Trash2, X, Trophy, Save, Loader2, ChevronDown, ChevronRight, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { optimizedImageUrl } from '../lib/assets'
+import { Button } from '../components/ui/button'
+import { AdminPageHeader } from '../components/admin/AdminPageHeader'
 import { ImageUploader } from '../components/ui/ImageUploader'
 
 interface League {
@@ -132,25 +135,17 @@ export function AdminLeaguesPage() {
   const closeForm = () => setEditMode('none')
 
   return (
-    <div className="p-6 sm:p-10 space-y-6">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="glass-card rounded-[1.5rem] px-6 py-6 sm:px-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-      >
-        <div>
-          <span className="chip border-primary/20 bg-primary/5 text-primary mb-3">
-            <Trophy className="h-4 w-4" />
-            Ligas & Times
-          </span>
-          <h1 className="text-3xl font-heading font-bold uppercase tracking-tight text-white">Gerenciar Ligas</h1>
-        </div>
-        <button onClick={openNewLeague} className="btn-glow-primary flex items-center gap-2 shrink-0">
-          <Plus className="h-5 w-5" />
-          Nova Liga
-        </button>
-      </motion.div>
+    <div className="space-y-6 p-4 sm:p-8 lg:p-10">
+      <AdminPageHeader
+        title="Ligas e times"
+        description="Organize as ligas e os escudos que aparecem nos filtros do catálogo."
+        actions={
+          <Button size="lg" onClick={openNewLeague}>
+            <Plus />
+            Nova liga
+          </Button>
+        }
+      />
 
       {/* League Form */}
       <AnimatePresence>
@@ -277,9 +272,9 @@ export function AdminLeaguesPage() {
               <div className="flex items-center gap-4 px-5 py-4">
                 {league.logo_url ? (
                   <img
-                    src={league.logo_url}
+                    src={optimizedImageUrl(league.logo_url, 96)}
                     alt={league.name}
-                    className="h-8 w-8 object-contain shrink-0"
+                    className="size-11 shrink-0 rounded-xl bg-paper object-contain p-1.5"
                     onError={e => {
                       const img = e.target as HTMLImageElement
                       img.style.display = 'none'
@@ -287,7 +282,7 @@ export function AdminLeaguesPage() {
                     }}
                   />
                 ) : null}
-                <div className={`h-8 w-8 rounded bg-white/10 shrink-0 flex items-center justify-center ${league.logo_url ? 'hidden' : ''}`}>
+                <div className={`size-11 rounded-xl bg-muted shrink-0 flex items-center justify-center ${league.logo_url ? 'hidden' : ''}`}>
                   <Trophy className="h-4 w-4 text-white/30" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -353,9 +348,9 @@ export function AdminLeaguesPage() {
                           <div key={team.id} className="flex items-center gap-4 px-6 py-3 bg-white/[0.015] hover:bg-white/[0.03] transition-colors">
                             {team.logo_url ? (
                               <img
-                                src={team.logo_url}
+                                src={optimizedImageUrl(team.logo_url, 64)}
                                 alt={team.name}
-                                className="h-6 w-6 object-contain shrink-0"
+                                className="size-7 object-contain shrink-0"
                                 onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
                               />
                             ) : (

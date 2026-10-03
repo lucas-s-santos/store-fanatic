@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Edit2, Trash2, X, Shield, Package, Save, Loader2, Star, ToggleLeft, ToggleRight, ChevronDown, Check } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, Package, Save, Loader2, Star, ToggleLeft, ToggleRight, ChevronDown, Check } from 'lucide-react'
 import { optimizedImageUrl } from '../lib/assets'
 import { supabase } from '../lib/supabase'
+import { Button } from '../components/ui/button'
+import { AdminPageHeader } from '../components/admin/AdminPageHeader'
 import { ImageUploader } from '../components/ui/ImageUploader'
 
 interface Product {
@@ -97,6 +99,8 @@ const PRODUCT_TYPES = [
   { value: 'retro', label: 'Retrô' },
 ]
 
+const PRODUCTS_PAGE = 50
+
 export function AdminPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [dbLeagues, setDbLeagues] = useState<any[]>([])
@@ -105,6 +109,8 @@ export function AdminPage() {
   const [editingProduct, setEditingProduct] = useState<Partial<Product>>({})
   const [saving, setSaving] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  // A lista tem ~600 camisas: renderiza aos poucos.
+  const [visibleCount, setVisibleCount] = useState(PRODUCTS_PAGE)
 
   useEffect(() => {
     fetchData()
@@ -204,35 +210,27 @@ export function AdminPage() {
   )
 
   return (
-    <div className="p-6 sm:p-10 space-y-6">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="glass-card rounded-[1.5rem] px-6 py-6 sm:px-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-      >
-        <div>
-          <span className="chip border-primary/20 bg-primary/5 text-primary mb-3">
-            <Shield className="h-4 w-4" />
-            Painel Administrativo
-          </span>
-          <h1 className="text-3xl font-heading font-bold uppercase tracking-tight text-white">
-            Gerenciar Estoque
-          </h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <input
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            placeholder="Buscar camisa..."
-            className="form-input h-10 text-sm w-48"
-          />
-          <button onClick={openNew} className="btn-glow-primary flex items-center gap-2 shrink-0">
-            <Plus className="h-5 w-5" />
-            <span className="hidden sm:inline">Adicionar</span>
-          </button>
-        </div>
-      </motion.div>
+    <div className="space-y-6 p-4 sm:p-8 lg:p-10">
+      <AdminPageHeader
+        title="Produtos"
+        description={`${products.length} camisas cadastradas`}
+        actions={
+          <>
+            <label className="sr-only" htmlFor="admin-product-search">Buscar camisa</label>
+            <input
+              id="admin-product-search"
+              value={searchTerm}
+              onChange={e => { setSearchTerm(e.target.value); setVisibleCount(PRODUCTS_PAGE) }}
+              placeholder="Buscar camisa..."
+              className="form-input h-11 py-0 text-sm sm:w-64"
+            />
+            <Button size="lg" onClick={openNew}>
+              <Plus />
+              Adicionar
+            </Button>
+          </>
+        }
+      />
 
       <AnimatePresence mode="wait">
         {isEditing ? (
@@ -488,7 +486,7 @@ export function AdminPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5 text-white/80">
-                    {filteredProducts.map(product => {
+                    {filteredProducts.slice(0, visibleCount).map(product => {
                       const leagueObj = dbLeagues.find(l => l.id === product.league)
                       const leagueName = leagueObj?.name || product.league || 'Geral'
                       const teamName = leagueObj?.teams?.find((t: any) => t.id === product.team)?.name || product.team || '-'
@@ -563,6 +561,16 @@ export function AdminPage() {
                     })}
                   </tbody>
                 </table>
+                {visibleCount < filteredProducts.length && (
+                  <div className="flex flex-col items-center gap-3 border-t border-border p-6">
+                    <p className="text-sm text-muted-foreground">
+                      Mostrando {visibleCount} de {filteredProducts.length}
+                    </p>
+                    <Button variant="outline" onClick={() => setVisibleCount((n) => n + PRODUCTS_PAGE)}>
+                      Mostrar mais
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </motion.div>

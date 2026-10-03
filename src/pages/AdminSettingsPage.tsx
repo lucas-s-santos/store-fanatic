@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Settings, Save, Loader2, Store, Truck, CreditCard, MessageCircle } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { AdminPageHeader } from '../components/admin/AdminPageHeader'
 import { invalidateSettings } from '../lib/useSettings'
 
 interface Setting {
@@ -109,24 +110,11 @@ export function AdminSettingsPage() {
   }
 
   return (
-    <div className="p-6 sm:p-10 space-y-6">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="glass-card rounded-[1.5rem] px-6 py-6 sm:px-8"
-      >
-        <span className="chip border-primary/20 bg-primary/5 text-primary mb-3">
-          <Settings className="h-4 w-4" />
-          Configurações
-        </span>
-        <h1 className="text-3xl font-heading font-bold uppercase tracking-tight text-white">
-          Configurações da Loja
-        </h1>
-        <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground mt-1">
-          Gerencie as configurações globais do sistema
-        </p>
-      </motion.div>
+    <div className="space-y-6 p-4 sm:p-8 lg:p-10">
+      <AdminPageHeader
+        title="Configurações"
+        description="Dados da loja, WhatsApp, frete e pagamento. Mudanças aparecem no site na hora."
+      />
 
       <div className="space-y-5">
         {SETTING_GROUPS.map((group, gi) => {

@@ -1,11 +1,16 @@
-import { useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Mail, Eye, EyeOff, Loader2, User, Lock,
-  ArrowLeft, CheckCircle2, ShoppingBag, Phone,
+  ArrowLeft, CheckCircle2, Phone, Package, Truck, QrCode,
 } from 'lucide-react'
+
+import { Button } from '../components/ui/button'
+import { optimizedImageUrl } from '../lib/assets'
+import { fetchShowcaseProducts, shuffle } from '../lib/catalog'
 import { supabase } from '../lib/supabase'
+import { cn } from '../lib/utils'
 
 type Mode = 'login' | 'register' | 'forgot'
 
@@ -30,22 +35,22 @@ function PasswordStrength({ password }: { password: string }) {
   ]
   const score = checks.filter(Boolean).length
   const bars = [
-    score >= 1 ? (score <= 1 ? 'bg-destructive' : score <= 2 ? 'bg-warning' : 'bg-primary') : 'bg-white/10',
-    score >= 2 ? (score <= 2 ? 'bg-warning' : 'bg-primary') : 'bg-white/10',
-    score >= 3 ? 'bg-primary' : 'bg-white/10',
-    score >= 4 ? 'bg-success' : 'bg-white/10',
+    score >= 1 ? (score <= 1 ? 'bg-destructive' : score <= 2 ? 'bg-warning' : 'bg-primary') : 'bg-muted',
+    score >= 2 ? (score <= 2 ? 'bg-warning' : 'bg-primary') : 'bg-muted',
+    score >= 3 ? 'bg-primary' : 'bg-muted',
+    score >= 4 ? 'bg-success' : 'bg-muted',
   ]
   const label = ['', 'Fraca', 'Razoável', 'Boa', 'Forte'][score]
   const labelColor = ['', 'text-destructive', 'text-warning', 'text-primary', 'text-success'][score]
 
   return (
     <div className="mt-2 space-y-1.5">
-      <div className="flex gap-1">
+      <div className="flex gap-1" aria-hidden>
         {bars.map((cls, i) => (
           <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${cls}`} />
         ))}
       </div>
-      <p className={`text-[11px] font-semibold ${labelColor}`}>{label && `Senha ${label}`}</p>
+      <p className={`text-xs font-semibold ${labelColor}`} aria-live="polite">{label && `Senha ${label.toLowerCase()}`}</p>
     </div>
   )
 }
@@ -63,29 +68,95 @@ interface FieldProps {
 }
 
 function Field({ label, icon: Icon, type = 'text', value, onChange, placeholder, autoComplete, required, right }: FieldProps) {
+  const id = useId()
   return (
     <div>
-      <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+      <label htmlFor={id} className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">
         {label}
       </label>
       <div className="relative">
         <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center">
-          <Icon className="h-4 w-4 text-muted-foreground/60" />
+          <Icon className="size-4 text-muted-foreground" aria-hidden />
         </span>
         <input
+          id={id}
           type={type}
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
           autoComplete={autoComplete}
           required={required}
-          className="form-input w-full pl-11 pr-11 text-sm"
+          className="form-input w-full pl-11 pr-12 text-sm"
         />
-        {right && (
-          <span className="absolute inset-y-0 right-4 flex items-center">
-            {right}
-          </span>
-        )}
+        {right && <span className="absolute inset-y-0 right-2 flex items-center">{right}</span>}
+      </div>
+    </div>
+  )
+}
+
+function RevealButton({ shown, onToggle }: { shown: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={shown ? 'Esconder senha' : 'Mostrar senha'}
+      aria-pressed={shown}
+      className="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground"
+    >
+      {shown ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+    </button>
+  )
+}
+
+const PERKS = [
+  { icon: Package, label: 'Acompanhe seus pedidos' },
+  { icon: QrCode, label: 'Pague via PIX' },
+  { icon: Truck, label: 'Envio para todo o Brasil' },
+]
+
+/** Mosaico de camisas do lado esquerdo (só no desktop). */
+function JerseyWall() {
+  const [images, setImages] = useState<string[]>([])
+
+  useEffect(() => {
+    let active = true
+    fetchShowcaseProducts()
+      .then((products) => {
+        if (!active) return
+        setImages(shuffle(products.filter((p) => p.image_url)).slice(0, 6).map((p) => p.image_url))
+      })
+      .catch(() => {})
+    return () => {
+      active = false
+    }
+  }, [])
+
+  return (
+    <div className="relative hidden overflow-hidden rounded-[2rem] bg-card lg:block">
+      <div className="grid h-full grid-cols-3 grid-rows-2 gap-2 p-2">
+        {(images.length ? images : Array.from({ length: 6 }, () => '')).map((url, i) => (
+          <div key={i} className={cn('overflow-hidden rounded-2xl bg-muted', i % 2 === 1 && 'translate-y-6')}>
+            {url && <img src={optimizedImageUrl(url, 360)} alt="" className="size-full object-cover" loading="lazy" />}
+          </div>
+        ))}
+      </div>
+      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background/10" />
+      <div className="absolute inset-x-0 bottom-0 p-10">
+        <h2 className="display-title text-6xl">
+          Sua próxima
+          <br />
+          <span className="text-highlight">camisa</span> te espera.
+        </h2>
+        <ul className="mt-6 space-y-2.5">
+          {PERKS.map((perk) => (
+            <li key={perk.label} className="flex items-center gap-3 font-semibold text-foreground/90">
+              <span className="flex size-8 items-center justify-center rounded-full bg-primary/15 text-primary">
+                <perk.icon className="size-4" aria-hidden />
+              </span>
+              {perk.label}
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   )
@@ -156,8 +227,8 @@ export function AuthPage() {
         if (resetError) throw new Error(translateError(resetError.message))
         setSuccess('Link enviado! Verifique seu e-mail para redefinir a senha.')
       }
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err) {
+      setError((err as Error).message)
     } finally {
       setLoading(false)
     }
@@ -169,25 +240,25 @@ export function AuthPage() {
     exit: (dir: number) => ({ x: dir * -24, opacity: 0 }),
   }
 
-  return (
-    <div className="page-shell relative flex min-h-screen items-center justify-center overflow-hidden px-4">
-      {/* Background decorativo */}
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/2 top-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/[0.06] blur-[120px]" />
-        <p className="display-title absolute inset-x-0 bottom-0 select-none whitespace-nowrap text-center text-[22vw] leading-[0.8] text-outline">
-          Fanatic
-        </p>
-      </div>
+  const fieldReveal = {
+    initial: { height: 0, opacity: 0 },
+    animate: { height: 'auto', opacity: 1 },
+    exit: { height: 0, opacity: 0 },
+    transition: { duration: 0.22 },
+    className: 'overflow-hidden',
+  }
 
-      <motion.div
-        initial={{ opacity: 0, y: 28 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="relative w-full max-w-md"
-      >
-        {/* Logo */}
-        <div className="mb-8 flex flex-col items-center gap-4 text-center">
-          <img src="/store-fanatic.jpg" alt="" className="size-14 rounded-2xl border border-white/10 object-cover shadow-2xl" />
+  return (
+    <div className="page-shell px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto grid max-w-6xl gap-8 lg:min-h-[calc(100vh-12rem)] lg:grid-cols-2 lg:gap-12">
+        <JerseyWall />
+
+        <motion.div
+          initial={{ opacity: 0, y: 28 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="mx-auto flex w-full max-w-md flex-col justify-center"
+        >
           <AnimatePresence mode="wait">
             <motion.div
               key={mode}
@@ -195,72 +266,158 @@ export function AuthPage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.18 }}
+              className="mb-8"
             >
-              <h1 className="display-title text-5xl">
+              <h1 className="display-title text-5xl sm:text-6xl">
                 {mode === 'login' && 'Entrar'}
                 {mode === 'register' && 'Criar conta'}
                 {mode === 'forgot' && 'Recuperar senha'}
               </h1>
-              <p className="mt-2 text-sm text-muted-foreground">
-                {mode === 'login' && 'Acompanhe seus pedidos e compre mais rápido.'}
+              <p className="mt-3 text-muted-foreground">
+                {mode === 'login' && 'Acompanhe seus pedidos e finalize compras mais rápido.'}
                 {mode === 'register' && 'É grátis e leva menos de um minuto.'}
-                {mode === 'forgot' && 'Enviamos um link para você criar uma nova senha.'}
+                {mode === 'forgot' && 'Informe seu e-mail e enviamos um link para criar uma nova senha.'}
               </p>
             </motion.div>
           </AnimatePresence>
-        </div>
 
-        {/* Card */}
-        <div className="glass-card rounded-[2rem] p-8 shadow-2xl">
-          <AnimatePresence mode="wait" custom={mode === 'register' ? 1 : -1}>
-
-            {/* ── ESQUECI SENHA ── */}
-            {mode === 'forgot' ? (
-              <motion.div
-                key="forgot"
-                custom={1}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.22, ease: 'easeOut' }}
-                className="space-y-6"
-              >
-                <button
-                  onClick={() => switchMode('login')}
-                  className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-white"
+          <div className="rounded-[2rem] border border-border bg-card p-6 sm:p-8">
+            <AnimatePresence mode="wait" custom={mode === 'register' ? 1 : -1}>
+              {mode === 'forgot' ? (
+                /* ── ESQUECI SENHA ── */
+                <motion.div
+                  key="forgot"
+                  custom={1}
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.22, ease: 'easeOut' }}
+                  className="space-y-6"
                 >
-                  <ArrowLeft className="h-3.5 w-3.5" />
-                  Voltar ao login
-                </button>
-
-                <div>
-                  <h2 className="font-heading text-xl font-bold uppercase tracking-tight text-white">
-                    Esqueceu a senha?
-                  </h2>
-                  <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                    Informe seu e-mail e enviaremos um link para redefinir sua senha.
-                  </p>
-                </div>
-
-                {success ? (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.96 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="flex flex-col items-center gap-3 rounded-2xl border border-success/20 bg-success/10 p-6 text-center"
+                  <button
+                    onClick={() => switchMode('login')}
+                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"
                   >
-                    <CheckCircle2 className="h-10 w-10 text-success" />
-                    <p className="text-sm font-semibold text-white">Link enviado!</p>
-                    <p className="text-xs text-muted-foreground">{success}</p>
-                    <button
-                      onClick={() => switchMode('login')}
-                      className="mt-1 text-xs font-bold text-primary hover:underline"
+                    <ArrowLeft className="size-4" />
+                    Voltar para o login
+                  </button>
+
+                  {success ? (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.96 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      role="status"
+                      className="flex flex-col items-center gap-3 rounded-2xl border border-success/25 bg-success/10 p-6 text-center"
                     >
-                      Voltar ao login
-                    </button>
-                  </motion.div>
-                ) : (
-                  <form onSubmit={handleSubmit} className="space-y-5">
+                      <CheckCircle2 className="size-10 text-success" aria-hidden />
+                      <p className="font-bold">Link enviado!</p>
+                      <p className="text-sm text-muted-foreground">{success}</p>
+                      <Button variant="ghost" onClick={() => switchMode('login')}>
+                        Voltar para o login
+                      </Button>
+                    </motion.div>
+                  ) : (
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                      <Field
+                        label="E-mail"
+                        icon={Mail}
+                        type="email"
+                        value={email}
+                        onChange={setEmail}
+                        placeholder="seuemail@exemplo.com"
+                        autoComplete="email"
+                        required
+                      />
+                      {error && (
+                        <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
+                          {error}
+                        </p>
+                      )}
+                      <Button type="submit" size="xl" disabled={loading} className="w-full">
+                        {loading ? <Loader2 className="animate-spin" /> : 'Enviar link'}
+                      </Button>
+                    </form>
+                  )}
+                </motion.div>
+              ) : (
+                /* ── LOGIN / CADASTRO ── */
+                <motion.div
+                  key="main"
+                  variants={slideVariants}
+                  custom={-1}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.22, ease: 'easeOut' }}
+                  className="space-y-6"
+                >
+                  <div className="relative flex rounded-full border border-border bg-background/60 p-1" role="tablist" aria-label="Entrar ou criar conta">
+                    {(['login', 'register'] as const).map(m => (
+                      <button
+                        key={m}
+                        type="button"
+                        role="tab"
+                        aria-selected={mode === m}
+                        onClick={() => switchMode(m)}
+                        className="relative flex-1 rounded-full py-2.5 text-sm font-bold"
+                      >
+                        {mode === m && (
+                          <motion.div
+                            layoutId="tab-indicator"
+                            className="absolute inset-0 rounded-full bg-primary"
+                            transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                          />
+                        )}
+                        <span className={cn('relative z-10 transition-colors duration-200', mode === m ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}>
+                          {m === 'login' ? 'Entrar' : 'Criar conta'}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <AnimatePresence>
+                    {error && (
+                      <motion.p
+                        role="alert"
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-sm text-destructive"
+                      >
+                        {error}
+                      </motion.p>
+                    )}
+                    {success && (
+                      <motion.div
+                        role="status"
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="flex items-start gap-3 rounded-xl border border-success/30 bg-success/10 px-4 py-3"
+                      >
+                        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
+                        <p className="text-sm text-success">{success}</p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <AnimatePresence initial={false}>
+                      {mode === 'register' && (
+                        <motion.div key="name-field" {...fieldReveal}>
+                          <Field
+                            label="Nome completo"
+                            icon={User}
+                            value={name}
+                            onChange={setName}
+                            placeholder="Seu nome completo"
+                            autoComplete="name"
+                            required
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
                     <Field
                       label="E-mail"
                       icon={Mail}
@@ -271,252 +428,96 @@ export function AuthPage() {
                       autoComplete="email"
                       required
                     />
-                    {error && (
-                      <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-xs text-destructive">
-                        {error}
-                      </p>
-                    )}
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="btn-glow-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Enviar link de redefinição'}
-                    </button>
-                  </form>
-                )}
-              </motion.div>
 
-            ) : (
-              /* ── LOGIN / CADASTRO ── */
-              <motion.div
-                key="main"
-                variants={slideVariants}
-                custom={-1}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.22, ease: 'easeOut' }}
-                className="space-y-6"
-              >
-                {/* Tabs com indicador animado */}
-                <div className="relative flex rounded-xl border border-white/10 bg-white/[0.03] p-1">
-                  {(['login', 'register'] as const).map(m => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => switchMode(m)}
-                      className="relative flex-1 rounded-lg py-2.5 text-xs font-bold uppercase tracking-[0.15em]"
-                    >
-                      {mode === m && (
-                        <motion.div
-                          layoutId="tab-indicator"
-                          className="absolute inset-0 rounded-lg bg-primary"
-                          transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-                        />
+                    <AnimatePresence initial={false}>
+                      {mode === 'register' && (
+                        <motion.div key="phone-field" {...fieldReveal}>
+                          <Field
+                            label="WhatsApp (opcional)"
+                            icon={Phone}
+                            type="tel"
+                            value={phone}
+                            onChange={setPhone}
+                            placeholder="(11) 99999-9999"
+                            autoComplete="tel"
+                          />
+                        </motion.div>
                       )}
-                      <span className={`relative z-10 transition-colors duration-200 ${mode === m ? 'text-primary-foreground' : 'text-muted-foreground hover:text-white'}`}>
-                        {m === 'login' ? 'Entrar' : 'Cadastrar'}
-                      </span>
-                    </button>
-                  ))}
-                </div>
+                    </AnimatePresence>
 
-                {/* Feedback */}
-                <AnimatePresence>
-                  {error && (
-                    <motion.p
-                      initial={{ opacity: 0, y: -6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -6 }}
-                      className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-xs text-destructive"
-                    >
-                      {error}
-                    </motion.p>
-                  )}
-                  {success && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.96 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="flex items-start gap-3 rounded-xl border border-success/30 bg-success/10 px-4 py-3"
-                    >
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                      <p className="text-xs text-success">{success}</p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                    <div>
+                      <Field
+                        label="Senha"
+                        icon={Lock}
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={setPassword}
+                        placeholder="••••••••"
+                        autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                        required
+                        right={<RevealButton shown={showPassword} onToggle={() => setShowPassword(v => !v)} />}
+                      />
+                      {mode === 'register' && <PasswordStrength password={password} />}
+                    </div>
 
-                {/* Form */}
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <AnimatePresence initial={false}>
-                    {mode === 'register' && (
-                      <motion.div
-                        key="name-field"
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.22 }}
-                        className="overflow-hidden"
-                      >
-                        <Field
-                          label="Nome completo"
-                          icon={User}
-                          value={name}
-                          onChange={setName}
-                          placeholder="Seu nome completo"
-                          autoComplete="name"
-                          required
-                        />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                    <AnimatePresence initial={false}>
+                      {mode === 'register' && (
+                        <motion.div key="confirm-field" {...fieldReveal}>
+                          <Field
+                            label="Confirmar senha"
+                            icon={Lock}
+                            type={showConfirm ? 'text' : 'password'}
+                            value={confirmPassword}
+                            onChange={setConfirmPassword}
+                            placeholder="••••••••"
+                            autoComplete="new-password"
+                            required
+                            right={<RevealButton shown={showConfirm} onToggle={() => setShowConfirm(v => !v)} />}
+                          />
+                          {confirmPassword && password !== confirmPassword && (
+                            <p className="mt-1.5 text-xs font-medium text-destructive">As senhas não coincidem.</p>
+                          )}
+                          {confirmPassword && password === confirmPassword && (
+                            <p className="mt-1.5 flex items-center gap-1 text-xs font-medium text-success">
+                              <CheckCircle2 className="size-3.5" aria-hidden /> Senhas conferem
+                            </p>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
 
-                  <Field
-                    label="E-mail"
-                    icon={Mail}
-                    type="email"
-                    value={email}
-                    onChange={setEmail}
-                    placeholder="seuemail@exemplo.com"
-                    autoComplete="email"
-                    required
-                  />
-
-                  <AnimatePresence initial={false}>
-                    {mode === 'register' && (
-                      <motion.div
-                        key="phone-field"
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.22 }}
-                        className="overflow-hidden"
-                      >
-                        <Field
-                          label="WhatsApp / Telefone"
-                          icon={Phone}
-                          type="tel"
-                          value={phone}
-                          onChange={setPhone}
-                          placeholder="(11) 99999-9999"
-                          autoComplete="tel"
-                        />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  <div>
-                    <Field
-                      label="Senha"
-                      icon={Lock}
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={setPassword}
-                      placeholder="••••••••"
-                      autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                      required
-                      right={
+                    {mode === 'login' && (
+                      <div className="text-right">
                         <button
                           type="button"
-                          onClick={() => setShowPassword(v => !v)}
-                          className="text-muted-foreground/60 transition-colors hover:text-white"
+                          onClick={() => switchMode('forgot')}
+                          className="text-sm font-semibold text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
                         >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          Esqueceu a senha?
                         </button>
-                      }
-                    />
-                    {mode === 'register' && <PasswordStrength password={password} />}
-                  </div>
-
-                  <AnimatePresence initial={false}>
-                    {mode === 'register' && (
-                      <motion.div
-                        key="confirm-field"
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.22 }}
-                        className="overflow-hidden"
-                      >
-                        <Field
-                          label="Confirmar senha"
-                          icon={Lock}
-                          type={showConfirm ? 'text' : 'password'}
-                          value={confirmPassword}
-                          onChange={setConfirmPassword}
-                          placeholder="••••••••"
-                          autoComplete="new-password"
-                          required
-                          right={
-                            <button
-                              type="button"
-                              onClick={() => setShowConfirm(v => !v)}
-                              className="text-muted-foreground/60 transition-colors hover:text-white"
-                            >
-                              {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </button>
-                          }
-                        />
-                        {confirmPassword && password !== confirmPassword && (
-                          <p className="mt-1.5 text-[11px] text-destructive">As senhas não coincidem.</p>
-                        )}
-                        {confirmPassword && password === confirmPassword && confirmPassword.length > 0 && (
-                          <p className="mt-1.5 flex items-center gap-1 text-[11px] text-success">
-                            <CheckCircle2 className="h-3 w-3" /> Senhas conferem
-                          </p>
-                        )}
-                      </motion.div>
+                      </div>
                     )}
-                  </AnimatePresence>
 
-                  {mode === 'login' && (
-                    <div className="text-right">
-                      <button
-                        type="button"
-                        onClick={() => switchMode('forgot')}
-                        className="text-[11px] font-semibold text-muted-foreground transition-colors hover:text-primary"
-                      >
-                        Esqueceu a senha?
-                      </button>
-                    </div>
-                  )}
+                    <Button type="submit" size="xl" disabled={loading} className="mt-2 w-full">
+                      {loading ? <Loader2 className="animate-spin" /> : mode === 'login' ? 'Entrar' : 'Criar minha conta'}
+                    </Button>
+                  </form>
 
-                  <div className="pt-1">
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="btn-glow-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {loading
-                        ? <Loader2 className="h-4 w-4 animate-spin" />
-                        : mode === 'login' ? 'Entrar na conta' : 'Criar minha conta'}
-                    </button>
+                  <div className="border-t border-border pt-5 text-center">
+                    <Link to="/produtos" className="text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground">
+                      Voltar para a loja
+                    </Link>
                   </div>
-                </form>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
-                {/* Continuar sem conta */}
-                <div className="flex items-center justify-center gap-2 border-t border-white/[0.06] pt-5">
-                  <Link
-                    to="/"
-                    className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-white"
-                  >
-                    <ShoppingBag className="h-3.5 w-3.5" />
-                    Continuar comprando sem conta
-                  </Link>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Termos */}
-        <p className="mt-5 text-center text-[11px] text-muted-foreground/40">
-          Ao continuar, você concorda com nossos{' '}
-          <span className="cursor-pointer text-muted-foreground/60 transition-colors hover:text-primary">Termos de Uso</span>
-          {' '}e{' '}
-          <span className="cursor-pointer text-muted-foreground/60 transition-colors hover:text-primary">Política de Privacidade</span>
-        </p>
-      </motion.div>
+          <p className="mt-5 text-center text-xs text-muted-foreground">
+            Ao criar uma conta, você concorda com os Termos de Uso e a Política de Privacidade da loja.
+          </p>
+        </motion.div>
+      </div>
     </div>
   )
 }

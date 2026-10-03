@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Edit2, Trash2, X, Tag, Save, Loader2, ToggleLeft, ToggleRight } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { Button } from '../components/ui/button'
+import { AdminPageHeader } from '../components/admin/AdminPageHeader'
 
 interface Coupon {
   id: string
@@ -105,25 +107,17 @@ export function AdminCouponsPage() {
     c.discount_type === 'percentage' ? `${c.discount_value}%` : `R$ ${Number(c.discount_value).toFixed(2).replace('.', ',')}`
 
   return (
-    <div className="p-6 sm:p-10 space-y-6">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="glass-card rounded-[1.5rem] px-6 py-6 sm:px-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-      >
-        <div>
-          <span className="chip border-primary/20 bg-primary/5 text-primary mb-3">
-            <Tag className="h-4 w-4" />
-            Cupons de Desconto
-          </span>
-          <h1 className="text-3xl font-heading font-bold uppercase tracking-tight text-white">Gerenciar Cupons</h1>
-        </div>
-        <button onClick={openNew} className="btn-glow-primary flex items-center gap-2 shrink-0">
-          <Plus className="h-5 w-5" />
-          Novo Cupom
-        </button>
-      </motion.div>
+    <div className="space-y-6 p-4 sm:p-8 lg:p-10">
+      <AdminPageHeader
+        title="Cupons"
+        description="Crie códigos de desconto e acompanhe quantas vezes foram usados."
+        actions={
+          <Button size="lg" onClick={openNew}>
+            <Plus />
+            Novo cupom
+          </Button>
+        }
+      />
 
       {/* Form */}
       <AnimatePresence>

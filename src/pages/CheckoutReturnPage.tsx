@@ -1,7 +1,11 @@
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { CheckCircle2, Clock, XCircle, ShieldCheck, Home, RotateCcw, Package } from 'lucide-react'
+import { CheckCircle2, Clock, XCircle, Home, RotateCcw, Package } from 'lucide-react'
+
+import { Button } from '../components/ui/button'
+import { WhatsAppIcon, whatsappUrl } from '../components/ui/whatsapp-icon'
 import { useSettings } from '../lib/useSettings'
+import { cn } from '../lib/utils'
 
 type PaymentStatus = 'approved' | 'pending' | 'rejected' | 'unknown'
 
@@ -16,40 +20,40 @@ function resolveStatus(params: URLSearchParams): PaymentStatus {
 const statusConfig = {
   approved: {
     icon: CheckCircle2,
-    color: '#25D366',
-    border: 'border-success/30',
-    bg: 'bg-success/10',
-    title: 'Pagamento Aprovado!',
+    tone: 'bg-success/15 text-success',
+    title: 'Pagamento aprovado!',
     subtitle: 'Seu pedido foi confirmado e está sendo preparado.',
     chip: 'Pedido confirmado',
   },
   pending: {
     icon: Clock,
-    color: '#ffc21a',
-    border: 'border-primary/30',
-    bg: 'bg-primary/10',
-    title: 'Pagamento Pendente',
-    subtitle: 'Seu pedido foi recebido. Assim que o pagamento for confirmado, começaremos a preparar.',
+    tone: 'bg-primary/15 text-primary',
+    title: 'Pagamento pendente',
+    subtitle: 'Recebemos seu pedido. Assim que o pagamento for confirmado, começamos a preparar.',
     chip: 'Aguardando confirmação',
   },
   rejected: {
     icon: XCircle,
-    color: '#FF453A',
-    border: 'border-red-500/30',
-    bg: 'bg-red-500/10',
+    tone: 'bg-destructive/15 text-destructive',
     title: 'Pagamento não aprovado',
-    subtitle: 'Não foi possível processar o pagamento. Tente novamente com outro método.',
+    subtitle: 'Não conseguimos processar o pagamento. Tente de novo ou fale com a gente.',
     chip: 'Pagamento recusado',
   },
   unknown: {
     icon: Clock,
-    color: '#ffc21a',
-    border: 'border-primary/30',
-    bg: 'bg-primary/10',
-    title: 'Processando...',
-    subtitle: 'Estamos verificando o status do seu pagamento. Você receberá uma confirmação em breve.',
+    tone: 'bg-primary/15 text-primary',
+    title: 'Processando…',
+    subtitle: 'Estamos conferindo o pagamento. Você recebe a confirmação em breve.',
     chip: 'Em processamento',
   },
+}
+
+const paymentTypeLabel: Record<string, string> = {
+  credit_card: 'Cartão de crédito',
+  debit_card: 'Cartão de débito',
+  pix: 'PIX',
+  ticket: 'Boleto',
+  account_money: 'Saldo Mercado Pago',
 }
 
 export function CheckoutReturnPage() {
@@ -63,105 +67,72 @@ export function CheckoutReturnPage() {
 
   const cfg = statusConfig[status]
   const Icon = cfg.icon
-
-  const paymentTypeLabel: Record<string, string> = {
-    credit_card: 'Cartão de crédito',
-    debit_card: 'Cartão de débito',
-    pix: 'PIX',
-    ticket: 'Boleto',
-    account_money: 'Saldo Mercado Pago',
-  }
+  const canFollow = status !== 'rejected'
 
   // Link WhatsApp para acompanhar pedido
   const phone = settings.whatsapp_number || '5511999999999'
-  const waMsg = `Olá! Realizei o pedido #${orderId.slice(0, 8)} e gostaria de acompanhar o envio.`
-  const waLink = `https://wa.me/${phone}?text=${encodeURIComponent(waMsg)}`
+  const waLink = whatsappUrl(phone, `Olá! Realizei o pedido #${orderId.slice(0, 8)} e gostaria de acompanhar o envio.`)
 
   return (
     <div className="page-shell px-4 sm:px-6">
       <motion.div
-        initial={{ opacity: 0, scale: 0.94 }}
+        initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="glass-card rounded-[2rem] mx-auto flex min-h-[70vh] max-w-2xl flex-col items-center justify-center gap-8 text-center p-8 sm:p-12"
+        className="mx-auto flex max-w-2xl flex-col items-center gap-7 rounded-[2rem] border border-border bg-card px-6 py-12 text-center sm:px-12"
       >
-        {/* Ícone */}
-        <div className="relative">
-          <div
-            className="absolute inset-0 rounded-full blur-3xl opacity-30"
-            style={{ background: cfg.color }}
-          />
-          <Icon className="relative h-20 w-20" style={{ color: cfg.color }} />
-        </div>
+        <span className={cn('flex size-24 items-center justify-center rounded-full', cfg.tone)}>
+          <Icon className="size-11" aria-hidden />
+        </span>
 
-        {/* Texto */}
         <div className="space-y-3">
-          <h1 className="display-title text-5xl sm:text-6xl">
-            {cfg.title}
-          </h1>
-          <p className="max-w-md text-sm leading-7 text-muted-foreground">
-            {cfg.subtitle}
-          </p>
+          <h1 className="display-title text-5xl sm:text-6xl">{cfg.title}</h1>
+          <p className="mx-auto max-w-md leading-7 text-muted-foreground">{cfg.subtitle}</p>
         </div>
 
-        {/* Chips de info */}
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <span className={`chip ${cfg.border} ${cfg.bg}`} style={{ color: cfg.color }}>
-            <ShieldCheck className="h-4 w-4" />
-            {cfg.chip}
-          </span>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <span className={cn('rounded-full px-3.5 py-1.5 text-sm font-bold', cfg.tone)}>{cfg.chip}</span>
           {orderId && (
-            <span className="chip border-white/10 bg-white/[0.03] text-white/60">
-              Pedido #{orderId.slice(0, 8)}
+            <span className="rounded-full bg-muted px-3.5 py-1.5 font-mono text-sm font-semibold text-muted-foreground">
+              Pedido #{orderId.slice(0, 8).toUpperCase()}
             </span>
           )}
           {paymentType && paymentTypeLabel[paymentType] && (
-            <span className="chip border-white/10 bg-white/[0.03] text-white/60">
+            <span className="rounded-full bg-muted px-3.5 py-1.5 text-sm font-semibold text-muted-foreground">
               {paymentTypeLabel[paymentType]}
             </span>
           )}
         </div>
 
-        {/* Ações */}
-        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto mt-2">
-          {(status === 'approved' || status === 'pending' || status === 'unknown') && orderId && (
-            <Link
-              to={`/pedido/${orderId}`}
-              className="flex items-center justify-center gap-2 rounded-full bg-primary px-8 py-4 font-sans text-xs font-bold uppercase tracking-[0.14em] text-primary-foreground transition-all hover:opacity-90 hover:scale-105 active:scale-95"
-            >
-              <Package className="h-4 w-4" />
-              Acompanhar meu pedido
-            </Link>
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+          {canFollow && orderId && (
+            <Button asChild size="lg">
+              <Link to={`/pedido/${orderId}`}>
+                <Package />
+                Acompanhar pedido
+              </Link>
+            </Button>
           )}
-
-          {(status === 'approved' || status === 'pending' || status === 'unknown') && (
-            <a
-              href={waLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 rounded-full bg-success px-8 py-4 font-sans text-xs font-bold uppercase tracking-[0.14em] text-white transition-all hover:bg-success/90 hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(37,211,102,0.3)]"
-            >
-              Acompanhar pelo WhatsApp
-            </a>
+          {canFollow && (
+            <Button asChild size="lg" variant="success">
+              <a href={waLink} target="_blank" rel="noopener noreferrer">
+                <WhatsAppIcon />
+                Falar no WhatsApp
+              </a>
+            </Button>
           )}
-
           {status === 'rejected' && (
-            <button
-              onClick={() => navigate('/checkout')}
-              className="flex items-center justify-center gap-2 rounded-full bg-primary px-8 py-4 font-sans text-xs font-bold uppercase tracking-[0.14em] text-primary-foreground transition-all hover:scale-105 active:scale-95"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Tentar novamente
-            </button>
+            <Button size="lg" onClick={() => navigate('/checkout')}>
+              <RotateCcw />
+              Tentar de novo
+            </Button>
           )}
-
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-8 py-4 font-sans text-xs font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-white/10"
-          >
-            <Home className="h-4 w-4" />
-            Voltar à loja
-          </button>
+          <Button asChild size="lg" variant="outline">
+            <Link to="/">
+              <Home />
+              Voltar à loja
+            </Link>
+          </Button>
         </div>
       </motion.div>
     </div>
