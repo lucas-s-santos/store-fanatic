@@ -91,7 +91,7 @@ export function ImageUploader({
               <Upload className="h-5 w-5 text-muted-foreground" />
               <div className="text-center">
                 <span className="text-xs text-muted-foreground block">Clique para selecionar</span>
-                <span className="text-[10px] text-muted-foreground opacity-60 block">JPG, PNG, WEBP</span>
+                <span className="text-[11px] text-muted-foreground opacity-60 block">JPG, PNG, WEBP</span>
               </div>
             </div>
           )}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useCartStore } from '../store/cartStore'
 import { useAuth } from '../lib/useAuth'
@@ -7,13 +7,17 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Lock, ShieldCheck, Loader2, ArrowLeft,
+  Lock, Loader2, ArrowLeft,
   Tag, Percent, Gift, Copy, Check,
-  MessageCircle, ClipboardCheck, PackageCheck,
+  ClipboardCheck, PackageCheck, MapPin, UserRound,
 } from 'lucide-react'
+import { Button } from '../components/ui/button'
+import { WhatsAppIcon } from '../components/ui/whatsapp-icon'
 import { optimizedImageUrl } from '../lib/assets'
+import { displayProductName } from '../lib/catalog'
 import { supabase } from '../lib/supabase'
 import { useSettings } from '../lib/useSettings'
+import { cn, formatPrice } from '../lib/utils'
 import { useToast } from '../components/ui/Toast'
 
 // ─── Validadores ────────────────────────────────────────────────────────────
@@ -61,6 +65,8 @@ const maskCep = (v: string) =>
 const maskPhone = (v: string) =>
   v.replace(/\D/g, '').slice(0, 11).replace(/(\d{2})(\d{4,5})(\d{4})/, '($1) $2-$3')
 
+const PIX_STEPS = ['Pague o PIX com a chave abaixo', 'Envie o comprovante no WhatsApp', 'A gente confirma e prepara o envio']
+
 // ─── Tela PIX + WhatsApp ────────────────────────────────────────────────────
 function PixConfirmation({
   orderId,
@@ -94,8 +100,9 @@ function PixConfirmation({
     `Segue o comprovante do PIX!`
   )
   const whatsappUrl = `https://wa.me/${whatsapp.replace(/\D/g, '')}?text=${whatsappMsg}`
+  // QR preto no branco: é o que os apps de banco leem melhor.
   const qrUrl = pixKey
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(pixKey)}&bgcolor=0c0c0c&color=ffffff&margin=8`
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(pixKey)}&bgcolor=ffffff&color=0b0e15&margin=10`
     : null
 
   return (
@@ -103,90 +110,117 @@ function PixConfirmation({
       initial={{ opacity: 0, scale: 0.96, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="mx-auto max-w-lg w-full"
+      className="mx-auto w-full max-w-lg"
     >
-      <div className="glass-card rounded-[2rem] px-6 py-10 sm:px-10 text-center space-y-8">
-        {/* Ícone de sucesso */}
+      <div className="space-y-8 rounded-[2rem] border border-border bg-card px-6 py-10 text-center sm:px-10">
         <div className="flex justify-center">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full border border-primary/20 bg-primary/10">
-            <PackageCheck className="h-9 w-9 text-primary" />
-          </div>
+          <span className="flex size-20 items-center justify-center rounded-full bg-success/15 text-success">
+            <PackageCheck className="size-9" aria-hidden />
+          </span>
         </div>
 
         <div>
-          <h2 className="text-3xl font-display font-bold uppercase tracking-tight text-white">
-            Pedido realizado!
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Pedido <span className="font-mono text-primary">#{shortId}</span> — R$ {totalFmt}
+          <h1 className="display-title text-5xl">Pedido feito!</h1>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Pedido <span className="font-mono font-semibold text-primary">#{shortId}</span> · total de{' '}
+            <strong className="text-foreground">R$ {totalFmt}</strong>
           </p>
         </div>
 
-        {/* PIX */}
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 space-y-4 text-left">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary text-center">
-            Pague via PIX
-          </p>
+        <ol className="grid gap-2 text-left text-sm">
+          {PIX_STEPS.map((step, i) => (
+            <li key={step} className="flex items-center gap-3 rounded-xl bg-background/60 px-4 py-3">
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-black text-primary-foreground">
+                {i + 1}
+              </span>
+              {step}
+            </li>
+          ))}
+        </ol>
+
+        <div className="space-y-4 rounded-2xl border border-border bg-background/60 p-5 text-left sm:p-6">
+          <p className="text-center text-xs font-bold uppercase tracking-[0.16em] text-primary">Pagamento via PIX</p>
 
           {pixKey ? (
             <>
               {qrUrl && (
                 <div className="flex justify-center">
-                  <img
-                    src={qrUrl}
-                    alt="QR Code PIX"
-                    className="h-[180px] w-[180px] rounded-xl border border-white/10"
-                  />
+                  <img src={qrUrl} alt="QR Code da chave PIX" className="size-[200px] rounded-2xl bg-white" />
                 </div>
               )}
               <div>
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  Chave PIX
-                </p>
-                <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
-                  <span className="flex-1 truncate font-mono text-sm text-white">{pixKey}</span>
-                  <button
-                    type="button"
-                    onClick={handleCopy}
-                    className="flex shrink-0 items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
-                  >
-                    {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                    {copied ? 'Copiado!' : 'Copiar'}
-                  </button>
+                <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">Chave PIX</p>
+                <div className="flex items-center gap-2 rounded-xl border border-input bg-card py-2 pl-4 pr-2">
+                  <span className="flex-1 truncate font-mono text-sm">{pixKey}</span>
+                  <Button type="button" size="sm" variant={copied ? 'success' : 'default'} onClick={handleCopy}>
+                    {copied ? <Check /> : <Copy />}
+                    {copied ? 'Copiada!' : 'Copiar'}
+                  </Button>
                 </div>
               </div>
             </>
           ) : (
             <p className="text-center text-sm text-muted-foreground">
-              Entre em contato via WhatsApp para receber os dados do PIX.
+              Chame a gente no WhatsApp para receber os dados do PIX.
             </p>
           )}
-
-          <p className="text-center text-xs text-muted-foreground leading-relaxed">
-            Após o pagamento, envie o comprovante pelo WhatsApp para confirmarmos seu pedido.
-          </p>
         </div>
 
-        {/* Botão WhatsApp */}
-        <a
-          href={whatsappUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex w-full items-center justify-center gap-3 rounded-full bg-[#25D366] py-4 text-sm font-bold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
-        >
-          <MessageCircle className="h-5 w-5" />
-          Enviar comprovante no WhatsApp
-        </a>
+        <Button asChild size="xl" variant="success" className="w-full">
+          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+            <WhatsAppIcon />
+            Enviar comprovante
+          </a>
+        </Button>
 
         <Link
           to="/meus-pedidos"
-          className="flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-primary"
+          className="inline-flex items-center justify-center gap-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"
         >
-          <ClipboardCheck className="h-4 w-4" />
+          <ClipboardCheck className="size-4" />
           Ver meus pedidos
         </Link>
       </div>
     </motion.div>
+  )
+}
+
+/** Rótulo ligado ao campo e erro anunciado para leitor de tela. */
+function Field({
+  id,
+  label,
+  error,
+  className,
+  children,
+}: {
+  id: string
+  label: string
+  error?: string
+  className?: string
+  children: ReactNode
+}) {
+  return (
+    <div className={className}>
+      <label htmlFor={id} className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">
+        {label}
+      </label>
+      {children}
+      {error && (
+        <p id={`${id}-error`} role="alert" className="mt-1.5 text-xs font-medium text-destructive">
+          {error}
+        </p>
+      )}
+    </div>
+  )
+}
+
+function StepHeader({ step, title, icon: Icon }: { step: number; title: string; icon: typeof MapPin }) {
+  return (
+    <div className="mb-6 flex items-center gap-3">
+      <span className="flex size-9 items-center justify-center rounded-full bg-primary text-sm font-black text-primary-foreground">{step}</span>
+      <h2 className="text-xl font-extrabold">{title}</h2>
+      <Icon className="ml-auto size-5 text-muted-foreground" aria-hidden />
+    </div>
   )
 }
 
@@ -362,9 +396,6 @@ export function CheckoutPage() {
 
   if (items.length === 0 && !completedOrder) return null
 
-  const Err = ({ msg }: { msg?: string }) =>
-    msg ? <p className="mt-1.5 text-xs text-destructive">{msg}</p> : null
-
   const watchCep = watch('cep')
   void watchCep
 
@@ -372,9 +403,15 @@ export function CheckoutPage() {
     `${i.quantity}x ${i.title} (${i.size})${i.personalization?.name ? ` – ${i.personalization.name}` : ''}`
   ).join(', ')
 
+  const inputProps = (name: keyof FormData) => ({
+    id: `checkout-${name}`,
+    'aria-invalid': Boolean(errors[name]) || undefined,
+    'aria-describedby': errors[name] ? `checkout-${name}-error` : undefined,
+  })
+
   return (
-    <div className="section-shell px-3 sm:px-5">
-      <div className="mx-auto max-w-[1440px] space-y-8 pb-32 lg:pb-0">
+    <div className="pb-32 pt-[7.25rem] lg:pb-16 lg:pt-[8.25rem]">
+      <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
 
         {/* Confirmação PIX + WhatsApp */}
         <AnimatePresence>
@@ -383,7 +420,7 @@ export function CheckoutPage() {
               key="pix-confirmation"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex justify-center py-8"
+              className="flex justify-center py-4"
             >
               <PixConfirmation
                 orderId={completedOrder.id}
@@ -399,34 +436,18 @@ export function CheckoutPage() {
         {/* Formulário de checkout */}
         {!completedOrder && (
           <>
-            {/* Header */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="glass-card rounded-[1.5rem] px-6 py-8 sm:px-8"
-            >
-              <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-                <div>
-                  <span className="chip border-primary/20 bg-primary/5 text-primary">
-                    <Lock className="h-4 w-4" />
-                    Checkout Seguro
-                  </span>
-                  <h1 className="mt-5 text-4xl font-display font-bold uppercase tracking-tight text-white sm:text-5xl">
-                    Finalizar Pedido
-                  </h1>
-                  <p className="mt-3 text-sm text-muted-foreground">
-                    Preencha seus dados. Após confirmar, você receberá a chave PIX para pagamento.
-                  </p>
-                </div>
-                <span className="chip border-white/10 bg-white/[0.03] text-white/50">
-                  <ShieldCheck className="h-4 w-4" />
-                  Sessão criptografada
-                </span>
-              </div>
-            </motion.div>
+            <div>
+              <p className="eyebrow">
+                <Lock className="size-3.5" aria-hidden />
+                Compra segura
+              </p>
+              <h1 className="display-title mt-3 text-5xl sm:text-6xl lg:text-7xl">Finalizar pedido</h1>
+              <p className="mt-3 max-w-xl text-sm text-muted-foreground sm:text-base">
+                Preencha seus dados. Ao confirmar, você recebe a chave PIX e envia o comprovante pelo WhatsApp.
+              </p>
+            </div>
 
-            <form id="checkout-form" onSubmit={handleSubmit(onSubmit)} className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+            <form id="checkout-form" onSubmit={handleSubmit(onSubmit)} className="mt-8 grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
               <div className="space-y-6">
 
                 {/* Identificação */}
@@ -434,45 +455,39 @@ export function CheckoutPage() {
                   initial={{ opacity: 0, y: 24 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.45, delay: 0.1 }}
-                  className="glass-card rounded-[1.5rem] px-6 py-8 sm:px-8"
+                  className="rounded-3xl border border-border bg-card p-6 sm:p-8"
                 >
-                  <div className="mb-6 flex items-center justify-between gap-4">
-                    <h2 className="text-2xl font-display font-bold uppercase tracking-tight text-white">Identificação</h2>
-                    <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">Passo 01</span>
-                  </div>
+                  <StepHeader step={1} title="Seus dados" icon={UserRound} />
                   <div className="grid gap-5 md:grid-cols-2">
-                    <div className="md:col-span-2">
-                      <label className="mb-2 block font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Nome completo</label>
-                      <input {...register('fullName')} className="form-input" placeholder="Ex: João da Silva" />
-                      <Err msg={errors.fullName?.message} />
-                    </div>
-                    <div>
-                      <label className="mb-2 block font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">CPF</label>
+                    <Field id="checkout-fullName" label="Nome completo" error={errors.fullName?.message} className="md:col-span-2">
+                      <input {...register('fullName')} {...inputProps('fullName')} autoComplete="name" className="form-input" placeholder="Ex.: João da Silva" />
+                    </Field>
+                    <Field id="checkout-cpf" label="CPF" error={errors.cpf?.message}>
                       <input
                         {...register('cpf')}
+                        {...inputProps('cpf')}
+                        inputMode="numeric"
                         className="form-input"
                         placeholder="000.000.000-00"
                         maxLength={14}
                         onChange={(e) => setValue('cpf', maskCpf(e.target.value), { shouldValidate: false })}
                       />
-                      <Err msg={errors.cpf?.message} />
-                    </div>
-                    <div>
-                      <label className="mb-2 block font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">E-mail</label>
-                      <input type="email" {...register('email')} className="form-input" placeholder="seuemail@exemplo.com" />
-                      <Err msg={errors.email?.message} />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="mb-2 block font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Telefone / WhatsApp</label>
+                    </Field>
+                    <Field id="checkout-email" label="E-mail" error={errors.email?.message}>
+                      <input type="email" {...register('email')} {...inputProps('email')} autoComplete="email" className="form-input" placeholder="seuemail@exemplo.com" />
+                    </Field>
+                    <Field id="checkout-phone" label="Celular / WhatsApp" error={errors.phone?.message} className="md:col-span-2">
                       <input
                         {...register('phone')}
+                        {...inputProps('phone')}
+                        type="tel"
+                        autoComplete="tel-national"
                         className="form-input"
                         placeholder="(11) 99999-9999"
                         maxLength={15}
                         onChange={(e) => setValue('phone', maskPhone(e.target.value), { shouldValidate: false })}
                       />
-                      <Err msg={errors.phone?.message} />
-                    </div>
+                    </Field>
                   </div>
                 </motion.section>
 
@@ -481,18 +496,17 @@ export function CheckoutPage() {
                   initial={{ opacity: 0, y: 24 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.45, delay: 0.18 }}
-                  className="glass-card rounded-[1.5rem] px-6 py-8 sm:px-8"
+                  className="rounded-3xl border border-border bg-card p-6 sm:p-8"
                 >
-                  <div className="mb-6 flex items-center justify-between gap-4">
-                    <h2 className="text-2xl font-display font-bold uppercase tracking-tight text-white">Endereço de Entrega</h2>
-                    <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">Passo 02</span>
-                  </div>
+                  <StepHeader step={2} title="Endereço de entrega" icon={MapPin} />
                   <div className="grid gap-5 md:grid-cols-3">
-                    <div>
-                      <label className="mb-2 block font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">CEP</label>
+                    <Field id="checkout-cep" label="CEP" error={errors.cep?.message}>
                       <div className="relative">
                         <input
                           {...register('cep')}
+                          {...inputProps('cep')}
+                          inputMode="numeric"
+                          autoComplete="postal-code"
                           className="form-input pr-10"
                           placeholder="00000-000"
                           maxLength={9}
@@ -500,91 +514,78 @@ export function CheckoutPage() {
                         />
                         {isFetchingCep && (
                           <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
-                            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                            <Loader2 className="size-4 animate-spin text-primary" />
                           </div>
                         )}
                       </div>
-                      <Err msg={errors.cep?.message} />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="mb-2 block font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Rua</label>
-                      <input {...register('address')} className="form-input" placeholder="Av. das Nações Unidas" />
-                      <Err msg={errors.address?.message} />
-                    </div>
-                    <div>
-                      <label className="mb-2 block font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Número</label>
-                      <input {...register('number')} className="form-input" placeholder="123" />
-                      <Err msg={errors.number?.message} />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="mb-2 block font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Complemento (opcional)</label>
-                      <input {...register('complement')} className="form-input" placeholder="Apto 42, Bloco B..." />
-                    </div>
+                    </Field>
+                    <Field id="checkout-address" label="Rua" error={errors.address?.message} className="md:col-span-2">
+                      <input {...register('address')} {...inputProps('address')} autoComplete="address-line1" className="form-input" placeholder="Av. das Nações Unidas" />
+                    </Field>
+                    <Field id="checkout-number" label="Número" error={errors.number?.message}>
+                      <input {...register('number')} {...inputProps('number')} className="form-input" placeholder="123" />
+                    </Field>
+                    <Field id="checkout-complement" label="Complemento (opcional)" className="md:col-span-2">
+                      <input {...register('complement')} {...inputProps('complement')} autoComplete="address-line2" className="form-input" placeholder="Apto 42, Bloco B..." />
+                    </Field>
                   </div>
                 </motion.section>
               </div>
 
-              {/* Sidebar — Resumo */}
-              <aside className="glass-card rounded-[1.5rem] h-fit px-6 py-8 sm:px-8 lg:sticky lg:top-28">
+              {/* Resumo */}
+              <aside className="h-fit rounded-3xl border border-border bg-card p-6 sm:p-8 lg:sticky lg:top-24">
                 <div className="space-y-6">
-                  <div className="flex items-center justify-between gap-4">
-                    <h3 className="text-2xl font-display font-bold uppercase tracking-tight text-white">Resumo</h3>
-                    <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
+                  <div className="flex items-baseline justify-between gap-4">
+                    <h2 className="display-title text-3xl">Resumo</h2>
+                    <span className="text-sm font-semibold text-muted-foreground">
                       {items.length} {items.length === 1 ? 'item' : 'itens'}
                     </span>
                   </div>
 
-                  {/* Lista de itens */}
-                  <ul className="custom-scrollbar max-h-64 space-y-4 overflow-y-auto border-y border-white/10 py-5">
+                  <ul className="custom-scrollbar max-h-72 space-y-4 overflow-y-auto border-y border-border py-5">
                     {items.map((item) => (
                       <li key={`${item.id}-${item.size}`} className="flex justify-between gap-4 text-sm">
-                        <div className="flex gap-3 min-w-0">
-                          <div className="h-12 w-10 shrink-0 overflow-hidden border border-white/10">
-                            <img src={optimizedImageUrl(item.imageUrl, 200)} alt={item.title} className="h-full w-full object-cover" />
-                          </div>
+                        <div className="flex min-w-0 gap-3">
+                          <img src={optimizedImageUrl(item.imageUrl, 160)} alt="" className="aspect-[4/5] w-12 shrink-0 rounded-lg bg-muted object-cover" />
                           <div className="min-w-0">
-                            <p className="line-clamp-1 text-white font-medium">{item.title}</p>
-                            <p className="font-sans text-[9px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                              {item.quantity}x · Tam. {item.size}
+                            <p className="line-clamp-1 font-semibold">{displayProductName(item.title)}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {item.quantity}x · Tamanho {item.size}
                             </p>
                             {item.personalization && (
-                              <p className="font-sans text-[9px] text-primary">
+                              <p className="text-xs font-semibold text-primary">
                                 {item.personalization.name && `${item.personalization.name}`}
                                 {item.personalization.number && ` #${item.personalization.number}`}
                               </p>
                             )}
                           </div>
                         </div>
-                        <span className="shrink-0 font-bold text-white">
-                          R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}
-                        </span>
+                        <span className="shrink-0 font-bold tabular-nums">{formatPrice(item.price * item.quantity)}</span>
                       </li>
                     ))}
                   </ul>
 
                   {/* Cupom */}
-                  <div className="border border-white/10 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Tag className="h-4 w-4 text-primary" />
-                      <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                        Cupom de desconto
-                      </span>
-                    </div>
+                  <div>
+                    <label htmlFor="checkout-coupon" className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                      <Tag className="size-4 text-primary" aria-hidden />
+                      Cupom de desconto
+                    </label>
                     {appliedCoupon ? (
-                      <div className="flex items-center justify-between bg-green-500/10 border border-green-500/20 rounded-lg px-4 py-3">
+                      <div className="flex items-center justify-between rounded-xl border border-success/25 bg-success/10 px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <Gift className="h-4 w-4 text-green-400" />
-                          <span className="text-sm font-semibold text-green-400">{appliedCoupon.code}</span>
-                          <span className="text-xs text-green-400/70">
+                          <Gift className="size-4 text-success" aria-hidden />
+                          <span className="text-sm font-bold text-success">{appliedCoupon.code}</span>
+                          <span className="text-xs text-success/80">
                             ({appliedCoupon.discount_type === 'percentage'
                               ? `${appliedCoupon.discount_value}%`
-                              : `R$ ${appliedCoupon.discount_value.toFixed(2).replace('.', ',')}`})
+                              : formatPrice(appliedCoupon.discount_value)})
                           </span>
                         </div>
                         <button
                           type="button"
                           onClick={() => { setAppliedCoupon(null); setCouponDiscount(0) }}
-                          className="text-xs text-muted-foreground hover:text-white transition-colors"
+                          className="text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
                         >
                           Remover
                         </button>
@@ -592,85 +593,58 @@ export function CheckoutPage() {
                     ) : (
                       <div className="flex gap-2">
                         <input
+                          id="checkout-coupon"
                           value={couponCode}
                           onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                           placeholder="CUPOM10"
-                          className="flex-1 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-white/20 focus:outline-none focus:ring-1 focus:ring-primary"
+                          className="form-input h-11 flex-1 py-0 font-semibold uppercase"
                           onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), validateCoupon())}
                         />
-                        <button
-                          type="button"
-                          onClick={validateCoupon}
-                          disabled={validatingCoupon || !couponCode.trim()}
-                          className="flex items-center gap-1 rounded-lg border border-primary/30 bg-primary/10 px-4 py-2 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
-                        >
-                          {validatingCoupon ? <Loader2 className="h-3 w-3 animate-spin" /> : <Percent className="h-3 w-3" />}
+                        <Button type="button" variant="outline" className="h-11" onClick={validateCoupon} disabled={validatingCoupon || !couponCode.trim()}>
+                          {validatingCoupon ? <Loader2 className="animate-spin" /> : <Percent />}
                           Aplicar
-                        </button>
+                        </Button>
                       </div>
                     )}
-                    {couponError && <p className="mt-2 text-xs text-destructive">{couponError}</p>}
+                    {couponError && <p role="alert" className="mt-2 text-xs font-medium text-destructive">{couponError}</p>}
                   </div>
 
-                  {/* Totais */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Subtotal</span>
-                      <span className="text-white">R$ {total.toFixed(2).replace('.', ',')}</span>
+                  <dl className="space-y-3 text-sm">
+                    <div className="flex items-center justify-between">
+                      <dt className="text-muted-foreground">Subtotal</dt>
+                      <dd className="tabular-nums">{formatPrice(total)}</dd>
                     </div>
                     {couponDiscount > 0 && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-green-400">Desconto</span>
-                        <span className="text-green-400">- R$ {couponDiscount.toFixed(2).replace('.', ',')}</span>
+                      <div className="flex items-center justify-between text-success">
+                        <dt>Desconto</dt>
+                        <dd className="tabular-nums">- {formatPrice(couponDiscount)}</dd>
                       </div>
                     )}
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Frete</span>
-                      {shippingFree
-                        ? <span className="font-bold text-success">Grátis ✓</span>
-                        : <span className="text-white">R$ {shipping.toFixed(2).replace('.', ',')}</span>}
+                    <div className="flex items-center justify-between">
+                      <dt className="text-muted-foreground">Frete</dt>
+                      <dd className={cn('tabular-nums', shippingFree && 'font-bold text-success')}>
+                        {shippingFree ? 'Grátis' : formatPrice(shipping)}
+                      </dd>
                     </div>
-                    <div className="border-t border-white/10 pt-4 flex items-end justify-between">
-                      <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Total</span>
-                      <span className="text-4xl font-display font-bold text-white tracking-tight">
-                        R$ {grandTotal.toFixed(2).replace('.', ',')}
-                      </span>
+                    <div className="flex items-baseline justify-between border-t border-border pt-4">
+                      <dt className="font-bold">Total</dt>
+                      <dd className="text-3xl font-black tabular-nums">{formatPrice(grandTotal)}</dd>
                     </div>
-                  </div>
+                  </dl>
 
-                  {/* Botão Finalizar */}
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="btn-glow-primary w-full h-14 disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    <span className="relative z-10 flex items-center justify-center gap-3">
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="h-5 w-5 animate-spin" />
-                          Salvando pedido...
-                        </>
-                      ) : (
-                        <>
-                          <PackageCheck className="h-5 w-5" />
-                          Confirmar Pedido
-                        </>
-                      )}
-                    </span>
-                  </button>
+                  <Button type="submit" size="xl" disabled={isSubmitting} className="w-full">
+                    {isSubmitting ? <Loader2 className="animate-spin" /> : <PackageCheck />}
+                    {isSubmitting ? 'Salvando pedido…' : 'Confirmar pedido'}
+                  </Button>
 
-                  <p className="text-center text-[10px] text-muted-foreground leading-relaxed">
-                    Após confirmar, você receberá a chave PIX para pagamento e poderá enviar o comprovante pelo WhatsApp.
+                  <p className="text-center text-xs leading-relaxed text-muted-foreground">
+                    Depois de confirmar, você recebe a chave PIX e envia o comprovante pelo WhatsApp.
                   </p>
 
-                  <button
-                    type="button"
-                    onClick={() => navigate(-1)}
-                    className="flex w-full items-center justify-center gap-2 font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-primary"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
+                  <Button type="button" variant="ghost" className="w-full" onClick={() => navigate(-1)}>
+                    <ArrowLeft />
                     Voltar
-                  </button>
+                  </Button>
                 </div>
               </aside>
             </form>
@@ -678,22 +652,18 @@ export function CheckoutPage() {
         )}
       </div>
 
-      {/* Barra flutuante mobile */}
+      {/* Barra fixa no celular */}
       {!completedOrder && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/[0.08] bg-background/95 px-4 py-3 backdrop-blur-xl lg:hidden">
-          <div className="mx-auto flex max-w-[1440px] items-center gap-3">
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Total</p>
-              <p className="text-xl font-display font-bold text-white">R$ {grandTotal.toFixed(2).replace('.', ',')}</p>
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-4 py-3 backdrop-blur-xl lg:hidden">
+          <div className="flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-muted-foreground">Total</p>
+              <p className="text-lg font-black tabular-nums">{formatPrice(grandTotal)}</p>
             </div>
-            <button
-              type="submit"
-              form="checkout-form"
-              disabled={isSubmitting}
-              className="btn-glow-primary shrink-0 h-12 px-6 text-xs disabled:opacity-60"
-            >
-              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirmar'}
-            </button>
+            <Button type="submit" form="checkout-form" size="lg" disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="animate-spin" /> : <PackageCheck />}
+              Confirmar
+            </Button>
           </div>
         </div>
       )}

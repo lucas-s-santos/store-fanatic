@@ -68,7 +68,7 @@ function AdminSelect({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-full left-0 right-0 z-50 mt-1 rounded-xl border border-white/10 bg-[#0d0d0d] shadow-2xl overflow-hidden max-h-56 overflow-y-auto"
+            className="absolute top-full left-0 right-0 z-50 mt-1 rounded-xl border border-white/10 bg-card shadow-2xl overflow-hidden max-h-56 overflow-y-auto"
           >
             {options.map(opt => (
               <button
@@ -216,7 +216,7 @@ export function AdminPage() {
             <Shield className="h-4 w-4" />
             Painel Administrativo
           </span>
-          <h1 className="text-3xl font-display font-bold uppercase tracking-tight text-white">
+          <h1 className="text-3xl font-heading font-bold uppercase tracking-tight text-white">
             Gerenciar Estoque
           </h1>
         </div>
@@ -244,7 +244,7 @@ export function AdminPage() {
           >
             <form onSubmit={handleSave} className="glass-card rounded-[1.5rem] p-6 sm:p-8 space-y-6">
               <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                <h2 className="text-xl font-display font-bold uppercase text-white">
+                <h2 className="text-xl font-heading font-bold uppercase text-white">
                   {editingProduct.id ? 'Editar Camisa' : 'Nova Camisa'}
                 </h2>
                 <button type="button" onClick={() => setIsEditing(false)} className="text-muted-foreground hover:text-white">
@@ -375,7 +375,7 @@ export function AdminPage() {
                           onClick={() => handleSizeToggle(size)}
                           className={`flex h-10 w-12 items-center justify-center rounded border transition-all text-sm font-bold ${
                             selected
-                              ? 'border-primary bg-primary/20 text-primary shadow-[0_0_10px_rgba(229,192,123,0.2)]'
+                              ? 'border-primary bg-primary/20 text-primary shadow-[0_0_10px_rgba(255, 194, 26,0.2)]'
                               : 'border-white/10 bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'
                           }`}
                         >
@@ -410,8 +410,8 @@ export function AdminPage() {
                   >
                     <Star className={`h-5 w-5 ${editingProduct.featured ? 'text-primary fill-primary' : 'text-muted-foreground'}`} />
                     <div className="text-left">
-                      <p className="font-display font-bold uppercase text-sm text-white">Produto em Destaque</p>
-                      <p className="text-[10px] text-muted-foreground">Aparece nas primeiras posições</p>
+                      <p className="font-heading font-bold uppercase text-sm text-white">Produto em Destaque</p>
+                      <p className="text-[11px] text-muted-foreground">Aparece nas primeiras posições</p>
                     </div>
                     {editingProduct.featured
                       ? <ToggleRight className="h-5 w-5 text-primary ml-auto" />
@@ -424,17 +424,17 @@ export function AdminPage() {
                     onClick={() => setEditingProduct({ ...editingProduct, active: !editingProduct.active })}
                     className={`flex-1 flex items-center gap-3 p-4 border rounded-xl transition-colors ${
                       editingProduct.active !== false
-                        ? 'border-[#25D366]/30 bg-[#25D366]/10'
+                        ? 'border-success/30 bg-success/10'
                         : 'border-white/10 bg-white/5 hover:bg-white/10'
                     }`}
                   >
-                    <Package className={`h-5 w-5 ${editingProduct.active !== false ? 'text-[#25D366]' : 'text-muted-foreground'}`} />
+                    <Package className={`h-5 w-5 ${editingProduct.active !== false ? 'text-success' : 'text-muted-foreground'}`} />
                     <div className="text-left">
-                      <p className="font-display font-bold uppercase text-sm text-white">Produto Ativo</p>
-                      <p className="text-[10px] text-muted-foreground">Visível na loja para clientes</p>
+                      <p className="font-heading font-bold uppercase text-sm text-white">Produto Ativo</p>
+                      <p className="text-[11px] text-muted-foreground">Visível na loja para clientes</p>
                     </div>
                     {editingProduct.active !== false
-                      ? <ToggleRight className="h-5 w-5 text-[#25D366] ml-auto" />
+                      ? <ToggleRight className="h-5 w-5 text-success ml-auto" />
                       : <ToggleLeft className="h-5 w-5 text-muted-foreground ml-auto" />
                     }
                   </button>
@@ -476,7 +476,7 @@ export function AdminPage() {
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-white/5 font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                  <thead className="bg-white/5 font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                     <tr>
                       <th className="p-4">Produto</th>
                       <th className="p-4">Liga / Time</th>
@@ -512,31 +512,31 @@ export function AdminPage() {
                                   {product.featured && <Star className="h-3 w-3 text-primary fill-primary shrink-0" />}
                                   {product.title}
                                 </span>
-                                <span className="text-[10px] text-muted-foreground">{(product.sizes || []).join(', ')}</span>
+                                <span className="text-[11px] text-muted-foreground">{(product.sizes || []).join(', ')}</span>
                               </div>
                             </div>
                           </td>
                           <td className="p-4">
                             <span className="text-xs text-white block">{leagueName}</span>
-                            <span className="text-[10px] text-muted-foreground uppercase">{teamName}</span>
+                            <span className="text-[11px] text-muted-foreground uppercase">{teamName}</span>
                           </td>
                           <td className="p-4">
-                            <span className="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-white/10 text-white/70">
+                            <span className="px-2 py-1 rounded text-[11px] font-bold uppercase tracking-wider bg-white/10 text-white/70">
                               {product.type || 'torcedor'}
                             </span>
                           </td>
                           <td className="p-4 font-medium">R$ {Number(product.price).toFixed(2).replace('.', ',')}</td>
                           <td className="p-4">
                             <span className={`px-2 py-1 rounded text-xs font-bold ${
-                              product.stock > 0 ? 'bg-[#25D366]/10 text-[#25D366]' : 'bg-destructive/10 text-destructive'
+                              product.stock > 0 ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'
                             }`}>
                               {product.stock > 0 ? `${product.stock} un.` : 'Esgotado'}
                             </span>
                           </td>
                           <td className="p-4">
-                            <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
+                            <span className={`px-2 py-1 rounded text-[11px] font-bold uppercase tracking-wider ${
                               product.active !== false
-                                ? 'bg-[#25D366]/10 text-[#25D366]'
+                                ? 'bg-success/10 text-success'
                                 : 'bg-white/10 text-white/40'
                             }`}>
                               {product.active !== false ? 'Ativo' : 'Inativo'}

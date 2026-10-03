@@ -20,29 +20,52 @@ const defaults: SiteSettings = {
   store_name: 'Store Fanatic',
 }
 
+// Cabeçalho, rodapé, carrinho e páginas usam as configurações ao mesmo tempo:
+// uma busca só por carregamento de página, compartilhada entre todos.
+let cached: SiteSettings | null = null
+let request: Promise<SiteSettings> | null = null
+
+async function loadSettings() {
+  const { data } = await supabase.from('site_settings').select('*')
+  const s: any = { ...defaults }
+  data?.forEach((row: any) => {
+    const key = row.key as keyof SiteSettings
+    if (key === 'shipping_free_threshold' || key === 'shipping_cost' || key === 'personalization_price') {
+      s[key] = Number(row.value)
+    } else {
+      ;(s as any)[key] = row.value
+    }
+  })
+  cached = s
+  return s as SiteSettings
+}
+
 export function useSettings() {
-  const [settings, setSettings] = useState<SiteSettings>(defaults)
-  const [loading, setLoading] = useState(true)
+  const [settings, setSettings] = useState<SiteSettings>(cached ?? defaults)
+  const [loading, setLoading] = useState(!cached)
 
   useEffect(() => {
-    async function fetchSettings() {
-      const { data } = await supabase.from('site_settings').select('*')
-      if (data) {
-        const s: any = { ...defaults }
-        data.forEach((row: any) => {
-          const key = row.key as keyof SiteSettings
-          if (key === 'shipping_free_threshold' || key === 'shipping_cost' || key === 'personalization_price') {
-            s[key] = Number(row.value)
-          } else {
-            ;(s as any)[key] = row.value
-          }
-        })
-        setSettings(s)
-      }
+    if (cached) return
+    let active = true
+    request ??= loadSettings().catch(() => {
+      request = null
+      return defaults
+    })
+    request.then((s) => {
+      if (!active) return
+      setSettings(s)
       setLoading(false)
+    })
+    return () => {
+      active = false
     }
-    fetchSettings()
   }, [])
 
   return { settings, loading }
+}
+
+/** Remove o cache para que a próxima montagem busque de novo (após salvar no admin). */
+export function invalidateSettings() {
+  cached = null
+  request = null
 }

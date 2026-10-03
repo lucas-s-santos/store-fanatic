@@ -47,10 +47,10 @@ interface Customer {
 // ─── Config status ────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  aguardando_pagamento: { label: 'Aguardando', color: 'text-[#FF9F43] bg-[#FF9F43]/10 border-[#FF9F43]/20' },
-  pago:                { label: 'Pago',        color: 'text-[#25D366] bg-[#25D366]/10 border-[#25D366]/20' },
+  aguardando_pagamento: { label: 'Aguardando', color: 'text-warning bg-warning/10 border-warning/20' },
+  pago:                { label: 'Pago',        color: 'text-success bg-success/10 border-success/20' },
   enviado:             { label: 'Enviado',     color: 'text-primary bg-primary/10 border-primary/20' },
-  entregue:            { label: 'Entregue',    color: 'text-[#25D366] bg-[#25D366]/10 border-[#25D366]/20' },
+  entregue:            { label: 'Entregue',    color: 'text-success bg-success/10 border-success/20' },
   cancelado:           { label: 'Cancelado',   color: 'text-destructive bg-destructive/10 border-destructive/20' },
 }
 
@@ -63,13 +63,13 @@ function Avatar({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' | 'lg'
 
   const palette = [
     'from-primary/30 to-primary/10 text-primary',
-    'from-[#25D366]/30 to-[#25D366]/10 text-[#25D366]',
-    'from-[#FF9F43]/30 to-[#FF9F43]/10 text-[#FF9F43]',
+    'from-success/30 to-success/10 text-success',
+    'from-warning/30 to-warning/10 text-warning',
     'from-blue-500/30 to-blue-500/10 text-blue-400',
     'from-purple-500/30 to-purple-500/10 text-purple-400',
   ]
   const color = palette[(name.charCodeAt(0) || 0) % palette.length]
-  const sizes = { sm: 'h-8 w-8 text-[10px]', md: 'h-10 w-10 text-xs', lg: 'h-14 w-14 text-base' }
+  const sizes = { sm: 'h-8 w-8 text-[11px]', md: 'h-10 w-10 text-xs', lg: 'h-14 w-14 text-base' }
 
   return (
     <div className={`shrink-0 ${sizes[size]} flex items-center justify-center rounded-full bg-gradient-to-br border border-white/10 font-bold ${color}`}>
@@ -119,24 +119,24 @@ function CustomerModal({
         exit={{ scale: 0.96, y: 20 }}
         transition={{ type: 'spring', damping: 28, stiffness: 300 }}
         onClick={e => e.stopPropagation()}
-        className="custom-scrollbar relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-[2rem] border border-white/10 bg-[#0a0a0a] shadow-2xl"
+        className="custom-scrollbar relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-[2rem] border border-white/10 bg-card shadow-2xl"
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-[#0a0a0a]/95 px-6 py-5 backdrop-blur-xl">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-card/95 px-6 py-5 backdrop-blur-xl">
           <div className="flex items-center gap-3">
             <Avatar name={customer.name} size="lg" />
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-display font-bold uppercase tracking-tight text-white">
+                <h2 className="text-lg font-heading font-bold uppercase tracking-tight text-white">
                   {customer.name}
                 </h2>
                 {customer.isRegistered && (
-                  <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary">
+                  <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-primary">
                     Conta ativa
                   </span>
                 )}
                 {currentRole === 'admin' && (
-                  <span className="rounded-full border border-[#a855f7]/40 bg-[#a855f7]/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#a855f7] flex items-center gap-1">
+                  <span className="rounded-full border border-[#a855f7]/40 bg-[#a855f7]/10 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-[#a855f7] flex items-center gap-1">
                     <Shield className="h-2.5 w-2.5" />
                     Admin
                   </span>
@@ -158,20 +158,20 @@ function CustomerModal({
           <div className="grid grid-cols-3 gap-3">
             {[
               { label: 'Pedidos',     value: customer.ordersCount,    icon: ShoppingCart, color: 'text-primary' },
-              { label: 'Total gasto', value: `R$ ${spent.toFixed(2).replace('.', ',')}`, icon: TrendingUp, color: 'text-[#25D366]' },
-              { label: 'Cliente desde', value: new Date(customer.memberSince).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }), icon: Calendar, color: 'text-[#FF9F43]' },
+              { label: 'Total gasto', value: `R$ ${spent.toFixed(2).replace('.', ',')}`, icon: TrendingUp, color: 'text-success' },
+              { label: 'Cliente desde', value: new Date(customer.memberSince).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }), icon: Calendar, color: 'text-warning' },
             ].map(stat => (
               <div key={stat.label} className="rounded-xl border border-white/10 bg-white/[0.02] p-3 text-center">
                 <stat.icon className={`mx-auto mb-1.5 h-4 w-4 ${stat.color}`} />
                 <p className="text-sm font-bold text-white">{stat.value}</p>
-                <p className="mt-0.5 text-[10px] text-muted-foreground">{stat.label}</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">{stat.label}</p>
               </div>
             ))}
           </div>
 
           {/* Info */}
           <div className="space-y-2">
-            <h3 className="font-sans text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+            <h3 className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
               Informações
             </h3>
             <div className="divide-y divide-white/[0.05] rounded-xl border border-white/10 bg-white/[0.02]">
@@ -183,7 +183,7 @@ function CustomerModal({
               ].map(item => (
                 <div key={item.label} className="flex items-center gap-3 px-4 py-3">
                   <item.icon className="h-3.5 w-3.5 shrink-0 text-primary/60" />
-                  <span className="w-28 shrink-0 text-[10px] text-muted-foreground">{item.label}</span>
+                  <span className="w-28 shrink-0 text-[11px] text-muted-foreground">{item.label}</span>
                   <span className="truncate text-xs text-white">{item.value}</span>
                 </div>
               ))}
@@ -193,7 +193,7 @@ function CustomerModal({
           {/* Gerenciamento de cargo */}
           {customer.isRegistered && customer.userId && (
             <div className="space-y-2">
-              <h3 className="font-sans text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+              <h3 className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 Cargo
               </h3>
               <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3.5">
@@ -211,7 +211,7 @@ function CustomerModal({
                     <p className="text-sm font-semibold text-white">
                       {currentRole === 'admin' ? 'Administrador' : 'Usuário'}
                     </p>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-[11px] text-muted-foreground">
                       {currentRole === 'admin'
                         ? 'Acesso total ao painel admin'
                         : 'Acesso somente à loja'}
@@ -247,7 +247,7 @@ function CustomerModal({
 
           {/* Pedidos */}
           <div className="space-y-2">
-            <h3 className="font-sans text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+            <h3 className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
               Histórico de pedidos
             </h3>
             {customer.orders.length === 0 ? (
@@ -262,14 +262,14 @@ function CustomerModal({
                   return (
                     <li key={order.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3">
                       <div>
-                        <p className="font-mono text-[10px] font-bold text-primary/60">
+                        <p className="font-mono text-[11px] font-bold text-primary/60">
                           #{order.id.slice(0, 8).toUpperCase()}
                         </p>
-                        <p className="mt-0.5 text-[10px] text-muted-foreground">
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">
                           {new Date(order.created_at).toLocaleDateString('pt-BR')}
                         </p>
                       </div>
-                      <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${st.color}`}>
+                      <span className={`rounded-full border px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider ${st.color}`}>
                         {st.label}
                       </span>
                       <span className="font-bold text-sm text-white">
@@ -424,10 +424,10 @@ export function AdminUsersPage() {
       >
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-display font-bold uppercase tracking-tight text-white sm:text-3xl">
+            <h1 className="text-2xl font-heading font-bold uppercase tracking-tight text-white sm:text-3xl">
               Usuários
             </h1>
-            <p className="mt-1 font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            <p className="mt-1 font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
               Gerencie cargos e visualize clientes
             </p>
           </div>
@@ -447,7 +447,7 @@ export function AdminUsersPage() {
       <div className="grid gap-4 sm:grid-cols-3">
         {[
           { label: 'Total de clientes', value: totalClients, icon: Users,     color: 'text-primary',    bg: 'bg-primary/10' },
-          { label: 'Com conta ativa',   value: registered,   icon: UserCheck, color: 'text-[#25D366]',  bg: 'bg-[#25D366]/10' },
+          { label: 'Com conta ativa',   value: registered,   icon: UserCheck, color: 'text-success',  bg: 'bg-success/10' },
           { label: 'Administradores',   value: admins,       icon: Shield,    color: 'text-[#a855f7]',  bg: 'bg-[#a855f7]/10' },
         ].map((card, i) => (
           <motion.div
@@ -463,10 +463,10 @@ export function AdminUsersPage() {
             <div className={`mb-3 inline-flex rounded-lg p-2 ${card.bg} ${card.color}`}>
               <card.icon className="h-4 w-4" />
             </div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">{card.label}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{card.label}</p>
             {loading
               ? <div className="mt-1 h-8 w-16 animate-pulse rounded bg-white/10" />
-              : <p className="mt-1 text-3xl font-display font-bold text-white">{card.value}</p>}
+              : <p className="mt-1 text-3xl font-heading font-bold text-white">{card.value}</p>}
           </motion.div>
         ))}
       </div>
@@ -497,7 +497,7 @@ export function AdminUsersPage() {
                 <thead>
                   <tr className="border-b border-white/10 bg-white/[0.03]">
                     {['Cliente', 'Cargo', 'Desde', 'Pedidos', 'Total gasto', ''].map(h => (
-                      <th key={h} className="px-5 py-4 font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                      <th key={h} className="px-5 py-4 font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                         {h}
                       </th>
                     ))}
@@ -515,23 +515,23 @@ export function AdminUsersPage() {
                           <Avatar name={customer.name} size="sm" />
                           <div>
                             <p className="font-semibold text-white">{customer.name}</p>
-                            <p className="mt-0.5 text-[10px] text-muted-foreground">{customer.email}</p>
+                            <p className="mt-0.5 text-[11px] text-muted-foreground">{customer.email}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-5 py-4">
                         {customer.role === 'admin' ? (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-[#a855f7]/30 bg-[#a855f7]/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#a855f7]">
+                          <span className="inline-flex items-center gap-1 rounded-full border border-[#a855f7]/30 bg-[#a855f7]/10 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-[#a855f7]">
                             <Shield className="h-2.5 w-2.5" />
                             Admin
                           </span>
                         ) : customer.isRegistered ? (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                          <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                             <User className="h-2.5 w-2.5" />
                             Usuário
                           </span>
                         ) : (
-                          <span className="text-[10px] text-muted-foreground/40">—</span>
+                          <span className="text-[11px] text-muted-foreground/40">—</span>
                         )}
                       </td>
                       <td className="px-5 py-4 text-xs text-muted-foreground whitespace-nowrap">
@@ -540,7 +540,7 @@ export function AdminUsersPage() {
                       <td className="px-5 py-4">
                         <span className="font-bold text-white">{customer.ordersCount}</span>
                       </td>
-                      <td className="px-5 py-4 font-bold text-[#25D366]">
+                      <td className="px-5 py-4 font-bold text-success">
                         {customer.totalSpent > 0
                           ? `R$ ${customer.totalSpent.toFixed(2).replace('.', ',')}`
                           : <span className="text-muted-foreground font-normal">—</span>}
@@ -571,15 +571,15 @@ export function AdminUsersPage() {
                           <Shield className="h-3 w-3 shrink-0 text-[#a855f7]" />
                         )}
                       </div>
-                      <p className="text-[10px] text-muted-foreground truncate">{customer.email}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{customer.email}</p>
                     </div>
                     <div className="text-right shrink-0">
                       {customer.totalSpent > 0 && (
-                        <p className="text-sm font-bold text-[#25D366]">
+                        <p className="text-sm font-bold text-success">
                           R$ {customer.totalSpent.toFixed(2).replace('.', ',')}
                         </p>
                       )}
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-[11px] text-muted-foreground">
                         {customer.ordersCount} pedido{customer.ordersCount !== 1 ? 's' : ''}
                       </p>
                     </div>

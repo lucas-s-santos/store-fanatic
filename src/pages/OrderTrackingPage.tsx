@@ -69,7 +69,7 @@ const STATUS_CONFIG: Record<string, {
     label: 'A Caminho',
     shortLabel: 'Enviado',
     description: 'Seu pedido foi despachado e está a caminho!',
-    iconColor: '#e5c07b',
+    iconColor: '#ffc21a',
     icon: Truck,
   },
   entregue: {
@@ -122,13 +122,13 @@ function StatusStepper({ status }: { status: string }) {
             {/* Linha antes */}
             {index > 0 && (
               <div className="absolute left-0 top-4 right-1/2 h-px -translate-y-1/2">
-                <div className={`h-full transition-all duration-500 ${done || active ? 'bg-[#25D366]' : 'bg-white/10'}`} />
+                <div className={`h-full transition-all duration-500 ${done || active ? 'bg-success' : 'bg-white/10'}`} />
               </div>
             )}
             {/* Linha depois */}
             {!isLast && (
               <div className="absolute right-0 top-4 left-1/2 h-px -translate-y-1/2">
-                <div className={`h-full transition-all duration-500 ${done ? 'bg-[#25D366]' : 'bg-white/10'}`} />
+                <div className={`h-full transition-all duration-500 ${done ? 'bg-success' : 'bg-white/10'}`} />
               </div>
             )}
 
@@ -138,14 +138,14 @@ function StatusStepper({ status }: { status: string }) {
               transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
               className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 transition-all duration-300 ${
                 done
-                  ? 'border-[#25D366] bg-[#25D366]/20'
+                  ? 'border-success bg-success/20'
                   : active
-                    ? 'border-primary bg-primary/15 shadow-[0_0_16px_rgba(229,192,123,0.35)]'
+                    ? 'border-primary bg-primary/15 shadow-[0_0_16px_rgba(255, 194, 26,0.35)]'
                     : 'border-white/15 bg-white/5'
               }`}
             >
               {done
-                ? <CheckCircle2 className="h-4 w-4 text-[#25D366]" />
+                ? <CheckCircle2 className="h-4 w-4 text-success" />
                 : <Icon
                     className="h-3.5 w-3.5"
                     style={{ color: active ? cfg.iconColor : 'rgba(255,255,255,0.2)' }}
@@ -154,8 +154,8 @@ function StatusStepper({ status }: { status: string }) {
             </motion.div>
 
             {/* Label */}
-            <p className={`mt-2 text-center text-[9px] font-semibold uppercase tracking-wider leading-tight ${
-              done ? 'text-[#25D366]' : active ? 'text-primary' : 'text-white/20'
+            <p className={`mt-2 text-center text-[11px] font-semibold uppercase tracking-wider leading-tight ${
+              done ? 'text-success' : active ? 'text-primary' : 'text-white/20'
             }`}>
               {cfg.shortLabel}
             </p>
@@ -192,8 +192,8 @@ function StarRating({
         >
           <Star
             className="h-7 w-7 transition-colors"
-            fill={(hover || value) >= star ? '#e5c07b' : 'transparent'}
-            stroke={(hover || value) >= star ? '#e5c07b' : 'rgba(255,255,255,0.2)'}
+            fill={(hover || value) >= star ? '#ffc21a' : 'transparent'}
+            stroke={(hover || value) >= star ? '#ffc21a' : 'rgba(255,255,255,0.2)'}
             strokeWidth={1.5}
           />
         </button>
@@ -269,7 +269,7 @@ export function OrderTrackingPage() {
   // ── Loading ──
   if (loading) {
     return (
-      <div className="section-shell flex items-center justify-center min-h-[60vh]">
+      <div className="page-shell flex min-h-[60vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
@@ -278,7 +278,7 @@ export function OrderTrackingPage() {
   // ── Pedido não encontrado ──
   if (notFound || !order) {
     return (
-      <div className="section-shell px-4 sm:px-6 flex items-center justify-center min-h-[60vh]">
+      <div className="page-shell flex min-h-[60vh] items-center justify-center px-4 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -286,7 +286,7 @@ export function OrderTrackingPage() {
         >
           <AlertCircle className="mx-auto h-16 w-16 text-muted-foreground/40" />
           <div>
-            <h1 className="text-2xl font-display font-bold uppercase text-white">Pedido não encontrado</h1>
+            <h1 className="text-2xl font-heading font-bold uppercase text-white">Pedido não encontrado</h1>
             <p className="mt-2 text-sm text-muted-foreground">
               Verifique o link enviado no seu e-mail de confirmação.
             </p>
@@ -315,7 +315,7 @@ export function OrderTrackingPage() {
   const ratingLabels = ['', 'Ruim', 'Regular', 'Bom', 'Muito bom', 'Excelente!']
 
   return (
-    <div className="section-shell px-3 sm:px-5 py-10 space-y-6 max-w-3xl mx-auto">
+    <div className="page-shell mx-auto max-w-3xl space-y-6 px-4 sm:px-6">
 
       {/* ── Hero ── */}
       <motion.div
@@ -325,10 +325,10 @@ export function OrderTrackingPage() {
       >
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground mb-1">
+            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-1">
               Acompanhar pedido
             </p>
-            <h1 className="text-2xl font-display font-bold uppercase tracking-tight text-white sm:text-3xl">
+            <h1 className="display-title text-4xl sm:text-5xl">
               Olá, {order.customer_name.split(' ')[0]}!
             </h1>
             <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -365,7 +365,7 @@ export function OrderTrackingPage() {
         transition={{ delay: 0.06 }}
         className="glass-card rounded-[2rem] p-6 sm:p-8 space-y-2"
       >
-        <h2 className="font-sans text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground mb-5">
+        <h2 className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-5">
           Status do Pedido
         </h2>
         <StatusStepper status={order.status} />
@@ -379,7 +379,7 @@ export function OrderTrackingPage() {
           transition={{ delay: 0.1 }}
           className="glass-card rounded-[2rem] p-6 sm:p-8"
         >
-          <h2 className="font-sans text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground mb-4">
+          <h2 className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-4">
             Código de Rastreio
           </h2>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-primary/20 bg-primary/5 px-5 py-4">
@@ -409,7 +409,7 @@ export function OrderTrackingPage() {
         transition={{ delay: 0.14 }}
         className="glass-card rounded-[2rem] p-6 sm:p-8 space-y-4"
       >
-        <h2 className="font-sans text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+        <h2 className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           Itens do Pedido
         </h2>
         <ul className="space-y-3">
@@ -424,7 +424,7 @@ export function OrderTrackingPage() {
                     <p className="text-sm font-bold text-white">{item.product_title}</p>
                     <div className="mt-1.5 flex flex-wrap gap-2">
                       {[`Tam. ${item.size}`, `Qtd. ${item.quantity}`].map(tag => (
-                        <span key={tag} className="rounded-full border border-white/10 px-2.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                        <span key={tag} className="rounded-full border border-white/10 px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
                           {tag}
                         </span>
                       ))}
@@ -432,7 +432,7 @@ export function OrderTrackingPage() {
                     {persList.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-2">
                         {persList.map((p, i) => (
-                          <span key={i} className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-[10px] font-bold text-primary">
+                          <span key={i} className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-[11px] font-bold text-primary">
                             🎽 {p.name}{p.number ? ` #${p.number}` : ''}
                           </span>
                         ))}
@@ -458,17 +458,17 @@ export function OrderTrackingPage() {
             <span className="text-muted-foreground">Frete</span>
             {(order.shipping_cost ?? 0) > 0
               ? <span className="text-white">R$ {Number(order.shipping_cost).toFixed(2).replace('.', ',')}</span>
-              : <span className="font-bold text-[#25D366]">Grátis</span>}
+              : <span className="font-bold text-success">Grátis</span>}
           </div>
           {(order.discount_amount ?? 0) > 0 && (
             <div className="flex justify-between px-4 py-3 text-sm">
-              <span className="text-[#25D366]">Desconto {order.coupon_code && `(${order.coupon_code})`}</span>
-              <span className="font-bold text-[#25D366]">− R$ {Number(order.discount_amount).toFixed(2).replace('.', ',')}</span>
+              <span className="text-success">Desconto {order.coupon_code && `(${order.coupon_code})`}</span>
+              <span className="font-bold text-success">− R$ {Number(order.discount_amount).toFixed(2).replace('.', ',')}</span>
             </div>
           )}
           <div className="flex items-center justify-between bg-white/[0.02] px-4 py-4">
-            <span className="font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-white">Total</span>
-            <span className="text-2xl font-display font-bold text-white">
+            <span className="font-sans text-[11px] font-bold uppercase tracking-[0.14em] text-white">Total</span>
+            <span className="text-2xl font-heading font-bold text-white">
               R$ {Number(order.total_amount).toFixed(2).replace('.', ',')}
             </span>
           </div>
@@ -484,7 +484,7 @@ export function OrderTrackingPage() {
             transition={{ delay: 0.18 }}
             className="glass-card rounded-[2rem] p-6 sm:p-8"
           >
-            <h2 className="font-sans text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground mb-5">
+            <h2 className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-5">
               Avalie sua experiência
             </h2>
 
@@ -494,9 +494,9 @@ export function OrderTrackingPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 className="flex flex-col items-center gap-4 py-6 text-center"
               >
-                <CheckCircle2 className="h-12 w-12 text-[#25D366]" />
+                <CheckCircle2 className="h-12 w-12 text-success" />
                 <div>
-                  <p className="text-lg font-display font-bold text-white uppercase">Obrigado pelo feedback!</p>
+                  <p className="text-lg font-heading font-bold text-white uppercase">Obrigado pelo feedback!</p>
                   <p className="mt-1 text-sm text-muted-foreground">Sua avaliação nos ajuda a melhorar cada vez mais.</p>
                 </div>
                 {feedback && (
@@ -539,7 +539,7 @@ export function OrderTrackingPage() {
                 <button
                   onClick={handleSubmitFeedback}
                   disabled={rating === 0 || submitting}
-                  className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 font-sans text-xs font-bold uppercase tracking-[0.2em] text-primary-foreground transition-all hover:opacity-90 hover:scale-[1.02] active:scale-100 disabled:opacity-40 disabled:scale-100 disabled:cursor-not-allowed"
+                  className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 font-sans text-xs font-bold uppercase tracking-[0.14em] text-primary-foreground transition-all hover:opacity-90 hover:scale-[1.02] active:scale-100 disabled:opacity-40 disabled:scale-100 disabled:cursor-not-allowed"
                 >
                   {submitting
                     ? <Loader2 className="h-4 w-4 animate-spin" />
@@ -563,7 +563,7 @@ export function OrderTrackingPage() {
           href={waLink}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-[#25D366] py-4 font-sans text-xs font-bold uppercase tracking-[0.2em] text-white transition-all hover:bg-[#20bd5a] hover:scale-[1.02] shadow-[0_0_20px_rgba(37,211,102,0.2)]"
+          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-success py-4 font-sans text-xs font-bold uppercase tracking-[0.14em] text-white transition-all hover:bg-success/90 hover:scale-[1.02] shadow-[0_0_20px_rgba(37,211,102,0.2)]"
         >
           <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
@@ -573,7 +573,7 @@ export function OrderTrackingPage() {
         </a>
         <button
           onClick={() => navigate('/')}
-          className="flex flex-1 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 py-4 font-sans text-xs font-bold uppercase tracking-[0.2em] text-white transition-colors hover:bg-white/10"
+          className="flex flex-1 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 py-4 font-sans text-xs font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-white/10"
         >
           <Home className="h-4 w-4" />
           Voltar à loja

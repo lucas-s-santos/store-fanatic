@@ -25,10 +25,10 @@ interface Order {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  aguardando_pagamento: { label: 'Aguardando pagamento', color: 'text-[#FF9F43]', icon: Clock },
-  pago:                { label: 'Pagamento confirmado', color: 'text-[#25D366]',  icon: ShieldCheck },
+  aguardando_pagamento: { label: 'Aguardando pagamento', color: 'text-warning', icon: Clock },
+  pago:                { label: 'Pagamento confirmado', color: 'text-success',  icon: ShieldCheck },
   enviado:             { label: 'A caminho',            color: 'text-primary',    icon: Truck },
-  entregue:            { label: 'Entregue',             color: 'text-[#25D366]',  icon: CheckCircle2 },
+  entregue:            { label: 'Entregue',             color: 'text-success',  icon: CheckCircle2 },
   cancelado:           { label: 'Cancelado',            color: 'text-destructive', icon: XCircle },
 }
 
@@ -115,7 +115,7 @@ export function MyOrdersPage() {
   // ── Loading / auth ────────────────────────────────────────────────────────
   if (authLoading || loading) {
     return (
-      <div className="section-shell flex items-center justify-center min-h-[60vh]">
+      <div className="page-shell flex min-h-[60vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
@@ -124,7 +124,7 @@ export function MyOrdersPage() {
   // ── Erro de rede/RLS ──────────────────────────────────────────────────────
   if (error) {
     return (
-      <div className="section-shell flex items-center justify-center min-h-[60vh] px-4">
+      <div className="page-shell flex min-h-[60vh] items-center justify-center px-4">
         <div className="glass-card rounded-[2rem] p-10 text-center space-y-4 max-w-md">
           <AlertCircle className="mx-auto h-12 w-12 text-destructive/60" />
           <p className="text-sm font-semibold text-white">Não foi possível carregar seus pedidos</p>
@@ -142,21 +142,21 @@ export function MyOrdersPage() {
 
   // ── Página ────────────────────────────────────────────────────────────────
   return (
-    <div className="section-shell px-3 sm:px-5 py-10 max-w-3xl mx-auto space-y-6">
+    <div className="page-shell mx-auto max-w-3xl space-y-6 px-4 sm:px-6">
 
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-card rounded-[2rem] px-6 py-6 sm:px-8"
+        className="px-1"
       >
-        <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground mb-1">
+        <p className="text-sm text-muted-foreground">
           {user?.email}
         </p>
-        <h1 className="text-2xl font-display font-bold uppercase tracking-tight text-white sm:text-3xl">
-          Meus Pedidos
+        <h1 className="display-title mt-2 text-5xl sm:text-6xl">
+          Meus pedidos
         </h1>
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p className="mt-2 text-sm text-muted-foreground">
           {orders.length} pedido{orders.length !== 1 ? 's' : ''} encontrado{orders.length !== 1 ? 's' : ''}
         </p>
       </motion.div>
@@ -205,10 +205,10 @@ export function MyOrdersPage() {
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <span className="font-mono text-[10px] text-primary/60 font-bold">
+                        <span className="font-mono text-[11px] text-primary/60 font-bold">
                           #{order.id.slice(0, 8).toUpperCase()}
                         </span>
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="text-[11px] text-muted-foreground">
                           {new Date(order.created_at).toLocaleDateString('pt-BR', {
                             day: '2-digit', month: 'short', year: 'numeric',
                           })}
