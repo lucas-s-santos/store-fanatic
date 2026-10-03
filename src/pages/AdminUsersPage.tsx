@@ -6,6 +6,7 @@ import {
   UserCheck, Clock, Shield, User,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { AdminPageHeader } from '../components/admin/AdminPageHeader'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -416,32 +417,21 @@ export function AdminUsersPage() {
   return (
     <div className="p-4 sm:p-8 space-y-6">
 
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="glass-card rounded-[1.5rem] px-6 py-6 sm:px-8"
-      >
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-heading font-bold uppercase tracking-tight text-white sm:text-3xl">
-              Usuários
-            </h1>
-            <p className="mt-1 font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Gerencie cargos e visualize clientes
-            </p>
-          </div>
+      <AdminPageHeader
+        title="Usuários"
+        description="Clientes da loja e quem tem acesso ao painel."
+        actions={
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Buscar por nome ou e-mail…"
-              className="form-input h-10 pl-9 text-sm w-full sm:w-64"
+              className="form-input h-10 py-0 pl-9 text-sm w-full sm:w-64"
             />
           </div>
-        </div>
-      </motion.div>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid gap-4 sm:grid-cols-3">

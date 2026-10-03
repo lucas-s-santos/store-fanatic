@@ -7,6 +7,7 @@ import {
   AlertTriangle, ShieldCheck, ArrowRight,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { AdminPageHeader } from '../components/admin/AdminPageHeader'
 import { useToast } from '../components/ui/Toast'
 
 interface Order {
@@ -362,29 +363,18 @@ export function AdminOrdersPage() {
   return (
     <div className="p-4 sm:p-8 space-y-6">
 
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="glass-card rounded-[1.5rem] px-6 py-6 sm:px-8"
-      >
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-heading font-bold uppercase tracking-tight text-white sm:text-3xl">
-              Gerenciar Pedidos
-            </h1>
-            <p className="mt-1 font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              {orders.length} pedido{orders.length !== 1 ? 's' : ''} no total
-            </p>
-          </div>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <AdminPageHeader
+        title="Pedidos"
+        description={`${orders.length} ${orders.length === 1 ? 'pedido' : 'pedidos'} no total`}
+        actions={
+          <>
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <input
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 placeholder="Nome, e-mail, telefone ou ID…"
-                className="form-input h-10 pl-9 text-sm w-full sm:w-64"
+                className="form-input h-10 py-0 pl-9 text-sm w-full sm:w-64"
               />
             </div>
             <div className="relative">
@@ -392,7 +382,7 @@ export function AdminOrdersPage() {
               <select
                 value={filterStatus}
                 onChange={e => setFilterStatus(e.target.value)}
-                className="form-input h-10 pl-9 pr-8 text-sm appearance-none"
+                className="form-input h-10 py-0 pl-9 pr-8 text-sm appearance-none"
               >
                 {STATUS_OPTIONS.map(s => (
                   <option key={s.value} value={s.value}>{s.label}</option>
@@ -400,9 +390,9 @@ export function AdminOrdersPage() {
               </select>
               <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             </div>
-          </div>
-        </div>
-      </motion.div>
+          </>
+        }
+      />
 
       {/* Lista */}
       <motion.div

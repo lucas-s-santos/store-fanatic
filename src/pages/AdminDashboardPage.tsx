@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { DollarSign, ShoppingCart, AlertTriangle, TrendingUp, Clock } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { AdminPageHeader } from '../components/admin/AdminPageHeader'
 
 interface Order {
   id: string
@@ -117,13 +118,8 @@ export function AdminDashboardPage() {
   ]
 
   return (
-    <div className="p-6 sm:p-10 space-y-8">
-      <div>
-        <h1 className="text-3xl font-heading font-bold uppercase tracking-tight text-white mb-1">Dashboard</h1>
-        <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          Visão geral do sistema
-        </p>
-      </div>
+    <div className="space-y-8 p-4 sm:p-8 lg:p-10">
+      <AdminPageHeader title="Visão geral" description="Vendas, pedidos e estoque da loja." />
 
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
