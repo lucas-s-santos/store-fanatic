@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Settings, Save, Loader2, Store, Truck, CreditCard, MessageCircle } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { invalidateSettings } from '../lib/useSettings'
 
 interface Setting {
   key: string
@@ -92,6 +93,7 @@ export function AdminSettingsPage() {
     if (error) {
       alert('Erro ao salvar: ' + error.message)
     } else {
+      invalidateSettings()
       setSaved(key)
       setTimeout(() => setSaved(null), 2000)
     }
@@ -118,10 +120,10 @@ export function AdminSettingsPage() {
           <Settings className="h-4 w-4" />
           Configurações
         </span>
-        <h1 className="text-3xl font-display font-bold uppercase tracking-tight text-white">
+        <h1 className="text-3xl font-heading font-bold uppercase tracking-tight text-white">
           Configurações da Loja
         </h1>
-        <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mt-1">
+        <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground mt-1">
           Gerencie as configurações globais do sistema
         </p>
       </motion.div>
@@ -154,7 +156,7 @@ export function AdminSettingsPage() {
                     <div className="flex items-center justify-between">
                       <label className="form-label">{KEY_LABELS[key] || key}</label>
                       {descriptions[key] && (
-                        <span className="text-[10px] text-muted-foreground">{descriptions[key]}</span>
+                        <span className="text-[11px] text-muted-foreground">{descriptions[key]}</span>
                       )}
                     </div>
                     <div className="flex gap-3">
@@ -171,7 +173,7 @@ export function AdminSettingsPage() {
                         disabled={saving === key}
                         className={`flex items-center gap-2 px-5 rounded-xl font-sans text-xs font-semibold uppercase tracking-wider transition-all shrink-0 ${
                           saved === key
-                            ? 'bg-[#25D366]/20 text-[#25D366] border border-[#25D366]/30'
+                            ? 'bg-success/20 text-success border border-success/30'
                             : 'btn-glow-primary'
                         }`}
                       >
@@ -226,7 +228,7 @@ export function AdminSettingsPage() {
                         disabled={saving === key}
                         className={`flex items-center gap-2 px-5 rounded-xl font-sans text-xs font-semibold uppercase tracking-wider transition-all shrink-0 ${
                           saved === key
-                            ? 'bg-[#25D366]/20 text-[#25D366] border border-[#25D366]/30'
+                            ? 'bg-success/20 text-success border border-success/30'
                             : 'btn-glow-primary'
                         }`}
                       >

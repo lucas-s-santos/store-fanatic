@@ -117,7 +117,7 @@ export function AdminCouponsPage() {
             <Tag className="h-4 w-4" />
             Cupons de Desconto
           </span>
-          <h1 className="text-3xl font-display font-bold uppercase tracking-tight text-white">Gerenciar Cupons</h1>
+          <h1 className="text-3xl font-heading font-bold uppercase tracking-tight text-white">Gerenciar Cupons</h1>
         </div>
         <button onClick={openNew} className="btn-glow-primary flex items-center gap-2 shrink-0">
           <Plus className="h-5 w-5" />
@@ -135,7 +135,7 @@ export function AdminCouponsPage() {
           >
             <form onSubmit={handleSave} className="glass-card rounded-[1.5rem] p-6 sm:p-8 space-y-6">
               <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                <h2 className="text-xl font-display font-bold uppercase text-white">
+                <h2 className="text-xl font-heading font-bold uppercase text-white">
                   {form.id ? 'Editar Cupom' : 'Novo Cupom'}
                 </h2>
                 <button type="button" onClick={() => setIsEditing(false)} className="text-muted-foreground hover:text-white">
@@ -243,17 +243,17 @@ export function AdminCouponsPage() {
                     onClick={() => setForm({ ...form, active: !form.active })}
                     className={`w-full flex items-center gap-3 p-4 border rounded-xl transition-colors ${
                       form.active !== false
-                        ? 'border-[#25D366]/30 bg-[#25D366]/10'
+                        ? 'border-success/30 bg-success/10'
                         : 'border-white/10 bg-white/5 hover:bg-white/10'
                     }`}
                   >
-                    <Tag className={`h-5 w-5 ${form.active !== false ? 'text-[#25D366]' : 'text-muted-foreground'}`} />
+                    <Tag className={`h-5 w-5 ${form.active !== false ? 'text-success' : 'text-muted-foreground'}`} />
                     <div className="text-left">
-                      <p className="font-display font-bold uppercase text-sm text-white">Cupom Ativo</p>
-                      <p className="text-[10px] text-muted-foreground">Disponível para uso pelos clientes</p>
+                      <p className="font-heading font-bold uppercase text-sm text-white">Cupom Ativo</p>
+                      <p className="text-[11px] text-muted-foreground">Disponível para uso pelos clientes</p>
                     </div>
                     {form.active !== false
-                      ? <ToggleRight className="h-5 w-5 text-[#25D366] ml-auto" />
+                      ? <ToggleRight className="h-5 w-5 text-success ml-auto" />
                       : <ToggleLeft className="h-5 w-5 text-muted-foreground ml-auto" />
                     }
                   </button>
@@ -288,7 +288,7 @@ export function AdminCouponsPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-white/5 font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              <thead className="bg-white/5 font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 <tr>
                   <th className="p-4">Código</th>
                   <th className="p-4">Desconto</th>
@@ -305,7 +305,7 @@ export function AdminCouponsPage() {
                     <td className="p-4">
                       <span className="font-mono font-bold text-white tracking-widest">{coupon.code}</span>
                       {coupon.description && (
-                        <p className="text-[10px] text-muted-foreground mt-0.5">{coupon.description}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">{coupon.description}</p>
                       )}
                     </td>
                     <td className="p-4">
@@ -331,9 +331,9 @@ export function AdminCouponsPage() {
                     <td className="p-4">
                       <button
                         onClick={() => handleToggleActive(coupon)}
-                        className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                        className={`px-2 py-1 rounded text-[11px] font-bold uppercase tracking-wider transition-colors ${
                           coupon.active
-                            ? 'bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20'
+                            ? 'bg-success/10 text-success hover:bg-success/20'
                             : 'bg-white/10 text-white/40 hover:bg-white/20'
                         }`}
                       >

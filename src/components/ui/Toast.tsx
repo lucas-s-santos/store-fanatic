@@ -48,12 +48,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
               className={`pointer-events-auto flex items-start gap-3 rounded-xl border px-4 py-3 shadow-2xl backdrop-blur-md ${
                 t.type === 'success'
-                  ? 'border-[#25D366]/30 bg-[#0a0a0a]/95 text-[#25D366]'
+                  ? 'border-success/30 bg-card/95 text-success'
                   : t.type === 'error'
-                  ? 'border-red-500/30 bg-[#0a0a0a]/95 text-red-400'
+                  ? 'border-red-500/30 bg-card/95 text-red-400'
                   : t.type === 'warning'
-                  ? 'border-orange-500/30 bg-[#0a0a0a]/95 text-orange-400'
-                  : 'border-primary/30 bg-[#0a0a0a]/95 text-primary'
+                  ? 'border-orange-500/30 bg-card/95 text-orange-400'
+                  : 'border-primary/30 bg-card/95 text-primary'
               }`}
             >
               <span className="mt-0.5 shrink-0">

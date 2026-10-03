@@ -144,7 +144,7 @@ export function AdminLeaguesPage() {
             <Trophy className="h-4 w-4" />
             Ligas & Times
           </span>
-          <h1 className="text-3xl font-display font-bold uppercase tracking-tight text-white">Gerenciar Ligas</h1>
+          <h1 className="text-3xl font-heading font-bold uppercase tracking-tight text-white">Gerenciar Ligas</h1>
         </div>
         <button onClick={openNewLeague} className="btn-glow-primary flex items-center gap-2 shrink-0">
           <Plus className="h-5 w-5" />
@@ -158,7 +158,7 @@ export function AdminLeaguesPage() {
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}>
             <form onSubmit={handleSaveLeague} className="glass-card rounded-[1.5rem] p-6 sm:p-8 space-y-5">
               <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                <h2 className="text-xl font-display font-bold uppercase text-white">
+                <h2 className="text-xl font-heading font-bold uppercase text-white">
                   {editingLeague.id ? 'Editar Liga' : 'Nova Liga'}
                 </h2>
                 <button type="button" onClick={closeForm} className="text-muted-foreground hover:text-white">
@@ -213,7 +213,7 @@ export function AdminLeaguesPage() {
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}>
             <form onSubmit={handleSaveTeam} className="glass-card rounded-[1.5rem] p-6 sm:p-8 space-y-5">
               <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                <h2 className="text-xl font-display font-bold uppercase text-white">
+                <h2 className="text-xl font-heading font-bold uppercase text-white">
                   {editingTeam.id ? 'Editar Time' : 'Novo Time'}
                 </h2>
                 <button type="button" onClick={closeForm} className="text-muted-foreground hover:text-white">
@@ -293,7 +293,7 @@ export function AdminLeaguesPage() {
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-white text-sm">{league.name}</p>
                   {league.country && (
-                    <p className="text-[10px] text-muted-foreground">{league.country}</p>
+                    <p className="text-[11px] text-muted-foreground">{league.country}</p>
                   )}
                 </div>
                 <div className="flex items-center gap-1 text-muted-foreground text-xs mr-2 shrink-0">
@@ -303,7 +303,7 @@ export function AdminLeaguesPage() {
                 <div className="flex items-center gap-1 shrink-0">
                   <button
                     onClick={() => openNewTeam(league.id)}
-                    className="p-2 text-[#25D366] hover:bg-[#25D366]/10 rounded-md transition-colors"
+                    className="p-2 text-success hover:bg-success/10 rounded-md transition-colors"
                     title="Adicionar Time"
                   >
                     <Plus className="h-4 w-4" />
@@ -345,7 +345,7 @@ export function AdminLeaguesPage() {
                   >
                     {!league.teams || league.teams.length === 0 ? (
                       <p className="px-6 py-4 text-sm text-muted-foreground">
-                        Nenhum time. Clique no <span className="text-[#25D366]">+</span> para adicionar.
+                        Nenhum time. Clique no <span className="text-success">+</span> para adicionar.
                       </p>
                     ) : (
                       <div className="divide-y divide-white/5">

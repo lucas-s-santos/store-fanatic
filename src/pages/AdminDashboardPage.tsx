@@ -27,8 +27,8 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 const STATUS_COLOR: Record<string, string> = {
-  aguardando_pagamento: 'text-[#FF9F43] bg-[#FF9F43]/10 border-[#FF9F43]/20',
-  pago: 'text-[#25D366] bg-[#25D366]/10 border-[#25D366]/20',
+  aguardando_pagamento: 'text-warning bg-warning/10 border-warning/20',
+  pago: 'text-success bg-success/10 border-success/20',
   enviado: 'text-primary bg-primary/10 border-primary/20',
   entregue: 'text-white bg-white/10 border-white/20',
   cancelado: 'text-destructive bg-destructive/10 border-destructive/20',
@@ -90,8 +90,8 @@ export function AdminDashboardPage() {
       label: 'Faturamento Total',
       value: `R$ ${stats.totalSales.toFixed(2).replace('.', ',')}`,
       icon: DollarSign,
-      color: 'text-[#25D366]',
-      bg: 'bg-[#25D366]/10',
+      color: 'text-success',
+      bg: 'bg-success/10',
     },
     {
       label: 'Total de Pedidos',
@@ -104,8 +104,8 @@ export function AdminDashboardPage() {
       label: 'Aguardando Pgto',
       value: stats.pendingOrders,
       icon: Clock,
-      color: 'text-[#FF9F43]',
-      bg: 'bg-[#FF9F43]/10',
+      color: 'text-warning',
+      bg: 'bg-warning/10',
     },
     {
       label: 'Produtos Esgotados',
@@ -119,8 +119,8 @@ export function AdminDashboardPage() {
   return (
     <div className="p-6 sm:p-10 space-y-8">
       <div>
-        <h1 className="text-3xl font-display font-bold uppercase tracking-tight text-white mb-1">Dashboard</h1>
-        <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+        <h1 className="text-3xl font-heading font-bold uppercase tracking-tight text-white mb-1">Dashboard</h1>
+        <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           Visão geral do sistema
         </p>
       </div>
@@ -144,14 +144,14 @@ export function AdminDashboardPage() {
                 <div className={`p-2 ${card.bg} ${card.color} rounded-lg`}>
                   <Icon className="w-5 h-5" />
                 </div>
-                <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   {card.label}
                 </p>
               </div>
               {loading ? (
                 <div className="h-9 w-24 rounded bg-white/10 animate-pulse" />
               ) : (
-                <h3 className="text-3xl font-display font-bold text-white">{card.value}</h3>
+                <h3 className="text-3xl font-heading font-bold text-white">{card.value}</h3>
               )}
             </motion.div>
           )
@@ -186,12 +186,12 @@ export function AdminDashboardPage() {
                 <div key={order.id} className="flex items-center justify-between px-6 py-3 hover:bg-white/[0.02] transition-colors">
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-white truncate">{order.customer_name}</p>
-                    <p className="text-[10px] text-muted-foreground font-mono">
+                    <p className="text-[11px] text-muted-foreground font-mono">
                       #{order.id.split('-')[0]} · {new Date(order.created_at).toLocaleDateString('pt-BR')}
                     </p>
                   </div>
                   <div className="flex items-center gap-3 shrink-0 ml-4">
-                    <span className={`hidden sm:inline-block px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${STATUS_COLOR[order.status] || 'text-muted-foreground border-white/10 bg-white/5'}`}>
+                    <span className={`hidden sm:inline-block px-2 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border ${STATUS_COLOR[order.status] || 'text-muted-foreground border-white/10 bg-white/5'}`}>
                       {STATUS_LABEL[order.status] || order.status}
                     </span>
                     <span className="font-bold text-sm text-white">
@@ -229,7 +229,7 @@ export function AdminDashboardPage() {
             <div className="p-4 space-y-3">
               {topProducts.map((p, i) => (
                 <div key={p.product_title} className="flex items-center gap-3">
-                  <span className="text-[10px] font-bold text-muted-foreground w-4 text-center">{i + 1}</span>
+                  <span className="text-[11px] font-bold text-muted-foreground w-4 text-center">{i + 1}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-white truncate">{p.product_title}</p>
                     <div className="mt-1 h-1.5 rounded-full bg-white/10 overflow-hidden">

@@ -5,35 +5,49 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Tokens da marca. O site só tem tema escuro: o <html> leva a classe "dark"
- * para que as variantes dark: dos componentes shadcn também se apliquem.
+ * Tokens da marca, tirados da logo: tinta (marinho quase preto), amarelo da
+ * tocha, laranja da chama e azul da camisa. O site só tem tema escuro: o
+ * <html> leva a classe "dark" para que as variantes dark: do shadcn se apliquem.
  */
 :root {
   --radius: 1rem;
 
-  --background: #030303;
-  --foreground: #fafafa;
-  --card: #0a0a0a;
-  --card-foreground: #fafafa;
-  --popover: #0a0a0a;
-  --popover-foreground: #fafafa;
-  --primary: #e5c07b;
-  --primary-foreground: #000000;
-  --secondary: #151515;
-  --secondary-foreground: #fafafa;
-  --muted: #1a1a1a;
-  --muted-foreground: #888888;
+  --background: #090c13;
+  --foreground: #f4f1ea;
+  --card: #10141e;
+  --card-foreground: #f4f1ea;
+  --popover: #131826;
+  --popover-foreground: #f4f1ea;
+  /* Amarelo da tocha: ação principal, preço em destaque, foco. */
+  --primary: #ffc21a;
+  --primary-foreground: #0b0e15;
+  --secondary: #171c29;
+  --secondary-foreground: #f4f1ea;
+  --muted: #161b27;
+  --muted-foreground: #9aa3b4;
   /* Superfície de hover dos menus e botões ghost do shadcn. */
-  --accent: #1c1c1c;
-  --accent-foreground: #fafafa;
-  --destructive: #ff453a;
+  --accent: #1d2333;
+  --accent-foreground: #f4f1ea;
+  --destructive: #ff4d4d;
   --destructive-foreground: #ffffff;
   /* Verde do WhatsApp: estoque disponível, frete grátis, confirmações. */
   --success: #25d366;
-  --success-foreground: #000000;
+  --success-foreground: #04140a;
+  --warning: #ff9f43;
+  --warning-foreground: #1a0d00;
+  /* Laranja da chama: novidades, promoções, selos. */
+  --flame: #ff6a2b;
+  --flame-foreground: #140700;
+  /* Azul da camisa da logo. */
+  --pitch: #3b8bea;
+  --pitch-foreground: #ffffff;
+  /* Off-white da logo, para faixas claras. */
+  --paper: #f4f1ea;
+  --paper-foreground: #0b0e15;
   --border: rgb(255 255 255 / 0.08);
-  --input: rgb(255 255 255 / 0.12);
-  --ring: #e5c07b;
+  /* 0.34 = contraste 3:1 da borda com o fundo (WCAG 1.4.11). */
+  --input: rgb(255 255 255 / 0.34);
+  --ring: #ffc21a;
 }
 
 @theme inline {
@@ -55,6 +69,14 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-flame: var(--flame);
+  --color-flame-foreground: var(--flame-foreground);
+  --color-pitch: var(--pitch);
+  --color-pitch-foreground: var(--pitch-foreground);
+  --color-paper: var(--paper);
+  --color-paper-foreground: var(--paper-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -72,9 +94,27 @@
 
 @theme {
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Outfit Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-display);
+  /* Anton só em títulos grandes (cartaz de estádio); abaixo de ~24px use font-heading. */
+  --font-display: "Anton", "Impact", "Arial Narrow", ui-sans-serif, sans-serif;
+  --font-heading: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --animate-marquee: marquee var(--marquee-duration, 40s) linear infinite;
+  --animate-marquee-reverse: marquee var(--marquee-duration, 40s) linear infinite reverse;
+  --animate-sway: sway var(--sway-duration, 5s) ease-in-out infinite;
+
+  @keyframes marquee {
+    from { transform: translate3d(0, 0, 0); }
+    to { transform: translate3d(-50%, 0, 0); }
+  }
+
+  /* Camisa pendurada balançando no cabide. */
+  @keyframes sway {
+    0%, 100% { transform: rotate(var(--sway-from, -2.2deg)); }
+    50% { transform: rotate(var(--sway-to, 2.2deg)); }
+  }
 }
 
 @layer base {
@@ -98,8 +138,8 @@
   h4,
   h5,
   h6 {
-    font-family: var(--font-display);
-    letter-spacing: 0.04em;
+    font-family: var(--font-heading);
+    letter-spacing: -0.01em;
   }
 
   /* Contorno visível só para quem navega pelo teclado. */
@@ -109,7 +149,7 @@
   }
 
   ::selection {
-    background: rgb(229 192 123 / 0.3);
+    background: rgb(255 194 26 / 0.35);
     color: white;
   }
 
@@ -123,50 +163,78 @@
 @layer components {
   .form-input {
     width: 100%;
-    border: 1px solid var(--color-border);
-    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--color-input);
+    background: rgb(255 255 255 / 0.03);
     padding: 0.875rem 1rem;
     color: var(--color-foreground);
     border-radius: var(--radius-md);
-    transition: all 200ms ease;
+    transition: border-color 200ms ease, background-color 200ms ease, box-shadow 200ms ease;
+  }
+
+  .form-input::placeholder {
+    color: var(--color-muted-foreground);
   }
 
   .form-input:focus {
     outline: none;
     border-color: var(--color-primary);
-    background: rgba(255, 255, 255, 0.04);
-    box-shadow: 0 0 0 4px rgba(229, 192, 123, 0.1);
+    background: rgb(255 255 255 / 0.05);
+    box-shadow: 0 0 0 4px rgb(255 194 26 / 0.12);
+  }
+
+  /* Título de seção: Anton em caixa alta, como faixa de arquibancada. */
+  .display-title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.005em;
+    line-height: 0.92;
+  }
+
+  /* Rótulo pequeno acima dos títulos. */
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-primary);
   }
 }
 
 @layer utilities {
-  .font-mono-styled { font-family: var(--font-display); }
-
-  .text-gradient-gold {
-    background: linear-gradient(to right, #f3e5ab, #d4af37);
+  .text-highlight {
+    background: linear-gradient(100deg, #ffd84a 0%, #ffc21a 45%, #ff7a2b 100%);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
   }
 
+  /* Texto só com contorno, para letreiros gigantes de fundo. */
+  .text-outline {
+    color: transparent;
+    -webkit-text-stroke: 1.5px rgb(244 241 234 / 0.14);
+  }
+
   .glass-card {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
-    backdrop-filter: blur(40px);
-    -webkit-backdrop-filter: blur(40px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 24px 48px -32px rgb(0 0 0 / 0.6);
   }
 
   .chip {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--color-border);
+    background: rgb(255 255 255 / 0.04);
     padding: 0.35rem 0.85rem;
     font-family: var(--font-sans);
-    font-size: 0.7rem;
-    font-weight: 500;
-    letter-spacing: 0.1em;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--color-foreground);
     border-radius: 9999px;
@@ -174,16 +242,25 @@
 
   .section-shell {
     position: relative;
-    padding-block: 6rem;
+    padding-block: 3.5rem;
   }
 
-  .section-shell::before {
-    content: "";
-    position: absolute;
-    inset-inline: 0;
-    top: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+  @media (min-width: 1024px) {
+    .section-shell {
+      padding-block: 5rem;
+    }
+  }
+
+  /* Página interna: desconta o cabeçalho fixo (faixa de anúncio + barra). */
+  .page-shell {
+    padding-top: 7.25rem;
+    padding-bottom: 4rem;
+  }
+
+  @media (min-width: 1024px) {
+    .page-shell {
+      padding-top: 8.25rem;
+    }
   }
 
   .custom-scrollbar {
@@ -195,29 +272,27 @@
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--color-border); }
 
-  .hero-grid {
-    background-image:
-      linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
-    background-size: 110px 110px;
-    mask-image: radial-gradient(circle at center, black 35%, transparent 88%);
+  /* Prateleiras horizontais: rolagem com snap e sem barra visível. */
+  .shelf {
+    display: grid;
+    grid-auto-flow: column;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
   }
 
-  .grid-overlay {
-    background-image:
-      linear-gradient(rgba(255, 255, 255, 0.038) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.038) 1px, transparent 1px);
-    background-size: 90px 90px;
-    mask-image: radial-gradient(circle at center, black 28%, transparent 92%);
+  .shelf::-webkit-scrollbar { display: none; }
+  .shelf > * { scroll-snap-align: start; }
+
+  /* Esmaece as bordas de faixas que rolam sozinhas. */
+  .fade-x {
+    mask-image: linear-gradient(90deg, transparent, black 6%, black 94%, transparent);
   }
 
-  .noise-mask {
-    background-image:
-      radial-gradient(rgba(255, 255, 255, 0.055) 0.7px, transparent 0.7px),
-      radial-gradient(rgba(229, 192, 123, 0.03) 0.6px, transparent 0.6px);
-    background-position: 0 0, 18px 18px;
-    background-size: 22px 22px, 26px 26px;
-    mix-blend-mode: soft-light;
+  .marquee-paused,
+  .marquee-paused * {
+    animation-play-state: paused !important;
   }
 
   .btn-glow-primary {
@@ -227,35 +302,27 @@
     justify-content: center;
     gap: 0.75rem;
     height: 3.5rem;
-    padding: 0 2.5rem;
+    padding: 0 2.25rem;
     background: var(--color-primary);
     color: var(--color-primary-foreground);
-    font-family: var(--font-display);
-    font-size: 0.9rem;
-    font-weight: 600;
-    letter-spacing: 0.05em;
+    font-family: var(--font-heading);
+    font-size: 0.875rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     border-radius: 9999px;
-    transition: all 300ms ease;
+    transition: transform 250ms var(--ease-out-expo), box-shadow 250ms ease, background-color 250ms ease;
     overflow: hidden;
   }
 
-  .btn-glow-primary::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-    transform: translateX(-100%);
-    transition: transform 500ms ease;
-  }
-
   .btn-glow-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 30px rgba(229, 192, 123, 0.4);
+    background: #ffcd3f;
+    box-shadow: 0 14px 34px -12px rgb(255 194 26 / 0.65);
   }
 
-  .btn-glow-primary:hover::before {
-    transform: translateX(100%);
+  .btn-glow-primary:disabled {
+    opacity: 0.5;
+    pointer-events: none;
   }
 
   .btn-primary {
@@ -264,22 +331,21 @@
     justify-content: center;
     gap: 0.75rem;
     height: 3.5rem;
-    padding: 0 2.5rem;
+    padding: 0 2.25rem;
     background: var(--color-primary);
     color: var(--color-primary-foreground);
-    font-family: var(--font-display);
-    font-size: 0.9rem;
-    font-weight: 600;
-    letter-spacing: 0.05em;
+    font-family: var(--font-heading);
+    font-size: 0.875rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     border-radius: 9999px;
-    transition: all 300ms ease;
+    transition: background-color 250ms ease, box-shadow 250ms ease;
   }
 
   .btn-primary:hover {
-    background: hsl(38, 70%, 75%);
-    transform: translateY(-1px);
-    box-shadow: 0 10px 20px rgba(229, 192, 123, 0.2);
+    background: #ffcd3f;
+    box-shadow: 0 14px 34px -12px rgb(255 194 26 / 0.5);
   }
 
   .btn-outline {
@@ -288,22 +354,28 @@
     justify-content: center;
     gap: 0.75rem;
     height: 3.5rem;
-    padding: 0 2.5rem;
-    border: 1px solid var(--color-border);
+    padding: 0 2.25rem;
+    border: 1px solid rgb(255 255 255 / 0.18);
     background: transparent;
     color: var(--color-foreground);
-    font-family: var(--font-display);
-    font-size: 0.9rem;
-    font-weight: 600;
-    letter-spacing: 0.05em;
+    font-family: var(--font-heading);
+    font-size: 0.875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     border-radius: 9999px;
-    transition: all 300ms ease;
+    transition: border-color 250ms ease, background-color 250ms ease;
   }
 
   .btn-outline:hover {
-    border-color: var(--color-primary);
-    background: rgba(229, 192, 123, 0.05);
-    color: var(--color-primary);
+    border-color: rgb(255 255 255 / 0.5);
+    background: rgb(255 255 255 / 0.06);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .btn-glow-primary:hover,
+    .btn-primary:hover {
+      transform: translateY(-2px);
+    }
   }
 }

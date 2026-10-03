@@ -17,15 +17,15 @@ const statusConfig = {
   approved: {
     icon: CheckCircle2,
     color: '#25D366',
-    border: 'border-[#25D366]/30',
-    bg: 'bg-[#25D366]/10',
+    border: 'border-success/30',
+    bg: 'bg-success/10',
     title: 'Pagamento Aprovado!',
     subtitle: 'Seu pedido foi confirmado e está sendo preparado.',
     chip: 'Pedido confirmado',
   },
   pending: {
     icon: Clock,
-    color: '#E5C07B',
+    color: '#ffc21a',
     border: 'border-primary/30',
     bg: 'bg-primary/10',
     title: 'Pagamento Pendente',
@@ -43,7 +43,7 @@ const statusConfig = {
   },
   unknown: {
     icon: Clock,
-    color: '#E5C07B',
+    color: '#ffc21a',
     border: 'border-primary/30',
     bg: 'bg-primary/10',
     title: 'Processando...',
@@ -78,7 +78,7 @@ export function CheckoutReturnPage() {
   const waLink = `https://wa.me/${phone}?text=${encodeURIComponent(waMsg)}`
 
   return (
-    <div className="section-shell px-3 sm:px-5">
+    <div className="page-shell px-4 sm:px-6">
       <motion.div
         initial={{ opacity: 0, scale: 0.94 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -96,7 +96,7 @@ export function CheckoutReturnPage() {
 
         {/* Texto */}
         <div className="space-y-3">
-          <h1 className="text-4xl font-display font-bold uppercase tracking-tight text-white">
+          <h1 className="display-title text-5xl sm:text-6xl">
             {cfg.title}
           </h1>
           <p className="max-w-md text-sm leading-7 text-muted-foreground">
@@ -127,7 +127,7 @@ export function CheckoutReturnPage() {
           {(status === 'approved' || status === 'pending' || status === 'unknown') && orderId && (
             <Link
               to={`/pedido/${orderId}`}
-              className="flex items-center justify-center gap-2 rounded-full bg-primary px-8 py-4 font-sans text-xs font-bold uppercase tracking-[0.2em] text-primary-foreground transition-all hover:opacity-90 hover:scale-105 active:scale-95"
+              className="flex items-center justify-center gap-2 rounded-full bg-primary px-8 py-4 font-sans text-xs font-bold uppercase tracking-[0.14em] text-primary-foreground transition-all hover:opacity-90 hover:scale-105 active:scale-95"
             >
               <Package className="h-4 w-4" />
               Acompanhar meu pedido
@@ -139,7 +139,7 @@ export function CheckoutReturnPage() {
               href={waLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 rounded-full bg-[#25D366] px-8 py-4 font-sans text-xs font-bold uppercase tracking-[0.2em] text-white transition-all hover:bg-[#20bd5a] hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(37,211,102,0.3)]"
+              className="flex items-center justify-center gap-2 rounded-full bg-success px-8 py-4 font-sans text-xs font-bold uppercase tracking-[0.14em] text-white transition-all hover:bg-success/90 hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(37,211,102,0.3)]"
             >
               Acompanhar pelo WhatsApp
             </a>
@@ -148,7 +148,7 @@ export function CheckoutReturnPage() {
           {status === 'rejected' && (
             <button
               onClick={() => navigate('/checkout')}
-              className="flex items-center justify-center gap-2 rounded-full bg-primary px-8 py-4 font-sans text-xs font-bold uppercase tracking-[0.2em] text-primary-foreground transition-all hover:scale-105 active:scale-95"
+              className="flex items-center justify-center gap-2 rounded-full bg-primary px-8 py-4 font-sans text-xs font-bold uppercase tracking-[0.14em] text-primary-foreground transition-all hover:scale-105 active:scale-95"
             >
               <RotateCcw className="h-4 w-4" />
               Tentar novamente
@@ -157,7 +157,7 @@ export function CheckoutReturnPage() {
 
           <button
             onClick={() => navigate('/')}
-            className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-8 py-4 font-sans text-xs font-bold uppercase tracking-[0.2em] text-white transition-colors hover:bg-white/10"
+            className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-8 py-4 font-sans text-xs font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-white/10"
           >
             <Home className="h-4 w-4" />
             Voltar à loja

@@ -30,13 +30,13 @@ function PasswordStrength({ password }: { password: string }) {
   ]
   const score = checks.filter(Boolean).length
   const bars = [
-    score >= 1 ? (score <= 1 ? 'bg-destructive' : score <= 2 ? 'bg-[#FF9F43]' : 'bg-primary') : 'bg-white/10',
-    score >= 2 ? (score <= 2 ? 'bg-[#FF9F43]' : 'bg-primary') : 'bg-white/10',
+    score >= 1 ? (score <= 1 ? 'bg-destructive' : score <= 2 ? 'bg-warning' : 'bg-primary') : 'bg-white/10',
+    score >= 2 ? (score <= 2 ? 'bg-warning' : 'bg-primary') : 'bg-white/10',
     score >= 3 ? 'bg-primary' : 'bg-white/10',
-    score >= 4 ? 'bg-[#25D366]' : 'bg-white/10',
+    score >= 4 ? 'bg-success' : 'bg-white/10',
   ]
   const label = ['', 'Fraca', 'Razoável', 'Boa', 'Forte'][score]
-  const labelColor = ['', 'text-destructive', 'text-[#FF9F43]', 'text-primary', 'text-[#25D366]'][score]
+  const labelColor = ['', 'text-destructive', 'text-warning', 'text-primary', 'text-success'][score]
 
   return (
     <div className="mt-2 space-y-1.5">
@@ -45,7 +45,7 @@ function PasswordStrength({ password }: { password: string }) {
           <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${cls}`} />
         ))}
       </div>
-      <p className={`text-[10px] font-semibold ${labelColor}`}>{label && `Senha ${label}`}</p>
+      <p className={`text-[11px] font-semibold ${labelColor}`}>{label && `Senha ${label}`}</p>
     </div>
   )
 }
@@ -65,7 +65,7 @@ interface FieldProps {
 function Field({ label, icon: Icon, type = 'text', value, onChange, placeholder, autoComplete, required, right }: FieldProps) {
   return (
     <div>
-      <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+      <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
         {label}
       </label>
       <div className="relative">
@@ -170,12 +170,13 @@ export function AuthPage() {
   }
 
   return (
-    <div className="relative flex min-h-[calc(100vh-80px)] items-center justify-center overflow-hidden px-4 py-12">
+    <div className="page-shell relative flex min-h-screen items-center justify-center overflow-hidden px-4">
       {/* Background decorativo */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 hero-grid opacity-40" />
         <div className="absolute left-1/2 top-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/[0.06] blur-[120px]" />
-        <div className="absolute left-1/3 top-1/4 h-[250px] w-[250px] rounded-full bg-primary/[0.04] blur-[80px]" />
+        <p className="display-title absolute inset-x-0 bottom-0 select-none whitespace-nowrap text-center text-[22vw] leading-[0.8] text-outline">
+          Fanatic
+        </p>
       </div>
 
       <motion.div
@@ -185,32 +186,28 @@ export function AuthPage() {
         className="relative w-full max-w-md"
       >
         {/* Logo */}
-        <div className="mb-8 flex flex-col items-center gap-4">
-          <div className="relative">
-            <div className="absolute inset-0 rounded-2xl bg-primary/25 blur-xl" />
-            <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-primary/25 bg-black/80 shadow-2xl">
-              <img src="/store-fanatic.jpg" alt="Store Fanatic" className="h-full w-full object-cover" />
-            </div>
-          </div>
-          <div className="text-center">
-            <p className="text-gradient-gold font-display text-sm font-bold uppercase tracking-[0.3em]">
-              Store Fanatic
-            </p>
-            <AnimatePresence mode="wait">
-              <motion.p
-                key={mode}
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
-                transition={{ duration: 0.18 }}
-                className="mt-1 text-xs text-muted-foreground"
-              >
-                {mode === 'login' && 'Entre na sua conta'}
-                {mode === 'register' && 'Crie sua conta gratuita'}
-                {mode === 'forgot' && 'Redefinir senha'}
-              </motion.p>
-            </AnimatePresence>
-          </div>
+        <div className="mb-8 flex flex-col items-center gap-4 text-center">
+          <img src="/store-fanatic.jpg" alt="" className="size-14 rounded-2xl border border-white/10 object-cover shadow-2xl" />
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={mode}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+            >
+              <h1 className="display-title text-5xl">
+                {mode === 'login' && 'Entrar'}
+                {mode === 'register' && 'Criar conta'}
+                {mode === 'forgot' && 'Recuperar senha'}
+              </h1>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {mode === 'login' && 'Acompanhe seus pedidos e compre mais rápido.'}
+                {mode === 'register' && 'É grátis e leva menos de um minuto.'}
+                {mode === 'forgot' && 'Enviamos um link para você criar uma nova senha.'}
+              </p>
+            </motion.div>
+          </AnimatePresence>
         </div>
 
         {/* Card */}
@@ -238,7 +235,7 @@ export function AuthPage() {
                 </button>
 
                 <div>
-                  <h2 className="font-display text-xl font-bold uppercase tracking-tight text-white">
+                  <h2 className="font-heading text-xl font-bold uppercase tracking-tight text-white">
                     Esqueceu a senha?
                   </h2>
                   <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
@@ -250,9 +247,9 @@ export function AuthPage() {
                   <motion.div
                     initial={{ opacity: 0, scale: 0.96 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="flex flex-col items-center gap-3 rounded-2xl border border-[#25D366]/20 bg-[#25D366]/10 p-6 text-center"
+                    className="flex flex-col items-center gap-3 rounded-2xl border border-success/20 bg-success/10 p-6 text-center"
                   >
-                    <CheckCircle2 className="h-10 w-10 text-[#25D366]" />
+                    <CheckCircle2 className="h-10 w-10 text-success" />
                     <p className="text-sm font-semibold text-white">Link enviado!</p>
                     <p className="text-xs text-muted-foreground">{success}</p>
                     <button
@@ -341,10 +338,10 @@ export function AuthPage() {
                     <motion.div
                       initial={{ opacity: 0, scale: 0.96 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className="flex items-start gap-3 rounded-xl border border-[#25D366]/30 bg-[#25D366]/10 px-4 py-3"
+                      className="flex items-start gap-3 rounded-xl border border-success/30 bg-success/10 px-4 py-3"
                     >
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#25D366]" />
-                      <p className="text-xs text-[#25D366]">{success}</p>
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                      <p className="text-xs text-success">{success}</p>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -461,10 +458,10 @@ export function AuthPage() {
                           }
                         />
                         {confirmPassword && password !== confirmPassword && (
-                          <p className="mt-1.5 text-[10px] text-destructive">As senhas não coincidem.</p>
+                          <p className="mt-1.5 text-[11px] text-destructive">As senhas não coincidem.</p>
                         )}
                         {confirmPassword && password === confirmPassword && confirmPassword.length > 0 && (
-                          <p className="mt-1.5 flex items-center gap-1 text-[10px] text-[#25D366]">
+                          <p className="mt-1.5 flex items-center gap-1 text-[11px] text-success">
                             <CheckCircle2 className="h-3 w-3" /> Senhas conferem
                           </p>
                         )}
@@ -477,7 +474,7 @@ export function AuthPage() {
                       <button
                         type="button"
                         onClick={() => switchMode('forgot')}
-                        className="text-[10px] font-semibold text-muted-foreground transition-colors hover:text-primary"
+                        className="text-[11px] font-semibold text-muted-foreground transition-colors hover:text-primary"
                       >
                         Esqueceu a senha?
                       </button>
@@ -501,7 +498,7 @@ export function AuthPage() {
                 <div className="flex items-center justify-center gap-2 border-t border-white/[0.06] pt-5">
                   <Link
                     to="/"
-                    className="flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-white"
+                    className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-white"
                   >
                     <ShoppingBag className="h-3.5 w-3.5" />
                     Continuar comprando sem conta
@@ -513,7 +510,7 @@ export function AuthPage() {
         </div>
 
         {/* Termos */}
-        <p className="mt-5 text-center text-[10px] text-muted-foreground/40">
+        <p className="mt-5 text-center text-[11px] text-muted-foreground/40">
           Ao continuar, você concorda com nossos{' '}
           <span className="cursor-pointer text-muted-foreground/60 transition-colors hover:text-primary">Termos de Uso</span>
           {' '}e{' '}

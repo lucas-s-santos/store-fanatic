@@ -1,678 +1,452 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowLeft, Check, MoveRight, Search, Shield, ShoppingCart, Trophy, X } from 'lucide-react'
+import { AnimatePresence } from 'framer-motion'
+import { ChevronRight, RotateCcw, Search, SearchX, X } from 'lucide-react'
 
 import { ProductCard, ProductCardSkeleton } from '../components/product/ProductCard'
-import { optimizedImageUrl, resolveAssetUrl } from '../lib/assets'
-import { supabase } from '../lib/supabase'
-import { useCartStore } from '../store/cartStore'
+import { QuickViewModal } from '../components/product/QuickViewModal'
+import { Button } from '../components/ui/button'
+import { optimizedImageUrl } from '../lib/assets'
+import {
+  fetchLeaguesAndTeams,
+  fetchShowcaseProducts,
+  normalizeSearch,
+  productName,
+  type ShowcaseLeague,
+  type ShowcaseProduct,
+  type ShowcaseTeam,
+} from '../lib/catalog'
+import { cn } from '../lib/utils'
 
-interface Product {
-  id: string
-  name?: string
-  title?: string
-  price: number
-  league: string
-  team: string
-  image_url: string
-  images?: string[]
-  stock_quantity?: number
-  stock?: number
-  sizes?: string[]
-  type?: string
-  category?: string
-}
+const PAGE_SIZE = 24
 
-interface League {
-  id: string
-  name: string
-  country?: string
-  logo: string
-  teams: Team[]
-}
+const SORT_OPTIONS = [
+  { value: 'relevancia', label: 'Relevância' },
+  { value: 'menor-preco', label: 'Menor preço' },
+  { value: 'maior-preco', label: 'Maior preço' },
+  { value: 'a-z', label: 'Nome A–Z' },
+] as const
 
-interface Team {
-  id: string
-  name: string
-  logo: string
-}
+type SortValue = (typeof SORT_OPTIONS)[number]['value']
 
-type ViewState = 'leagues' | 'teams' | 'products' | 'all'
+const nameCollator = new Intl.Collator('pt-BR', { numeric: true, sensitivity: 'base' })
 
-const SIZE_OPTIONS = ['P', 'M', 'G', 'GG', 'XG', 'XGG']
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: (index: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] as const, delay: index * 0.05 },
-  }),
-}
-
-function getProductName(product: Product) {
-  return product.name || product.title || ''
-}
-
-function getProductSearchText(product: Product) {
-  return `${getProductName(product)} ${product.team || ''} ${product.league || ''}`.toLowerCase()
-}
-
+/** "Seleções Mundiais", "selecoes" e "Mundial" levam à mesma liga. */
 function normalizeRouteValue(value: string) {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
+  return normalizeSearch(value).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 }
 
-function QuickViewModal({ product, leagueName, teamName, onClose }: { product: Product; leagueName?: string; teamName?: string; onClose: () => void }) {
-  const addItem = useCartStore((state) => state.addItem)
-  const [selectedSize, setSelectedSize] = useState('')
-  const [added, setAdded] = useState(false)
-  const [imgIdx, setImgIdx] = useState(0)
-
-  const name = getProductName(product)
-  const stock = product.stock_quantity ?? product.stock ?? 0
-  const allImages = [product.image_url, ...(product.images || [])].filter(Boolean).map((url) => optimizedImageUrl(url, 720))
-
-  const handleAdd = () => {
-    if (!selectedSize) return
-
-    addItem({
-      id: product.id,
-      title: name,
-      price: product.price,
-      imageUrl: resolveAssetUrl(product.image_url),
-      size: selectedSize,
-      quantity: 1,
-    })
-
-    setAdded(true)
-    setTimeout(() => setAdded(false), 2000)
-  }
-
+function Chip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-6"
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        'inline-flex h-10 shrink-0 items-center gap-2 rounded-full border pl-1.5 pr-4 text-sm font-semibold transition-colors',
+        active
+          ? 'border-primary bg-primary text-primary-foreground'
+          : 'border-border bg-card text-foreground/85 hover:border-white/25 hover:text-foreground',
+      )}
     >
-      <motion.div
-        initial={{ y: '100%', opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: '100%', opacity: 0 }}
-        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        onClick={(event) => event.stopPropagation()}
-        className="relative max-h-[90vh] w-full overflow-y-auto overflow-hidden rounded-t-2xl border bg-card shadow-2xl sm:max-w-2xl sm:rounded-2xl"
-      >
-        <button onClick={onClose} className="absolute right-4 top-4 z-10 rounded-full bg-black/50 p-2 text-white/70 transition-colors hover:text-white">
-          <X className="h-5 w-5" />
-        </button>
-
-        <div className="flex flex-col sm:flex-row">
-          <div className="relative w-full shrink-0 bg-black/20 sm:w-72">
-            {allImages.length > 0 ? (
-              <>
-                <img
-                  src={allImages[imgIdx]}
-                  alt={name}
-                  className="aspect-[3/4] w-full object-cover"
-                  onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-                />
-                {allImages.length > 1 && (
-                  <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
-                    {allImages.map((_, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setImgIdx(index)}
-                        className={`h-2 w-2 rounded-full transition-all ${index === imgIdx ? 'w-4 bg-primary' : 'bg-white/40'}`}
-                      />
-                    ))}
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="flex aspect-[3/4] w-full items-center justify-center text-xs text-muted-foreground">Sem imagem</div>
-            )}
-          </div>
-
-          <div className="flex-1 space-y-4 p-6">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-primary/60">{leagueName || ''}{leagueName && teamName ? ' / ' : ''}{teamName || ''}</p>
-              <h3 className="mt-1 text-xl font-display font-bold uppercase text-white">{name}</h3>
-            </div>
-
-            <p className="text-3xl font-black text-white">R$ {product.price?.toFixed(2).replace('.', ',')}</p>
-
-            <div className="space-y-2">
-              <p className="text-[10px] font-bold uppercase text-muted-foreground">Escolha o tamanho</p>
-              <div className="flex flex-wrap gap-2">
-                {(product.sizes || SIZE_OPTIONS).map((size) => (
-                  <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    disabled={stock === 0}
-                    className={`rounded-lg border px-3 py-2 text-xs font-bold transition-all ${
-                      selectedSize === size
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : stock === 0
-                          ? 'cursor-not-allowed border-white/5 text-muted-foreground/30 line-through'
-                          : 'border-white/10 text-muted-foreground hover:border-primary/30 hover:text-white'
-                    }`}
-                  >
-                    {size}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              <span className={stock > 0 ? 'text-green-400' : 'text-red-400'}>
-                {stock > 0 ? `${stock} disponível` : 'Esgotado'}
-              </span>
-            </div>
-
-            <button
-              onClick={handleAdd}
-              disabled={!selectedSize || stock === 0}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground transition-all hover:opacity-90 disabled:opacity-40"
-            >
-              {added ? (
-                <>
-                  <Check className="h-4 w-4" />
-                  Adicionado ao carrinho
-                </>
-              ) : (
-                <>
-                  <ShoppingCart className="h-4 w-4" />
-                  Adicionar ao carrinho
-                </>
-              )}
-            </button>
-
-            <Link to={`/produtos/${product.id}`} onClick={onClose} className="block text-center text-xs text-muted-foreground underline underline-offset-4 transition-colors hover:text-primary">
-              Ver detalhes do produto
-            </Link>
-          </div>
-        </div>
-      </motion.div>
-    </motion.div>
+      {children}
+    </button>
   )
 }
 
 export function CatalogPage() {
-  const [searchParams] = useSearchParams()
-  const [products, setProducts] = useState<Product[]>([])
-  const [dbLeagues, setDbLeagues] = useState<League[]>([])
-  const [leaguesLoading, setLeaguesLoading] = useState(true)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [products, setProducts] = useState<ShowcaseProduct[]>([])
+  const [leagues, setLeagues] = useState<ShowcaseLeague[]>([])
+  const [teams, setTeams] = useState<ShowcaseTeam[]>([])
   const [loading, setLoading] = useState(true)
-  const [view, setView] = useState<ViewState>('leagues')
-  const [selectedLeagueId, setSelectedLeagueId] = useState<string | null>(null)
-  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [suggestions, setSuggestions] = useState<Product[]>([])
-  const [showSuggestions, setShowSuggestions] = useState(false)
-  const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null)
-  const [dbError, setDbError] = useState<string | null>(null)
-
-  const searchRef = useRef<HTMLDivElement>(null)
+  const [error, setError] = useState(false)
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const [quickView, setQuickView] = useState<ShowcaseProduct | null>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
-  const leagueParam = searchParams.get('liga') || searchParams.get('league')
 
-  // Busca ligas e times de forma independente — rápida, não bloqueia os produtos
+  const leagueParam = searchParams.get('liga') || searchParams.get('league') || ''
+  const teamParam = searchParams.get('time') || ''
+  const queryParam = searchParams.get('q') || ''
+  const sort = (searchParams.get('ordem') as SortValue) || 'relevancia'
+  const [query, setQuery] = useState(queryParam)
+
+  // Links externos (cabeçalho, breadcrumb) trocam a URL inteira: o campo acompanha.
   useEffect(() => {
-    let cancelled = false
-    async function fetchLeagues() {
-      setLeaguesLoading(true)
-      const [leagueRes, teamRes] = await Promise.all([
-        supabase.from('leagues').select('*').order('name'),
-        supabase.from('teams').select('*').order('name'),
-      ])
-      if (cancelled) return
-      if (leagueRes.error) {
-        console.error('[Catalog] Erro ao buscar ligas:', leagueRes.error)
-        setDbError('Erro ao conectar ao banco de dados. Verifique o Supabase.')
-      }
-      if (teamRes.error) console.error('[Catalog] Erro ao buscar times:', teamRes.error)
-      if (leagueRes.data) {
-        const builtLeagues = leagueRes.data.map((league) => ({
-          ...league,
-          logo: optimizedImageUrl(league.logo_url, 160),
-          teams: (teamRes.data || [])
-            .filter((team) => team.league_id === league.id)
-            .map((team) => ({ ...team, logo: optimizedImageUrl(team.logo_url, 160) })),
-        }))
-        setDbLeagues(builtLeagues)
-      }
-      setLeaguesLoading(false)
-    }
-    fetchLeagues()
-    return () => { cancelled = true }
-  }, [])
+    setQuery(queryParam)
+  }, [queryParam])
 
-  // Busca produtos de forma independente — paginada, pode demorar mais
   useEffect(() => {
-    let cancelled = false
-    async function fetchProducts() {
-      setLoading(true)
-      let allData: Product[] = []
-      let hasMore = true
-      let page = 0
-      const limit = 1000
-
-      while (hasMore) {
-        const { data, error } = await supabase
-          .from('products')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .order('id', { ascending: true })
-          .range(page * limit, (page + 1) * limit - 1)
-
-        if (cancelled) return
-        if (error) { console.error('[Catalog] Erro ao buscar produtos:', error); break }
-
-        if (data) {
-          allData = [...allData, ...data]
-          if (data.length < limit) {
-            hasMore = false
-          } else {
-            page++
-          }
-        } else {
-          hasMore = false
-        }
-      }
-
-      if (cancelled) return
-
-      const activeData = allData.filter((p: any) => p.active !== false)
-      const sortedData = activeData.sort((a: any, b: any) => {
-        const aPriority = a.featured || a.category === 'mundial-copa-2026' ? 1 : 0
-        const bPriority = b.featured || b.category === 'mundial-copa-2026' ? 1 : 0
-        if (aPriority !== bPriority) return bPriority - aPriority
-        return getProductName(a).localeCompare(getProductName(b), undefined, {
-          numeric: true,
-          sensitivity: 'base',
-        })
+    let active = true
+    Promise.all([fetchShowcaseProducts(), fetchLeaguesAndTeams()])
+      .then(([allProducts, { leagues, teams }]) => {
+        if (!active) return
+        setProducts(allProducts)
+        setLeagues(leagues)
+        setTeams(teams)
       })
-
-      setProducts(sortedData)
-      setLoading(false)
+      .catch((err) => {
+        console.error('[Catalog] Erro ao carregar o catálogo:', err)
+        if (active) setError(true)
+      })
+      .finally(() => active && setLoading(false))
+    return () => {
+      active = false
     }
-    fetchProducts()
-    return () => { cancelled = true }
   }, [])
 
-  const updateSuggestions = useCallback((query: string) => {
-    const normalizedQuery = query.trim().toLowerCase()
-
-    if (normalizedQuery.length < 2) {
-      setSuggestions([])
-      setShowSuggestions(false)
-      return
-    }
-
-    const filtered = products.filter((product) => getProductSearchText(product).includes(normalizedQuery)).slice(0, 5)
-    setSuggestions(filtered)
-    setShowSuggestions(filtered.length > 0)
-  }, [products])
-
+  // O ícone de busca do cabeçalho chega aqui com ?busca=1: foca o campo.
   useEffect(() => {
-    const timer = setTimeout(() => updateSuggestions(searchQuery), 200)
+    if (searchParams.get('busca')) {
+      searchInputRef.current?.focus()
+      updateParams({ busca: null }, true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
+
+  // Busca vai para a URL com um pequeno atraso, sem empilhar histórico.
+  useEffect(() => {
+    if (query === queryParam) return
+    const timer = setTimeout(() => updateParams({ q: query.trim() || null }, true), 250)
     return () => clearTimeout(timer)
-  }, [searchQuery, updateSuggestions])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query])
 
   useEffect(() => {
-    if (!leagueParam || dbLeagues.length === 0) return
+    setVisibleCount(PAGE_SIZE)
+  }, [leagueParam, teamParam, queryParam, sort])
 
-    const normalizedParam = normalizeRouteValue(leagueParam)
-    const leagueFromRoute = dbLeagues.find((league) => {
-      const aliases = [league.id, league.name, league.country || ''].filter(Boolean).map(normalizeRouteValue)
-      return aliases.includes(normalizedParam)
-    })
-
-    if (!leagueFromRoute) return
-
-    setSelectedLeagueId(leagueFromRoute.id)
-    setSelectedTeamId(null)
-    setSearchQuery('')
-    setShowSuggestions(false)
-    setView('teams')
-  }, [dbLeagues, leagueParam])
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-        setShowSuggestions(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
-  const activeLeague = dbLeagues.find((league) => league.id === selectedLeagueId)
-  const activeTeam = activeLeague?.teams.find((team) => team.id === selectedTeamId)
-  const teamNames = new Map(
-    dbLeagues.flatMap((league) => league.teams.map((team) => [`${league.id}:${team.id}`, team.name] as const)),
-  )
-
-  let displayProducts = products
-
-  if (view === 'products' && selectedLeagueId && selectedTeamId) {
-    displayProducts = products.filter((product) => product.league === selectedLeagueId && product.team === selectedTeamId)
-  }
-
-  const normalizedQuery = searchQuery.trim().toLowerCase()
-  if (normalizedQuery.length > 0) {
-    displayProducts = displayProducts.filter((product) => getProductSearchText(product).includes(normalizedQuery))
-  }
-
-  const isSearching = normalizedQuery.length > 0
-  const currentView = isSearching ? 'all' : view
-
-  const renderLeagues = () => dbError ? (
-    <div className="flex min-h-[300px] flex-col items-center justify-center gap-4 rounded-sm border border-destructive/30 bg-destructive/5 px-6 py-12 text-center">
-      <Trophy className="h-10 w-10 text-destructive/50" />
-      <div>
-        <h3 className="text-lg font-bold text-white">Erro de conexão</h3>
-        <p className="mt-2 text-sm text-white/50">{dbError}</p>
-        <button onClick={() => { setDbError(null); window.location.reload() }} className="mt-4 rounded-lg border border-white/20 px-4 py-2 text-xs text-white/70 hover:text-white">
-          Tentar novamente
-        </button>
-      </div>
-    </div>
-  ) : leaguesLoading ? (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-      {[...Array(8)].map((_, i) => (
-        <div key={i} className="animate-pulse min-h-[220px] rounded-2xl border border-white/[0.06] bg-white/[0.02] sm:min-h-[260px]" />
-      ))}
-    </div>
-  ) : (
-    <motion.div layout className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-      {dbLeagues.map((league, index) => (
-        <motion.button
-          key={league.id}
-          custom={index}
-          variants={cardVariants}
-          initial="hidden"
-          animate="visible"
-          whileHover={{ y: -4 }}
-          onClick={() => {
-            setSelectedLeagueId(league.id)
-            setSelectedTeamId(null)
-            setView('teams')
-          }}
-          className="group relative min-h-[220px] overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-6 text-left backdrop-blur-md transition-all duration-500 hover:border-primary/30 hover:bg-white/[0.04] hover:shadow-[0_0_40px_rgba(229,192,123,0.08)] sm:min-h-[260px] sm:px-6 sm:py-7"
-        >
-          <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-primary/0 blur-[60px] transition-all duration-700 group-hover:bg-primary/5" />
-          <div className="relative z-10 flex h-full flex-col justify-between">
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Liga</p>
-                <h3 className="mt-2 text-xl font-display font-bold uppercase leading-tight text-white tracking-tight sm:text-2xl">{league.name}</h3>
-                <p className="mt-1.5 text-xs font-medium text-muted-foreground">{league.country}</p>
-              </div>
-              <div className="h-14 w-14 shrink-0 rounded-xl bg-white/90 p-2 opacity-80 transition-all duration-700 group-hover:rotate-3 group-hover:scale-110 group-hover:opacity-100 sm:h-16 sm:w-16">
-                <img
-                  src={league.logo}
-                  alt={league.name}
-                  className="h-full w-full object-contain"
-                  onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-                />
-              </div>
-            </div>
-
-            <div className="mt-6 flex items-center justify-between sm:mt-8">
-              <span className="rounded-full border border-primary/20 bg-primary/5 px-2 py-1 text-[9px] font-bold uppercase text-primary">
-                {league.teams.length} times
-              </span>
-              <MoveRight className="h-4 w-4 text-muted-foreground transition-all duration-500 group-hover:translate-x-2 group-hover:text-primary sm:h-5 sm:w-5" />
-            </div>
-          </div>
-        </motion.button>
-      ))}
-    </motion.div>
-  )
-
-  const renderTeams = () => {
-
-    if (!activeLeague) return null
-
-    return (
-      <div className="space-y-4 sm:space-y-6">
-        <motion.button
-          initial={{ opacity: 0, x: -12 }}
-          animate={{ opacity: 1, x: 0 }}
-          onClick={() => setView('leagues')}
-          className="inline-flex items-center gap-2 rounded-sm border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-white/60 transition-all hover:border-primary/20 hover:text-white sm:px-4 sm:py-2.5 sm:text-sm"
-        >
-          <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          Voltar para as ligas
-        </motion.button>
-
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col gap-4 rounded-[1.5rem] border border-white/5 bg-white/[0.02] px-5 py-6 shadow-2xl backdrop-blur-xl sm:gap-5 sm:rounded-[2rem] sm:px-8 sm:py-8 lg:flex-row lg:items-center lg:justify-between"
-        >
-          <div className="flex items-center gap-4 sm:gap-5">
-            <img
-              src={activeLeague.logo}
-              alt={activeLeague.name}
-              className="h-12 w-12 object-contain sm:h-16 sm:w-16"
-              onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-            />
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">Escolha um time</p>
-              <h2 className="mt-1 text-2xl font-display font-bold uppercase tracking-tight text-white sm:mt-2 sm:text-3xl">{activeLeague.name}</h2>
-            </div>
-          </div>
-
-          <div className="chip border-white/10 bg-white/[0.03] text-xs text-white/70">
-            <Shield className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-            {activeLeague.teams.length} times
-          </div>
-        </motion.div>
-
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
-          {activeLeague.teams.map((team, index) => (
-            <motion.button
-              key={team.id}
-              custom={index}
-              variants={cardVariants}
-              initial="hidden"
-              animate="visible"
-              whileHover={{ y: -3 }}
-              onClick={() => {
-                setSelectedTeamId(team.id)
-                setView('products')
-              }}
-              className="group flex min-h-[160px] flex-col items-center justify-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] px-3 py-5 backdrop-blur-md transition-all duration-500 hover:border-primary/30 hover:bg-white/[0.04] hover:shadow-[0_10px_30px_rgba(229,192,123,0.08)] sm:min-h-[200px] sm:gap-5 sm:px-5 sm:py-7"
-            >
-              <img
-                src={team.logo}
-                alt={team.name}
-                className="h-14 w-14 object-contain transition-transform duration-500 group-hover:scale-110 sm:h-20 sm:w-20"
-                onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-              />
-              <span className="text-center text-xs font-display uppercase leading-tight text-white sm:text-base">{team.name}</span>
-            </motion.button>
-          ))}
-        </div>
-      </div>
+  function updateParams(changes: Record<string, string | null>, replace = false) {
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current)
+        for (const [key, value] of Object.entries(changes)) {
+          if (value) next.set(key, value)
+          else next.delete(key)
+        }
+        if ('liga' in changes) next.delete('league')
+        return next
+      },
+      { replace },
     )
   }
 
-  const renderProducts = () => (
-    <div className="space-y-4 sm:space-y-6">
-      {!isSearching && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col gap-3 rounded-sm border border-white/[0.06] bg-card px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5 sm:py-5"
-        >
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <button
-              onClick={() => setView('teams')}
-              className="inline-flex items-center gap-2 rounded-sm border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-white/60 transition-all hover:border-primary/20 hover:text-white"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Escolher outro time
-            </button>
+  const activeLeague = useMemo(() => {
+    if (!leagueParam) return undefined
+    const wanted = normalizeRouteValue(leagueParam)
+    return leagues.find((league) =>
+      [league.id, league.name, league.country || ''].filter(Boolean).map(normalizeRouteValue).includes(wanted),
+    )
+  }, [leagues, leagueParam])
 
-            {activeTeam && (
-              <div className="chip text-xs">
-                <img
-                  src={activeTeam.logo}
-                  alt={activeTeam.name}
-                  className="h-3.5 w-3.5 object-contain"
-                  onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-                />
-                {activeTeam.name}
-              </div>
-            )}
-          </div>
-
-          <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            {displayProducts.length} produto{displayProducts.length !== 1 ? 's' : ''}
-          </span>
-        </motion.div>
-      )}
-
-      {loading ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4 2xl:grid-cols-5">
-          {[...Array(10)].map((_, index) => (
-            <ProductCardSkeleton key={index} />
-          ))}
-        </div>
-      ) : displayProducts.length === 0 ? (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex min-h-[300px] flex-col items-center justify-center gap-5 rounded-sm border border-white/[0.06] bg-card px-6 py-12 text-center sm:min-h-[340px]"
-        >
-          <Trophy className="h-10 w-10 text-primary/30 sm:h-14 sm:w-14" />
-          <div>
-            <h3 className="text-xl font-display uppercase text-white sm:text-2xl">Nenhum produto encontrado</h3>
-            <p className="mt-2 text-sm text-white/35">Tente buscar por outro nome ou voltar para escolher outro time.</p>
-          </div>
-        </motion.div>
-      ) : (
-        <AnimatePresence>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4 2xl:grid-cols-5">
-            {displayProducts.map((product, index) => (
-              <motion.div key={product.id} custom={index} variants={cardVariants} initial="hidden" animate="visible">
-                <ProductCard
-                  product={product}
-                  eyebrow={isSearching ? teamNames.get(`${product.league}:${product.team}`) : undefined}
-                  onQuickView={() => setQuickViewProduct(product)}
-                />
-              </motion.div>
-            ))}
-          </div>
-        </AnimatePresence>
-      )}
-    </div>
+  const leagueTeams = useMemo(
+    () => (activeLeague ? teams.filter((team) => team.league_id === activeLeague.id) : []),
+    [teams, activeLeague],
   )
+  const activeTeam = leagueTeams.find((team) => team.id === teamParam)
+
+  const teamNames = useMemo(
+    () => new Map(teams.map((team) => [`${team.league_id}:${team.id}`, team.name] as const)),
+    [teams],
+  )
+  const leagueNames = useMemo(() => new Map(leagues.map((league) => [league.id, league.name] as const)), [leagues])
+
+  const filtered = useMemo(() => {
+    let list = products
+    if (activeLeague) list = list.filter((p) => p.league === activeLeague.id)
+    if (activeLeague && activeTeam) list = list.filter((p) => p.team === activeTeam.id)
+
+    const q = normalizeSearch(queryParam)
+    if (q) {
+      list = list.filter((p) =>
+        normalizeSearch(
+          `${productName(p)} ${teamNames.get(`${p.league}:${p.team}`) ?? p.team} ${leagueNames.get(p.league) ?? p.league}`,
+        ).includes(q),
+      )
+    }
+
+    const sorted = [...list]
+    if (sort === 'menor-preco') sorted.sort((a, b) => a.price - b.price)
+    else if (sort === 'maior-preco') sorted.sort((a, b) => b.price - a.price)
+    else if (sort === 'a-z') sorted.sort((a, b) => nameCollator.compare(productName(a), productName(b)))
+    else {
+      // Relevância: destaques primeiro, depois em estoque, depois por nome.
+      sorted.sort(
+        (a, b) =>
+          Number(Boolean(b.featured)) - Number(Boolean(a.featured)) ||
+          Number((b.stock_quantity ?? 0) > 0) - Number((a.stock_quantity ?? 0) > 0) ||
+          nameCollator.compare(productName(a), productName(b)),
+      )
+    }
+    return sorted
+  }, [products, activeLeague, activeTeam, queryParam, sort, teamNames, leagueNames])
+
+  const visible = filtered.slice(0, visibleCount)
+  const leagueCounts = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const p of products) counts.set(p.league, (counts.get(p.league) ?? 0) + 1)
+    return counts
+  }, [products])
+
+  const title = queryParam
+    ? `Busca: “${queryParam}”`
+    : activeTeam?.name ?? activeLeague?.name ?? 'Todas as camisas'
+  const hasFilters = Boolean(activeLeague || queryParam)
+
+  const clearFilters = () => {
+    setQuery('')
+    setSearchParams({})
+  }
 
   return (
-    <div className="section-shell px-3 pt-24 sm:px-4 sm:pt-28">
+    <div className="pb-16 pt-[7.25rem] lg:pt-[8.25rem]">
       <AnimatePresence>
-        {quickViewProduct && (
+        {quickView && (
           <QuickViewModal
-            product={quickViewProduct}
-            leagueName={dbLeagues.find(l => l.id === quickViewProduct.league)?.name}
-            teamName={dbLeagues.find(l => l.id === quickViewProduct.league)?.teams.find(t => t.id === quickViewProduct.team)?.name}
-            onClose={() => setQuickViewProduct(null)}
+            product={quickView}
+            subtitle={teamNames.get(`${quickView.league}:${quickView.team}`) ?? leagueNames.get(quickView.league)}
+            onClose={() => setQuickView(null)}
           />
         )}
       </AnimatePresence>
 
-      <div className="mx-auto max-w-[1440px] space-y-6 sm:space-y-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="space-y-4 sm:space-y-6">
-          <div className="flex flex-col gap-4 sm:gap-6 xl:flex-row xl:items-end xl:justify-between">
-            <div className="max-w-2xl space-y-3 sm:space-y-4">
-              <h1 className="text-3xl font-display font-extrabold uppercase leading-none tracking-tight text-white sm:text-4xl lg:text-5xl xl:text-6xl">
-                Encontre sua
-                <br className="hidden sm:block" /> <span className="text-gradient-gold">camisa ideal</span>
-              </h1>
-              <p className="max-w-xl text-xs font-medium leading-relaxed text-muted-foreground sm:text-sm sm:text-base">
-                Escolha uma liga, depois o seu time, ou pesquise direto pelo nome da camisa.
+      <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
+        <nav aria-label="Você está em" className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
+          <Link to="/" className="hover:text-foreground">
+            Início
+          </Link>
+          <ChevronRight className="size-3.5" aria-hidden />
+          <Link to="/produtos" className="hover:text-foreground" onClick={clearFilters}>
+            Camisas
+          </Link>
+          {activeLeague && (
+            <>
+              <ChevronRight className="size-3.5" aria-hidden />
+              <button type="button" className="hover:text-foreground" onClick={() => updateParams({ time: null })}>
+                {activeLeague.name}
+              </button>
+            </>
+          )}
+          {activeTeam && (
+            <>
+              <ChevronRight className="size-3.5" aria-hidden />
+              <span className="text-foreground">{activeTeam.name}</span>
+            </>
+          )}
+        </nav>
+
+        <div className="mt-4 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex items-end gap-4">
+            {(activeTeam?.logo_url || activeLeague?.logo_url) && !queryParam && (
+              <span
+                className={cn(
+                  'hidden size-20 shrink-0 items-center justify-center rounded-2xl p-2.5 sm:flex',
+                  activeTeam ? 'bg-card ring-1 ring-border' : 'bg-paper',
+                )}
+              >
+                <img
+                  src={optimizedImageUrl(activeTeam?.logo_url ?? activeLeague?.logo_url, 160)}
+                  alt=""
+                  className="size-full object-contain"
+                />
+              </span>
+            )}
+            <div>
+              <h1 className="display-title text-5xl sm:text-6xl lg:text-7xl">{title}</h1>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {loading ? 'Carregando camisas…' : `${filtered.length} ${filtered.length === 1 ? 'camisa' : 'camisas'}`}
               </p>
             </div>
+          </div>
 
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-              <div ref={searchRef} className="relative min-w-[220px] sm:min-w-[260px]">
-                <label className="flex items-center gap-3 rounded-sm border border-white/10 bg-white/[0.03] px-3 py-2.5 sm:px-4 sm:py-3">
-                  <Search className="h-3.5 w-3.5 shrink-0 text-primary/50 sm:h-4 sm:w-4" />
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    value={searchQuery}
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                    onFocus={() => searchQuery.trim().length >= 2 && setShowSuggestions(true)}
-                    placeholder="Buscar por time ou modelo"
-                    className="w-full bg-transparent text-xs text-white placeholder:text-white/25 focus:outline-none sm:text-sm"
+          <div className="flex items-center gap-2">
+            <label className="relative flex h-12 min-w-0 flex-1 items-center sm:w-80 sm:flex-none">
+              <span className="sr-only">Buscar camisa</span>
+              <Search className="pointer-events-none absolute left-4 size-4 text-muted-foreground" aria-hidden />
+              <input
+                ref={searchInputRef}
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Buscar time ou seleção"
+                className="form-input h-12 rounded-full py-0 pl-11 pr-10 [&::-webkit-search-cancel-button]:hidden"
+              />
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => setQuery('')}
+                  aria-label="Limpar busca"
+                  className="absolute right-2 flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
+                >
+                  <X className="size-4" />
+                </button>
+              )}
+            </label>
+
+            <label className="relative shrink-0">
+              <span className="sr-only">Ordenar por</span>
+              <select
+                value={sort}
+                onChange={(event) => updateParams({ ordem: event.target.value === 'relevancia' ? null : event.target.value }, true)}
+                className="form-input h-12 w-[9.5rem] cursor-pointer appearance-none rounded-full py-0 pl-4 pr-9 text-sm font-semibold sm:w-48"
+              >
+                {SORT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value} className="bg-popover">
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronRight className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 rotate-90 text-muted-foreground" aria-hidden />
+            </label>
+          </div>
+        </div>
+      </div>
+
+      {/* Filtros de liga: grudam embaixo do cabeçalho ao rolar. */}
+      <div className="sticky top-16 z-30 mt-8 border-y border-border bg-background/90 backdrop-blur-xl lg:top-[72px]">
+        <div className="shelf mx-auto max-w-[1440px] gap-2 px-4 py-3 sm:px-6 lg:px-8">
+          <Chip active={!activeLeague} onClick={() => updateParams({ liga: null, time: null })}>
+            <span className="ml-2.5">Todas</span>
+          </Chip>
+          {leagues.map((league) => (
+            <Chip
+              key={league.id}
+              active={activeLeague?.id === league.id}
+              onClick={() => updateParams({ liga: league.id, time: null })}
+            >
+              <span className="flex size-7 items-center justify-center rounded-full bg-paper p-1">
+                {league.logo_url && (
+                  <img src={optimizedImageUrl(league.logo_url, 64)} alt="" className="size-full object-contain" loading="lazy" />
+                )}
+              </span>
+              {league.name}
+              {leagueCounts.get(league.id) ? (
+                <span className="text-xs font-medium opacity-60">{leagueCounts.get(league.id)}</span>
+              ) : null}
+            </Chip>
+          ))}
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
+        {/* Escudos dos times da liga escolhida. */}
+        {leagueTeams.length > 0 && (
+          <div className="shelf -mx-4 mt-6 auto-cols-[5.5rem] gap-2 px-4 sm:-mx-6 sm:auto-cols-[6.5rem] sm:px-6 lg:-mx-8 lg:px-8">
+            <button
+              type="button"
+              onClick={() => updateParams({ time: null })}
+              aria-pressed={!activeTeam}
+              className="group flex flex-col items-center gap-2 rounded-2xl p-2 text-center"
+            >
+              <span
+                className={cn(
+                  'flex size-16 items-center justify-center rounded-full border-2 text-xs font-extrabold uppercase transition-colors sm:size-[4.5rem]',
+                  !activeTeam ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card group-hover:border-white/30',
+                )}
+              >
+                Todos
+              </span>
+              <span className="text-xs font-semibold text-muted-foreground">Todos os times</span>
+            </button>
+            {leagueTeams.map((team) => {
+              const active = activeTeam?.id === team.id
+              return (
+                <button
+                  key={team.id}
+                  type="button"
+                  onClick={() => updateParams({ time: active ? null : team.id })}
+                  aria-pressed={active}
+                  className="group flex flex-col items-center gap-2 rounded-2xl p-2 text-center"
+                >
+                  <span
+                    className={cn(
+                      'flex size-16 items-center justify-center rounded-full border-2 bg-card p-2.5 transition-[border-color,transform] sm:size-[4.5rem]',
+                      active ? 'border-primary' : 'border-border group-hover:-translate-y-0.5 group-hover:border-white/30',
+                    )}
+                  >
+                    {team.logo_url && (
+                      <img src={optimizedImageUrl(team.logo_url, 128)} alt="" loading="lazy" className="size-full object-contain" />
+                    )}
+                  </span>
+                  <span className={cn('line-clamp-2 text-xs font-semibold leading-tight', active ? 'text-foreground' : 'text-muted-foreground')}>
+                    {team.name}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        <div className="mt-8">
+          {error ? (
+            <div className="flex min-h-[320px] flex-col items-center justify-center gap-4 rounded-3xl border border-destructive/30 bg-destructive/5 px-6 py-12 text-center">
+              <p className="text-lg font-bold">Não conseguimos carregar o catálogo</p>
+              <p className="text-sm text-muted-foreground">Verifique sua conexão e tente de novo.</p>
+              <Button variant="outline" onClick={() => window.location.reload()}>
+                <RotateCcw />
+                Tentar de novo
+              </Button>
+            </div>
+          ) : loading ? (
+            <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-5 lg:grid-cols-4 2xl:grid-cols-5">
+              {Array.from({ length: 10 }).map((_, index) => (
+                <ProductCardSkeleton key={index} />
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex min-h-[340px] flex-col items-center justify-center gap-4 rounded-3xl border border-border bg-card px-6 py-12 text-center">
+              <span className="flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <SearchX className="size-7" aria-hidden />
+              </span>
+              <div>
+                <p className="display-title text-3xl">Nenhuma camisa encontrada</p>
+                <p className="mt-2 text-sm text-muted-foreground">Tente outro nome de time ou veja todas as camisas.</p>
+              </div>
+              {hasFilters && (
+                <Button variant="outline" onClick={clearFilters}>
+                  Ver todas as camisas
+                </Button>
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-5 lg:grid-cols-4 2xl:grid-cols-5">
+                {visible.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    eyebrow={activeLeague ? undefined : leagueNames.get(product.league)}
+                    onQuickView={() => setQuickView(product)}
                   />
-                  {searchQuery && (
-                    <button onClick={() => { setSearchQuery(''); setSuggestions([]); setShowSuggestions(false) }} className="shrink-0 text-xs text-white/30 transition-colors hover:text-white">
-                      x
-                    </button>
-                  )}
-                </label>
-
-                <AnimatePresence>
-                  {showSuggestions && suggestions.length > 0 && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-white/10 bg-[#0a0a0a] shadow-2xl"
-                    >
-                      {suggestions.map((suggestion) => (
-                        <Link
-                          key={suggestion.id}
-                          to={`/produtos/${suggestion.id}`}
-                          onClick={() => setShowSuggestions(false)}
-                          className="flex items-center gap-3 border-b border-white/5 px-4 py-3 transition-colors hover:bg-white/[0.04] last:border-b-0"
-                        >
-                          <div className="h-10 w-8 shrink-0 overflow-hidden rounded bg-white/5">
-                            <img src={optimizedImageUrl(suggestion.image_url, 96)} alt={getProductName(suggestion)} className="h-full w-full object-cover" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold text-white">{getProductName(suggestion)}</p>
-                            <p className="text-[10px] text-muted-foreground">R$ {suggestion.price?.toFixed(2).replace('.', ',')}</p>
-                          </div>
-                        </Link>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                ))}
               </div>
 
-            </div>
-          </div>
-        </motion.div>
-
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={`${currentView}-${selectedLeagueId}-${selectedTeamId}-${normalizedQuery}`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            {currentView === 'leagues' && renderLeagues()}
-            {currentView === 'teams' && renderTeams()}
-            {(currentView === 'products' || currentView === 'all') && renderProducts()}
-          </motion.div>
-        </AnimatePresence>
+              {filtered.length > PAGE_SIZE && (
+              <div className="mx-auto mt-14 flex max-w-xs flex-col items-center gap-4 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Mostrando {visible.length} de {filtered.length} camisas
+                </p>
+                <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
+                  <div className="h-full rounded-full bg-primary transition-[width] duration-500" style={{ width: `${(visible.length / filtered.length) * 100}%` }} />
+                </div>
+                {visible.length < filtered.length && (
+                  <Button variant="outline" size="lg" onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}>
+                    Carregar mais camisas
+                  </Button>
+                )}
+              </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   )

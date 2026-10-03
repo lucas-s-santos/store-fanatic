@@ -1,30 +1,39 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, ShoppingBag, Trash2, Plus, Minus, MoveRight, ShoppingCart, Sparkles } from 'lucide-react'
+import { X, ShoppingBag, Trash2, Plus, Minus, ArrowRight, Truck } from 'lucide-react'
+
 import { useCartStore } from '../../store/cartStore'
 import { Button } from '../ui/button'
 import { optimizedImageUrl } from '../../lib/assets'
+import { displayProductName } from '../../lib/catalog'
+import { useFocusTrap } from '../../lib/useFocusTrap'
 import { useSettings } from '../../lib/useSettings'
+import { cn, formatPrice } from '../../lib/utils'
 
 export function CartDrawer() {
   const { settings } = useSettings()
   const { items, isDrawerOpen, closeDrawer, removeItem, updateQuantity, getTotalPrice, getTotalItems } = useCartStore()
   const navigate = useNavigate()
+  const drawerRef = useRef<HTMLElement>(null)
+  useFocusTrap(drawerRef, isDrawerOpen)
   const total = getTotalPrice()
   const totalItems = getTotalItems()
   const shippingFree = total >= settings.shipping_free_threshold
+  const missing = Math.max(settings.shipping_free_threshold - total, 0)
   const progressPct = Math.min((total / settings.shipping_free_threshold) * 100, 100)
 
-  // Lock body scroll when drawer is open
+  // Trava a rolagem do fundo e fecha com Esc.
   useEffect(() => {
-    if (isDrawerOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
+    if (!isDrawerOpen) return
+    document.body.style.overflow = 'hidden'
+    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && closeDrawer()
+    document.addEventListener('keydown', onKey)
+    return () => {
       document.body.style.overflow = ''
+      document.removeEventListener('keydown', onKey)
     }
-    return () => { document.body.style.overflow = '' }
-  }, [isDrawerOpen])
+  }, [isDrawerOpen, closeDrawer])
 
   const handleCheckout = () => {
     closeDrawer()
@@ -35,7 +44,6 @@ export function CartDrawer() {
     <AnimatePresence>
       {isDrawerOpen && (
         <>
-          {/* Backdrop */}
           <motion.div
             key="backdrop"
             initial={{ opacity: 0 }}
@@ -46,52 +54,45 @@ export function CartDrawer() {
             className="fixed inset-0 z-[999] bg-black/70 backdrop-blur-sm"
           />
 
-          {/* Drawer */}
           <motion.aside
             key="drawer"
+            ref={drawerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Sacola de compras"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-            className="fixed inset-y-0 right-0 z-[1000] flex w-full max-w-md flex-col border-l border-primary/10 bg-card shadow-[-20px_0_80px_rgba(0,0,0,0.5)]"
+            transition={{ type: 'spring', damping: 30, stiffness: 280 }}
+            className="fixed inset-y-0 right-0 z-[1000] flex w-full max-w-md flex-col border-l border-border bg-background shadow-[-30px_0_80px_rgb(0_0_0/0.5)]"
           >
-            {/* Header */}
-            <div className="relative flex items-center justify-between border-b border-white/10 px-6 py-5">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="absolute inset-0 rounded-full bg-primary/30 blur-md" />
-                  <ShoppingBag className="relative h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-mono-styled text-[10px] uppercase tracking-[0.3em] text-primary/50">
-                    Carrinho
-                  </p>
-                  <p className="text-sm font-black uppercase tracking-[0.18em] text-white">
-                    {totalItems} {totalItems === 1 ? 'item' : 'itens'}
-                  </p>
-                </div>
+            <div className="flex items-center justify-between px-5 py-4 sm:px-6">
+              <div className="flex items-baseline gap-3">
+                <h2 className="display-title text-3xl">Sua sacola</h2>
+                <span className="text-sm font-semibold text-muted-foreground">
+                  {totalItems} {totalItems === 1 ? 'item' : 'itens'}
+                </span>
               </div>
-              <Button variant="outline" size="icon" onClick={closeDrawer} aria-label="Fechar carrinho">
-                <X />
+              <Button variant="ghost" size="icon" onClick={closeDrawer} aria-label="Fechar sacola">
+                <X className="size-5" />
               </Button>
             </div>
 
-            {/* Frete Progress Bar */}
             {items.length > 0 && (
-              <div className="border-b border-white/10 px-6 py-4">
-                <div className="mb-2 flex justify-between">
-                  <span className="font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-                    {shippingFree ? '✓ Frete grátis ativado!' : `Faltam R$ ${(settings.shipping_free_threshold - total).toFixed(2).replace('.', ',')} para frete grátis`}
-                  </span>
-                  {!shippingFree && (
-                    <span className="font-display text-[10px] uppercase tracking-[0.3em] text-primary/70">
-                      + R$ {settings.shipping_cost.toFixed(2).replace('.', ',')}
+              <div className="mx-5 rounded-2xl border border-border bg-card px-4 py-3.5 sm:mx-6">
+                <p className="flex items-center gap-2 text-sm font-semibold">
+                  <Truck className={cn('size-4', shippingFree ? 'text-success' : 'text-primary')} aria-hidden />
+                  {shippingFree ? (
+                    <span className="text-success">Você ganhou frete grátis!</span>
+                  ) : (
+                    <span>
+                      Faltam <strong className="text-primary">{formatPrice(missing)}</strong> para o frete grátis
                     </span>
                   )}
-                </div>
-                <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
+                </p>
+                <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden>
                   <motion.div
-                    className="h-full rounded-full bg-gradient-to-r from-primary to-success"
+                    className={cn('h-full rounded-full', shippingFree ? 'bg-success' : 'bg-primary')}
                     initial={{ width: 0 }}
                     animate={{ width: `${progressPct}%` }}
                     transition={{ duration: 0.6, ease: 'easeOut' }}
@@ -100,176 +101,148 @@ export function CartDrawer() {
               </div>
             )}
 
-            {/* Items List */}
-            <div className="custom-scrollbar flex-1 overflow-y-auto px-6 py-4">
+            <div className="custom-scrollbar flex-1 overflow-y-auto px-5 py-4 sm:px-6">
               {items.length === 0 ? (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4 }}
-                  className="flex h-full flex-col items-center justify-center gap-8 text-center px-4"
-                >
-                  {/* Ícone com glow */}
-                  <div className="relative flex items-center justify-center">
-                    <div className="absolute h-32 w-32 rounded-full bg-primary/10 blur-3xl" />
-                    <div className="absolute h-20 w-20 rounded-full bg-primary/15 blur-xl" />
-                    <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10">
-                      <ShoppingCart className="h-9 w-9 text-primary/70" />
-                    </div>
-                  </div>
-
-                  {/* Texto */}
+                <div className="flex h-full flex-col items-center justify-center gap-6 px-4 text-center">
+                  <span className="flex size-20 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <ShoppingBag className="size-9" aria-hidden />
+                  </span>
                   <div className="space-y-2">
-                    <p className="font-display text-[11px] uppercase tracking-[0.4em] text-primary/50">
-                      Carrinho vazio
-                    </p>
-                    <h3 className="text-xl font-black uppercase tracking-tight text-white">
-                      Nada por aqui ainda
-                    </h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed max-w-[220px] mx-auto">
-                      Explore o catálogo e adicione suas camisas favoritas.
+                    <p className="display-title text-3xl">Sua sacola está vazia</p>
+                    <p className="mx-auto max-w-[260px] text-sm leading-relaxed text-muted-foreground">
+                      Escolha o manto do seu time e ele aparece aqui.
                     </p>
                   </div>
-
-                  {/* CTA */}
-                  <motion.button
-                    onClick={closeDrawer}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="btn-glow-primary w-full flex items-center justify-center gap-2"
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    Explorar catálogo
-                    <MoveRight className="h-4 w-4" />
-                  </motion.button>
-                </motion.div>
+                  <Button asChild size="lg" className="w-full">
+                    <Link to="/produtos" onClick={closeDrawer}>
+                      Ver camisas
+                      <ArrowRight />
+                    </Link>
+                  </Button>
+                </div>
               ) : (
-                <AnimatePresence>
-                  <div className="space-y-4">
-                    {items.map((item) => (
-                      <motion.div
-                        key={`${item.id}-${item.size}`}
-                        layout
-                        initial={{ opacity: 0, x: 30 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 30, height: 0, marginBottom: 0 }}
-                        transition={{ duration: 0.25 }}
-                        className="group relative flex gap-4 rounded-xl border border-border bg-white/[0.03] p-4 transition-colors hover:border-primary/20"
-                      >
-                        {/* Image */}
-                        <div className="relative h-20 w-16 shrink-0 overflow-hidden rounded-md border border-white/10">
-                          <img
-                            src={optimizedImageUrl(item.imageUrl, 160)}
-                            alt={item.title}
-                            loading="lazy"
-                            className="h-full w-full object-cover"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                        </div>
+                <ul className="divide-y divide-border">
+                  <AnimatePresence initial={false}>
+                    {items.map((item) => {
+                      const atMax = item.stockQuantity !== undefined && item.quantity >= item.stockQuantity
+                      return (
+                        <motion.li
+                          key={`${item.id}-${item.size}`}
+                          layout
+                          initial={{ opacity: 0, x: 24 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 24 }}
+                          transition={{ duration: 0.22 }}
+                          className="flex gap-4 py-4"
+                        >
+                          <Link to={`/produtos/${item.id}`} onClick={closeDrawer} className="shrink-0">
+                            <img
+                              src={optimizedImageUrl(item.imageUrl, 200)}
+                              alt=""
+                              loading="lazy"
+                              className="aspect-[4/5] w-20 rounded-xl bg-muted object-cover"
+                            />
+                          </Link>
 
-                        {/* Info */}
-                        <div className="flex min-w-0 flex-1 flex-col justify-between">
-                          <div>
-                            <h4 className="line-clamp-1 pr-6 text-sm font-bold text-white">{item.title}</h4>
-                            <p className="mt-1 font-display text-[10px] uppercase tracking-[0.28em] text-primary/70">
-                              Tam. {item.size}
-                            </p>
-                          </div>
-                          <div className="flex items-center justify-between gap-4">
-                            {/* Quantity Controls */}
-                            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5">
-                              <button
-                                aria-label={item.quantity <= 1 ? `Remover ${item.title}` : 'Diminuir quantidade'}
-                                onClick={() => {
-                                  if (item.quantity <= 1) {
-                                    removeItem(item.id, item.size)
-                                  } else {
-                                    updateQuantity(item.id, item.size, item.quantity - 1)
-                                  }
-                                }}
-                                className="flex h-7 w-7 items-center justify-center text-muted-foreground transition-colors hover:text-white"
+                          <div className="flex min-w-0 flex-1 flex-col">
+                            <div className="flex items-start justify-between gap-2">
+                              <Link
+                                to={`/produtos/${item.id}`}
+                                onClick={closeDrawer}
+                                className="line-clamp-2 text-sm font-semibold leading-snug hover:text-primary"
                               >
-                                <Minus className="h-3 w-3" />
-                              </button>
-                              <span className="w-6 text-center font-display text-xs font-bold text-white">
-                                {item.quantity}
-                              </span>
+                                {displayProductName(item.title)}
+                              </Link>
                               <button
-                                aria-label="Aumentar quantidade"
-                                onClick={() => updateQuantity(item.id, item.size, item.quantity + 1)}
-                                disabled={item.stockQuantity !== undefined && item.quantity >= item.stockQuantity}
-                                className={`flex h-7 w-7 items-center justify-center transition-colors ${
-                                  item.stockQuantity !== undefined && item.quantity >= item.stockQuantity
-                                    ? 'text-muted-foreground/30 cursor-not-allowed'
-                                    : 'text-muted-foreground hover:text-white'
-                                }`}
+                                onClick={() => removeItem(item.id, item.size)}
+                                aria-label={`Remover ${item.title}`}
+                                className="-mr-1 -mt-1 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                               >
-                                <Plus className="h-3 w-3" />
+                                <Trash2 className="size-4" />
                               </button>
                             </div>
-                            <span className="font-bold text-white">
-                              R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}
-                            </span>
-                          </div>
-                        </div>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Tamanho {item.size}
+                              {item.personalization && (item.personalization.name || item.personalization.number) && (
+                                <>
+                                  {' · '}
+                                  <span className="font-semibold text-primary">
+                                    {[item.personalization.name, item.personalization.number && `#${item.personalization.number}`]
+                                      .filter(Boolean)
+                                      .join(' ')}
+                                  </span>
+                                </>
+                              )}
+                            </p>
 
-                        {/* Delete */}
-                        <button
-                          onClick={() => removeItem(item.id, item.size)}
-                          aria-label={`Remover ${item.title}`}
-                          className="absolute right-3 top-3 p-1 text-muted-foreground transition-opacity hover:text-destructive focus-visible:opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </motion.div>
-                    ))}
-                  </div>
-                </AnimatePresence>
+                            <div className="mt-auto flex items-center justify-between gap-3 pt-3">
+                              <div className="flex items-center rounded-full border border-input">
+                                <button
+                                  aria-label={item.quantity <= 1 ? `Remover ${item.title}` : 'Diminuir quantidade'}
+                                  onClick={() =>
+                                    item.quantity <= 1
+                                      ? removeItem(item.id, item.size)
+                                      : updateQuantity(item.id, item.size, item.quantity - 1)
+                                  }
+                                  className="flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
+                                >
+                                  <Minus className="size-3.5" />
+                                </button>
+                                <span className="w-6 text-center text-sm font-bold tabular-nums" aria-live="polite">
+                                  {item.quantity}
+                                </span>
+                                <button
+                                  aria-label="Aumentar quantidade"
+                                  onClick={() => updateQuantity(item.id, item.size, item.quantity + 1)}
+                                  disabled={atMax}
+                                  className="flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+                                >
+                                  <Plus className="size-3.5" />
+                                </button>
+                              </div>
+                              <span className="font-extrabold tabular-nums">{formatPrice(item.price * item.quantity)}</span>
+                            </div>
+                          </div>
+                        </motion.li>
+                      )
+                    })}
+                  </AnimatePresence>
+                </ul>
               )}
             </div>
 
-            {/* Footer */}
             {items.length > 0 && (
-              <div className="border-t border-white/10 px-6 py-6 space-y-4">
-                <div className="flex items-end justify-between">
-                  <div>
-                    <p className="font-display text-[10px] uppercase tracking-[0.38em] text-muted-foreground">
-                      {shippingFree ? 'Frete grátis' : `Frete estimado`}
-                    </p>
-                    <p className="mt-0.5 font-display text-[10px] uppercase tracking-[0.38em] text-muted-foreground">
-                      Total
-                    </p>
+              <div className="space-y-4 border-t border-border bg-card px-5 py-5 sm:px-6">
+                <dl className="space-y-1.5 text-sm">
+                  <div className="flex justify-between text-muted-foreground">
+                    <dt>Subtotal</dt>
+                    <dd className="tabular-nums">{formatPrice(total)}</dd>
                   </div>
-                  <div className="text-right">
-                    {shippingFree ? (
-                      <p className="font-display text-[10px] uppercase tracking-[0.3em] text-success">
-                        Grátis ✓
-                      </p>
-                    ) : (
-                      <p className="font-display text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-                        R$ {settings.shipping_cost.toFixed(2).replace('.', ',')}
-                      </p>
-                    )}
-                    <p className="text-3xl font-black text-white">
-                      R$ {(total + (shippingFree ? 0 : settings.shipping_cost)).toFixed(2).replace('.', ',')}
-                    </p>
+                  <div className="flex justify-between text-muted-foreground">
+                    <dt>Frete</dt>
+                    <dd className={cn('tabular-nums', shippingFree && 'font-semibold text-success')}>
+                      {shippingFree ? 'Grátis' : formatPrice(settings.shipping_cost)}
+                    </dd>
                   </div>
-                </div>
+                  <div className="flex items-baseline justify-between pt-2">
+                    <dt className="font-bold">Total</dt>
+                    <dd className="text-2xl font-black tabular-nums">
+                      {formatPrice(total + (shippingFree ? 0 : settings.shipping_cost))}
+                    </dd>
+                  </div>
+                </dl>
 
-                <button
-                  onClick={handleCheckout}
-                  className="btn-primary group w-full"
-                >
+                <Button size="xl" className="group w-full" onClick={handleCheckout}>
                   Finalizar pedido
-                  <MoveRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-                </button>
+                  <ArrowRight className="transition-transform group-hover:translate-x-1" />
+                </Button>
 
                 <Link
                   to="/carrinho"
                   onClick={closeDrawer}
-                  className="block text-center font-mono-styled text-[10px] uppercase tracking-[0.25em] text-white/30 transition-colors hover:text-primary"
+                  className="block text-center text-sm font-semibold text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
                 >
-                  Ver carrinho completo
+                  Ver sacola completa
                 </Link>
               </div>
             )}

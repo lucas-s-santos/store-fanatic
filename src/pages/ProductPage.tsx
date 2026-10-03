@@ -1,13 +1,31 @@
-import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, MoveRight, AlertTriangle, ShieldCheck, Star, Zap, Shirt } from 'lucide-react'
-import { optimizedImageSrcSet, optimizedImageUrl, resolveAssetUrl } from '../lib/assets'
-import { supabase } from '../lib/supabase'
-import { useCartStore } from '../store/cartStore'
-import { useToast } from '../components/ui/Toast'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { Link, useParams } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
+import { ArrowLeft, Check, ChevronDown, ChevronRight, QrCode, Ruler, Shirt, ShoppingBag, Truck, X } from 'lucide-react'
 
-const PERSONALIZATION_PRICE = 20
+import { ProductShelf } from '../components/home/ProductShelf'
+import { JerseyPreview } from '../components/product/JerseyPreview'
+import { Badge } from '../components/ui/badge'
+import { Button } from '../components/ui/button'
+import { Skeleton } from '../components/ui/skeleton'
+import { useToast } from '../components/ui/Toast'
+import { WhatsAppIcon, whatsappUrl } from '../components/ui/whatsapp-icon'
+import { optimizedImageSrcSet, optimizedImageUrl, resolveAssetUrl } from '../lib/assets'
+import {
+  displayProductName,
+  fetchLeaguesAndTeams,
+  fetchShowcaseProducts,
+  shuffle,
+  type ShowcaseLeague,
+  type ShowcaseProduct,
+  type ShowcaseTeam,
+} from '../lib/catalog'
+import { supabase } from '../lib/supabase'
+import { useSettings } from '../lib/useSettings'
+import { cn, formatPrice } from '../lib/utils'
+import { useFocusTrap } from '../lib/useFocusTrap'
+import { useCartStore } from '../store/cartStore'
 
 interface Product {
   id: string
@@ -16,72 +34,214 @@ interface Product {
   description: string
   price: number
   category: string
+  league?: string
+  team?: string
   image_url: string
+  images?: string[] | null
   sizes: string[]
   stock_quantity?: number
   stock?: number
   tech_specs?: Record<string, string>
-  personalization_price?: number
+  personalization_price?: number | null
 }
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 24 },
-  visible: (i = 0) => ({
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] as const, delay: i * 0.07 },
-  }),
+const DEFAULT_SIZES = ['P', 'M', 'G', 'GG', 'XG']
+
+const SIZE_GUIDE = [
+  { size: 'P', width: 50, height: 69 },
+  { size: 'M', width: 52, height: 71 },
+  { size: 'G', width: 54, height: 73 },
+  { size: 'GG', width: 56, height: 75 },
+  { size: 'XG', width: 58, height: 77 },
+]
+
+function SizeGuideTable() {
+  return (
+    <table className="w-full text-left text-sm">
+      <thead>
+        <tr className="border-b border-border text-xs uppercase tracking-[0.12em] text-muted-foreground">
+          <th className="py-3 pr-2 font-bold">Tamanho</th>
+          <th className="py-3 pr-2 font-bold">Largura (cm)</th>
+          <th className="py-3 font-bold">Altura (cm)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {SIZE_GUIDE.map((row) => (
+          <tr key={row.size} className="border-b border-border/60 last:border-0">
+            <td className="py-3 pr-2 font-bold">{row.size}</td>
+            <td className="py-3 pr-2 tabular-nums text-foreground/85">{row.width}</td>
+            <td className="py-3 tabular-nums text-foreground/85">{row.height}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+
+function Disclosure({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
+  return (
+    <details open={defaultOpen} className="group border-b border-border">
+      <summary className="flex cursor-pointer list-none items-center justify-between py-4 text-sm font-bold uppercase tracking-[0.1em] [&::-webkit-details-marker]:hidden">
+        {title}
+        <ChevronDown className="size-4 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden />
+      </summary>
+      <div className="pb-5 text-sm leading-7 text-muted-foreground">{children}</div>
+    </details>
+  )
+}
+
+function ProductSkeleton() {
+  return (
+    <div className="mx-auto grid max-w-[1440px] gap-10 px-4 pb-16 pt-[7.25rem] sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:px-8 lg:pt-[8.25rem]">
+      <Skeleton className="aspect-[4/5] rounded-3xl" />
+      <div className="space-y-5">
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="h-16 w-3/4" />
+        <Skeleton className="h-10 w-40" />
+        <div className="grid grid-cols-5 gap-2 pt-6">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 rounded-xl" />
+          ))}
+        </div>
+        <Skeleton className="h-14 rounded-full" />
+      </div>
+    </div>
+  )
 }
 
 export function ProductPage() {
   const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
+  const { settings } = useSettings()
+  const { toast } = useToast()
+  const addItem = useCartStore((state) => state.addItem)
+  const cartItems = useCartStore((state) => state.items)
 
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
+  const [leagues, setLeagues] = useState<ShowcaseLeague[]>([])
+  const [teams, setTeams] = useState<ShowcaseTeam[]>([])
+  const [showcase, setShowcase] = useState<ShowcaseProduct[]>([])
+  const [imageIndex, setImageIndex] = useState(0)
   const [selectedSize, setSelectedSize] = useState('')
+  const [sizeError, setSizeError] = useState(false)
   const [showSizeGuide, setShowSizeGuide] = useState(false)
+  const [personalize, setPersonalize] = useState(false)
   const [personalizedName, setPersonalizedName] = useState('')
   const [personalizedNumber, setPersonalizedNumber] = useState('')
-  const addItem = useCartStore((state) => state.addItem)
-  const cartItems = useCartStore((state) => state.items)
-  const { toast } = useToast()
+  const sizesRef = useRef<HTMLDivElement>(null)
+  const galleryRef = useRef<HTMLDivElement>(null)
+  const sizeGuideRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(sizeGuideRef, showSizeGuide)
 
   useEffect(() => {
+    let active = true
     async function fetchProduct() {
       if (!id) return
       setLoading(true)
+      setImageIndex(0)
+      setSelectedSize('')
+      setPersonalize(false)
+      setPersonalizedName('')
+      setPersonalizedNumber('')
       const { data, error } = await supabase.from('products').select('*').eq('id', id).single()
+      if (!active) return
       if (error) console.error('Error fetching product:', error)
-      else if (data) setProduct(data)
+      setProduct(data ?? null)
       setLoading(false)
+      window.scrollTo({ top: 0 })
     }
     fetchProduct()
+    return () => {
+      active = false
+    }
   }, [id])
 
-  const productName = product?.name || product?.title || ''
-  const stockQty = product?.stock_quantity ?? product?.stock ?? 0
+  useEffect(() => {
+    fetchLeaguesAndTeams()
+      .then(({ leagues, teams }) => {
+        setLeagues(leagues)
+        setTeams(teams)
+      })
+      .catch(() => {})
+    fetchShowcaseProducts()
+      .then(setShowcase)
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    if (!showSizeGuide) return
+    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && setShowSizeGuide(false)
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [showSizeGuide])
+
+  const related = useMemo(() => {
+    if (!product) return []
+    const sameTeam = showcase.filter((p) => p.id !== product.id && p.league === product.league && p.team === product.team)
+    const sameLeague = shuffle(showcase.filter((p) => p.league === product.league && p.team !== product.team))
+    return [...sameTeam, ...sameLeague].slice(0, 12)
+  }, [showcase, product])
+
+  if (loading) return <ProductSkeleton />
+
+  if (!product) {
+    return (
+      <div className="mx-auto flex min-h-[70vh] max-w-[1440px] flex-col items-center justify-center gap-6 px-4 pt-28 text-center">
+        <span className="flex size-20 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <Shirt className="size-9" aria-hidden />
+        </span>
+        <h1 className="display-title text-5xl">Camisa não encontrada</h1>
+        <p className="max-w-sm text-muted-foreground">Ela pode ter saído do catálogo. Que tal ver os outros modelos?</p>
+        <Button asChild size="lg">
+          <Link to="/produtos">
+            <ArrowLeft />
+            Ver todas as camisas
+          </Link>
+        </Button>
+      </div>
+    )
+  }
+
+  const rawName = product.name || product.title || ''
+  const name = displayProductName(rawName)
+  const league = leagues.find((l) => l.id === product.league)
+  const team = teams.find((t) => t.league_id === product.league && t.id === product.team)
+  const stockQty = product.stock_quantity ?? product.stock ?? 0
   const isLowStock = stockQty > 0 && stockQty <= 5
-  const hasPersonalization = personalizedName.trim().length > 0 || personalizedNumber.trim().length > 0
-  const personalizationCost = hasPersonalization ? (product?.personalization_price ?? PERSONALIZATION_PRICE) : 0
-  const finalPrice = (product?.price ?? 0) + personalizationCost
+  const sizes = product.sizes?.length ? product.sizes : DEFAULT_SIZES
+  const images = [product.image_url, ...(product.images || [])].filter(
+    (url, index, all) => url && all.indexOf(url) === index,
+  )
+  // 0 no produto é o valor padrão da coluna: vale o preço da configuração da loja.
+  const personalizationPrice = product.personalization_price || settings.personalization_price
+  const hasPersonalization = personalize && (personalizedName.trim().length > 0 || personalizedNumber.trim().length > 0)
+  const finalPrice = product.price + (hasPersonalization ? personalizationPrice : 0)
+
+  const goToImage = (index: number) => {
+    setImageIndex(index)
+    const el = galleryRef.current
+    if (el) el.scrollTo({ left: el.clientWidth * index, behavior: 'smooth' })
+  }
 
   const handleAddToCart = () => {
-    if (!product || !selectedSize) return
+    if (stockQty === 0) return
+    if (!selectedSize) {
+      setSizeError(true)
+      sizesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
 
-    const existing = cartItems.find((i) => i.id === product.id && i.size === selectedSize)
-    const currentQty = existing?.quantity ?? 0
-
-    if (stockQty > 0 && currentQty >= stockQty) {
+    const existing = cartItems.find((item) => item.id === product.id && item.size === selectedSize)
+    if (stockQty > 0 && (existing?.quantity ?? 0) >= stockQty) {
       toast(`Estoque esgotado para o tamanho ${selectedSize}. Máximo: ${stockQty} unidade(s).`, 'warning')
       return
     }
 
     addItem({
       id: product.id,
-      title: productName,
+      title: rawName,
       price: finalPrice,
-      imageUrl: resolveAssetUrl(product.image_url) || 'https://via.placeholder.com/600x800?text=Sem+Foto',
+      imageUrl: resolveAssetUrl(product.image_url),
       size: selectedSize,
       quantity: 1,
       stockQuantity: stockQty,
@@ -89,403 +249,393 @@ export function ProductPage() {
         ? { name: personalizedName.trim(), number: personalizedNumber.trim() }
         : undefined,
     })
-    toast(`${productName} adicionado ao carrinho!`, 'success')
   }
 
-  if (loading) {
-    return (
-      <div className="px-3 pt-28 pb-12 sm:px-6 sm:pt-32">
-        <div className="mx-auto flex min-h-[60vh] max-w-[1440px] flex-col items-center justify-center gap-6">
-          <div className="w-full max-w-4xl grid gap-6 xl:grid-cols-2">
-            <div className="aspect-[4/5] w-full animate-pulse bg-white/5 rounded-sm" />
-            <div className="space-y-6">
-              <div className="h-6 w-24 animate-pulse bg-white/5 rounded-sm" />
-              <div className="h-12 w-3/4 animate-pulse bg-white/5 rounded-sm" />
-              <div className="h-4 w-1/2 animate-pulse bg-white/5 rounded-sm" />
-              <div className="grid grid-cols-4 gap-4 mt-8">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="h-16 animate-pulse bg-white/5 rounded-sm" />
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (!product) {
-    return (
-      <div className="px-3 pt-28 pb-12 sm:px-6 sm:pt-32">
-        <div className="mx-auto flex min-h-[60vh] max-w-[1440px] flex-col items-center justify-center gap-6 text-center">
-          <h2 className="text-4xl font-display uppercase text-white">Produto não encontrado</h2>
-          <button
-            onClick={() => navigate('/produtos')}
-            className="btn-outline"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Voltar ao catálogo
-          </button>
-        </div>
-      </div>
-    )
-  }
+  const ctaLabel = stockQty === 0 ? 'Esgotado' : 'Adicionar à sacola'
 
   return (
-    <div className="px-3 pt-28 pb-16 sm:px-6 sm:pt-32 bg-background min-h-screen">
-      <div className="mx-auto max-w-[1440px] space-y-6">
-        <motion.button
-          onClick={() => navigate(-1)}
-          initial={{ opacity: 0, x: -16 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.4 }}
-          className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.02] px-5 py-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-white"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Voltar
-        </motion.button>
+    <div className="pb-28 pt-[7.25rem] lg:pb-8 lg:pt-[8.25rem]">
+      <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
+        <nav aria-label="Você está em" className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
+          <Link to="/" className="hover:text-foreground">
+            Início
+          </Link>
+          <ChevronRight className="size-3.5" aria-hidden />
+          <Link to="/produtos" className="hover:text-foreground">
+            Camisas
+          </Link>
+          {league && (
+            <>
+              <ChevronRight className="size-3.5" aria-hidden />
+              <Link to={`/produtos?liga=${league.id}`} className="hover:text-foreground">
+                {league.name}
+              </Link>
+            </>
+          )}
+          {team && (
+            <>
+              <ChevronRight className="size-3.5" aria-hidden />
+              <Link to={`/produtos?liga=${team.league_id}&time=${team.id}`} className="hover:text-foreground">
+                {team.name}
+              </Link>
+            </>
+          )}
+        </nav>
 
-        <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          {/* ─── Image panel ─── */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.97 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-            className="relative overflow-hidden rounded-[2rem] bg-card border border-border shadow-2xl"
-          >
-            <div className="relative aspect-[4/5] min-h-[360px] overflow-hidden group sm:min-h-[480px]">
-              <img
-                src={optimizedImageUrl(product.image_url, 1280)}
-                srcSet={optimizedImageSrcSet(product.image_url, [640, 960, 1280])}
-                sizes="(min-width: 1024px) 52vw, 100vw"
-                alt={productName}
-                fetchPriority="high"
-                className="h-full w-full object-cover transition-transform duration-1000 ease-out group-hover:scale-105"
-                onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-[#030303]/30 to-transparent opacity-90" />
-
-              <div className="absolute bottom-0 left-0 right-0 p-8 sm:p-12 z-10">
-                <div className="chip w-fit shadow-lg backdrop-blur-md">
-                  <ShieldCheck className="h-3.5 w-3.5" />
-                  Garantia Premium
-                </div>
-                <h1 className="mt-5 text-4xl font-display font-bold uppercase text-white sm:text-5xl lg:text-6xl tracking-tight leading-none">
-                  {productName}
-                </h1>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* ─── Right column ─── */}
-          <div className="space-y-5">
-            {/* Info panel */}
-            <motion.div
-              custom={0}
-              variants={fadeUp}
-              initial="hidden"
-              animate="visible"
-              className="glass-card rounded-[1.5rem] px-6 py-8 sm:p-10"
-            >
-              <div className="space-y-6">
-                <div className="flex flex-wrap gap-3">
-                  <span className="chip border-primary/30 bg-primary/10 text-primary">
-                    <Star className="h-3.5 w-3.5 fill-current mr-1" />
-                    {product.category || 'Linha premium'}
-                  </span>
-                  {isLowStock && (
-                    <span className="chip border-[#FF453A]/30 bg-[#FF453A]/10 text-[#FF453A]">
-                      Últimas {stockQty} unidades
-                    </span>
-                  )}
-                  {!isLowStock && stockQty > 0 && (
-                    <span className="chip border-[#25D366]/30 bg-[#25D366]/10 text-[#25D366]">
-                      Em estoque
-                    </span>
-                  )}
-                  {stockQty === 0 && (
-                    <span className="chip border-destructive/30 bg-destructive/10 text-destructive">
-                      Esgotado
-                    </span>
-                  )}
-                </div>
-
-                  <div>
-                    <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                      Valor da peça
-                    </p>
-                    <p className="mt-2 text-4xl font-display font-bold text-white sm:text-5xl tracking-tight">
-                      R$ {finalPrice.toFixed(2).replace('.', ',')}
-                    </p>
-                    {hasPersonalization && personalizationCost > 0 && (
-                      <p className="text-xs text-primary mt-1">
-                        +R$ {personalizationCost.toFixed(2).replace('.', ',')} personalização
-                      </p>
+        <div className="mt-6 grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:gap-12">
+          {/* ── Galeria ── */}
+          <div className="lg:grid lg:grid-cols-[84px_1fr] lg:items-start lg:gap-4">
+            {images.length > 1 && (
+              <div className="hidden flex-col gap-3 lg:flex">
+                {images.map((url, index) => (
+                  <button
+                    key={url}
+                    type="button"
+                    onClick={() => goToImage(index)}
+                    aria-label={`Ver foto ${index + 1}`}
+                    aria-current={index === imageIndex}
+                    className={cn(
+                      'overflow-hidden rounded-xl ring-2 transition-[box-shadow,opacity]',
+                      index === imageIndex ? 'ring-primary' : 'opacity-60 ring-transparent hover:opacity-100',
                     )}
-                  </div>
+                  >
+                    <img src={optimizedImageUrl(url, 168)} alt="" className="aspect-[4/5] w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
 
-                <p className="text-sm leading-relaxed text-muted-foreground sm:text-base font-medium">
-                  {product.description || 'Camiseta oficial com qualidade premium. Sinta o peso do manto. Escolha seu tamanho e peça pelo WhatsApp com exclusividade.'}
+            <div className={cn('relative', images.length <= 1 && 'lg:col-span-2')}>
+              <div
+                ref={galleryRef}
+                onScroll={(event) => {
+                  const el = event.currentTarget
+                  setImageIndex(Math.round(el.scrollLeft / el.clientWidth))
+                }}
+                className="shelf auto-cols-[100%] overflow-x-auto rounded-3xl bg-muted ring-1 ring-inset ring-white/[0.06]"
+              >
+                {images.map((url, index) => (
+                  <img
+                    key={url}
+                    src={optimizedImageUrl(url, 1280)}
+                    srcSet={optimizedImageSrcSet(url, [640, 960, 1280])}
+                    sizes="(min-width: 1024px) 55vw, 100vw"
+                    alt={index === 0 ? name : `${name}, foto ${index + 1}`}
+                    fetchPriority={index === 0 ? 'high' : undefined}
+                    loading={index === 0 ? 'eager' : 'lazy'}
+                    className="aspect-[4/5] w-full object-cover"
+                  />
+                ))}
+              </div>
+
+              {isLowStock && (
+                <Badge variant="flame" className="absolute left-4 top-4">
+                  Últimas {stockQty} unidades
+                </Badge>
+              )}
+
+              {images.length > 1 && (
+                <div className="absolute inset-x-0 bottom-2 flex justify-center lg:hidden">
+                  {images.map((url, index) => (
+                    <button
+                      key={url}
+                      type="button"
+                      onClick={() => goToImage(index)}
+                      aria-label={`Ver foto ${index + 1}`}
+                      aria-current={index === imageIndex}
+                      className="flex h-8 items-center px-1.5"
+                    >
+                      <span className={cn('block h-1.5 rounded-full transition-all', index === imageIndex ? 'w-6 bg-paper' : 'w-1.5 bg-white/50')} />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ── Informações e compra ── */}
+          <div className="lg:sticky lg:top-24 lg:self-start">
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}>
+              <div className="flex items-center gap-3">
+                {team?.logo_url && <img src={optimizedImageUrl(team.logo_url, 80)} alt="" className="size-9 object-contain" />}
+                <p className="text-sm font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                  {[team?.name, league?.name].filter(Boolean).join(' · ') || 'Camisa'}
                 </p>
+              </div>
 
-                {/* Tech Specs */}
+              <h1 className="display-title mt-4 text-5xl sm:text-6xl">{name}</h1>
+
+              <div className="mt-5 flex flex-wrap items-center gap-3">
+                <p className="text-4xl font-black tabular-nums">{formatPrice(finalPrice)}</p>
+                {stockQty === 0 ? (
+                  <Badge variant="destructive">Esgotado</Badge>
+                ) : (
+                  <Badge variant="success">Em estoque</Badge>
+                )}
+              </div>
+              {hasPersonalization && (
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Inclui {formatPrice(personalizationPrice)} de personalização
+                </p>
+              )}
+
+              {/* Tamanho */}
+              <div ref={sizesRef} className="mt-8">
+                <div className="flex items-center justify-between">
+                  <p id="size-label" className="text-sm font-bold uppercase tracking-[0.1em]">
+                    Tamanho{selectedSize && <span className="text-muted-foreground"> · {selectedSize}</span>}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowSizeGuide(true)}
+                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                  >
+                    <Ruler className="size-4" aria-hidden />
+                    Guia de medidas
+                  </button>
+                </div>
+                <div
+                  role="radiogroup"
+                  aria-labelledby="size-label"
+                  className="mt-3 grid grid-cols-5 gap-2"
+                  onKeyDown={(event) => {
+                    // Setas trocam o tamanho, como num grupo de rádio nativo.
+                    const forward = event.key === 'ArrowRight' || event.key === 'ArrowDown'
+                    const back = event.key === 'ArrowLeft' || event.key === 'ArrowUp'
+                    if (!forward && !back) return
+                    event.preventDefault()
+                    // Sem tamanho escolhido, a seta parte do botão que está com foco.
+                    const focusedSize = (event.target as HTMLElement).dataset.size ?? ''
+                    const current = sizes.indexOf(selectedSize || focusedSize)
+                    const next = sizes[(current + (forward ? 1 : -1) + sizes.length) % sizes.length]
+                    setSelectedSize(next)
+                    setSizeError(false)
+                    event.currentTarget.querySelector<HTMLButtonElement>(`[data-size="${next}"]`)?.focus()
+                  }}
+                >
+                  {sizes.map((size, index) => (
+                    <button
+                      key={size}
+                      type="button"
+                      role="radio"
+                      data-size={size}
+                      aria-checked={selectedSize === size}
+                      tabIndex={(selectedSize ? selectedSize === size : index === 0) ? 0 : -1}
+                      disabled={stockQty === 0}
+                      onClick={() => {
+                        setSelectedSize(size)
+                        setSizeError(false)
+                      }}
+                      className={cn(
+                        'h-12 rounded-xl border text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:text-muted-foreground/40 disabled:line-through',
+                        selectedSize === size
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : sizeError
+                            ? 'border-destructive/60 text-foreground'
+                            : 'border-input text-foreground hover:border-foreground/50',
+                      )}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+                {sizeError && (
+                  <p role="alert" className="mt-2 text-sm font-semibold text-destructive">
+                    Escolha um tamanho para continuar.
+                  </p>
+                )}
+              </div>
+
+              {/* Personalização */}
+              <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-card">
+                <button
+                  type="button"
+                  onClick={() => setPersonalize((v) => !v)}
+                  aria-expanded={personalize}
+                  className="flex w-full items-center gap-3 px-4 py-4 text-left"
+                >
+                  <span
+                    className={cn(
+                      'flex size-6 shrink-0 items-center justify-center rounded-md border-2 transition-colors',
+                      personalize ? 'border-primary bg-primary text-primary-foreground' : 'border-input',
+                    )}
+                  >
+                    {personalize && <Check className="size-4" strokeWidth={3} />}
+                  </span>
+                  <span className="flex-1">
+                    <span className="block font-bold">Personalizar com nome e número</span>
+                    <span className="block text-sm text-muted-foreground">+ {formatPrice(personalizationPrice)}</span>
+                  </span>
+                  <Shirt className="size-5 text-primary" aria-hidden />
+                </button>
+
+                <AnimatePresence initial={false}>
+                  {personalize && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                    >
+                      <div className="grid grid-cols-[1fr_7rem] items-center gap-4 border-t border-border p-4 sm:grid-cols-[1fr_8.5rem]">
+                        <div className="grid gap-3">
+                          <label className="space-y-1.5">
+                            <span className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">Nome</span>
+                            <input
+                              type="text"
+                              maxLength={15}
+                              value={personalizedName}
+                              onChange={(e) => setPersonalizedName(e.target.value.toUpperCase())}
+                              placeholder="EX.: GABIGOL"
+                              className="form-input h-11 py-0 font-bold uppercase"
+                            />
+                          </label>
+                          <label className="space-y-1.5">
+                            <span className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">Número</span>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              maxLength={2}
+                              value={personalizedNumber}
+                              onChange={(e) => setPersonalizedNumber(e.target.value.replace(/\D/g, '').slice(0, 2))}
+                              placeholder="10"
+                              className="form-input h-11 py-0 font-bold"
+                            />
+                          </label>
+                        </div>
+                        <JerseyPreview name={personalizedName} number={personalizedNumber} />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <div className="mt-6 grid gap-3">
+                <Button size="xl" className="w-full" onClick={handleAddToCart} disabled={stockQty === 0}>
+                  <ShoppingBag />
+                  {ctaLabel}
+                </Button>
+                {settings.whatsapp_number && (
+                  <Button asChild size="lg" variant="outline" className="w-full">
+                    <a
+                      href={whatsappUrl(settings.whatsapp_number, `Olá! Tenho uma dúvida sobre a camisa "${rawName}".`)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <WhatsAppIcon className="size-4 text-success" />
+                      Tirar dúvida no WhatsApp
+                    </a>
+                  </Button>
+                )}
+              </div>
+
+              <ul className="mt-6 grid gap-3 rounded-2xl border border-border p-4 text-sm">
+                <li className="flex items-center gap-3">
+                  <Truck className="size-5 shrink-0 text-primary" aria-hidden />
+                  <span>
+                    <strong className="font-semibold">Frete grátis</strong> acima de {formatPrice(settings.shipping_free_threshold)} · envio para todo o Brasil
+                  </span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <QrCode className="size-5 shrink-0 text-primary" aria-hidden />
+                  <span>
+                    <strong className="font-semibold">Pagamento via PIX</strong>, confirmação pelo WhatsApp
+                  </span>
+                </li>
+              </ul>
+
+              <div className="mt-4">
+                <Disclosure title="Descrição" defaultOpen>
+                  {product.description || 'Camisa com acabamento de qualidade. Escolha seu tamanho e, se quiser, personalize com nome e número.'}
+                </Disclosure>
                 {product.tech_specs && Object.keys(product.tech_specs).length > 0 && (
-                  <div className="border-t border-border pt-6">
-                    <p className="mb-4 font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                      Especificações Premium
-                    </p>
-                    <dl className="grid gap-3">
-                      {Object.entries(product.tech_specs).map(([k, v]) => (
-                        <div key={k} className="flex justify-between gap-4 text-sm bg-white/[0.02] p-3 rounded-lg border border-white/[0.05]">
-                          <dt className="text-muted-foreground capitalize">{k}</dt>
-                          <dd className="font-semibold text-white">{v}</dd>
+                  <Disclosure title="Especificações">
+                    <dl className="grid gap-2">
+                      {Object.entries(product.tech_specs).map(([key, value]) => (
+                        <div key={key} className="flex justify-between gap-4">
+                          <dt className="capitalize">{key}</dt>
+                          <dd className="font-semibold text-foreground">{value}</dd>
                         </div>
                       ))}
                     </dl>
-                  </div>
+                  </Disclosure>
                 )}
-              </div>
-            </motion.div>
-
-            {/* Size + WhatsApp panel */}
-            <motion.div
-              custom={1}
-              variants={fadeUp}
-              initial="hidden"
-              animate="visible"
-              className="glass-card rounded-[1.5rem] px-6 py-8 sm:p-10"
-            >
-              <div className="space-y-6">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <h2 className="text-xl font-display font-bold uppercase text-white tracking-tight">
-                      Escolha o tamanho
-                    </h2>
-                    <button 
-                      onClick={() => setShowSizeGuide(true)}
-                      className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition-colors underline decoration-white/20 underline-offset-4 hover:decoration-primary/50"
-                    >
-                      Guia de Medidas
-                    </button>
-                  </div>
-                  <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
-                    Passo 1
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
-                  {(product.sizes?.length ? product.sizes : ['P', 'M', 'G', 'GG', 'XG']).map((size) => (
-                    <motion.button
-                      key={size}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => setSelectedSize(size)}
-                      className={`rounded-xl border px-2 py-4 text-center font-display text-lg font-bold uppercase transition-all ${
-                        selectedSize === size
-                          ? 'border-primary bg-primary text-primary-foreground shadow-[0_0_20px_rgba(229,192,123,0.3)]'
-                          : 'border-white/[0.08] bg-white/[0.02] text-muted-foreground hover:border-primary/40 hover:text-white'
-                      }`}
-                    >
-                      {size}
-                    </motion.button>
-                  ))}
-                </div>
-
-                {/* Personalization Section */}
-                <div className="border-t border-border pt-6">
-                  <div className="flex items-center justify-between gap-4 mb-4">
-                    <div className="flex items-center gap-3">
-                      <Shirt className="h-4 w-4 text-primary" />
-                      <h2 className="text-xl font-display font-bold uppercase text-white tracking-tight">
-                        Personalização
-                      </h2>
-                    </div>
-                    <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
-                      Opcional
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1">
-                        Nome
-                      </label>
-                      <input
-                        type="text"
-                        maxLength={15}
-                        value={personalizedName}
-                        onChange={(e) => setPersonalizedName(e.target.value.toUpperCase())}
-                        placeholder="EX: MESSI"
-                        className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white uppercase placeholder:text-white/20 focus:outline-none focus:ring-1 focus:ring-primary"
-                      />
-                    </div>
-                    <div>
-                      <label className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1">
-                        Número
-                      </label>
-                      <input
-                        type="text"
-                        maxLength={2}
-                        value={personalizedNumber}
-                        onChange={(e) => setPersonalizedNumber(e.target.value.replace(/\D/g, '').slice(0, 2))}
-                        placeholder="10"
-                        className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:ring-1 focus:ring-primary"
-                      />
-                    </div>
-                  </div>
-                  {hasPersonalization && (
-                    <div className="mt-3 flex items-center gap-2 rounded-lg bg-primary/5 border border-primary/20 px-3 py-2">
-                      <span className="text-xs text-primary font-semibold">+R$ {(product?.personalization_price ?? PERSONALIZATION_PRICE).toFixed(2).replace('.', ',')}</span>
-                      <span className="text-xs text-muted-foreground">adicional por personalização</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Separator */}
-                <div className="flex items-center gap-4">
-                  <div className="h-px flex-1 bg-border" />
-                  <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">Finalizar</span>
-                  <div className="h-px flex-1 bg-border" />
-                </div>
-
-                <AnimatePresence mode="wait">
-                  <motion.button
-                    key="cart-btn"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    disabled={!selectedSize || stockQty === 0}
-                    whileHover={selectedSize && stockQty > 0 ? { scale: 1.02 } : {}}
-                    whileTap={selectedSize && stockQty > 0 ? { scale: 0.98 } : {}}
-                    onClick={handleAddToCart}
-                    className={`group flex h-14 w-full items-center justify-center gap-3 rounded-full font-display text-sm font-bold uppercase tracking-wider transition-all ${
-                      stockQty === 0
-                        ? 'cursor-not-allowed bg-white/[0.05] text-muted-foreground'
-                        : !selectedSize
-                          ? 'bg-white/[0.05] text-muted-foreground cursor-not-allowed'
-                          : 'bg-primary text-primary-foreground shadow-[0_10px_20px_rgba(229,192,123,0.2)] hover:shadow-[0_15px_30px_rgba(229,192,123,0.3)] hover:-translate-y-1'
-                    }`}
-                  >
-                    {stockQty === 0 ? (
-                      <>
-                        <AlertTriangle className="h-5 w-5" />
-                        Sem estoque
-                      </>
-                    ) : !selectedSize ? (
-                      <>
-                        <Zap className="h-5 w-5 opacity-40" />
-                        Selecione um tamanho
-                      </>
-                    ) : (
-                      <>
-                        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="9" cy="21" r="1"></circle>
-                          <circle cx="20" cy="21" r="1"></circle>
-                          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                        </svg>
-                        Adicionar ao carrinho
-                        <MoveRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-                      </>
-                    )}
-                  </motion.button>
-                </AnimatePresence>
-
-
-              </div>
-            </motion.div>
-
-            {/* Stats */}
-            <motion.div custom={2} variants={fadeUp} initial="hidden" animate="visible" className="grid gap-5 sm:grid-cols-2">
-              <div className="glass-card rounded-[1.5rem] px-6 py-6">
-                <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                  Qualidade
-                </p>
-                <p className="mt-2 text-2xl font-display font-bold uppercase text-white tracking-tight">
-                  Premium
-                </p>
-              </div>
-              <div className="glass-card rounded-[1.5rem] px-6 py-6">
-                <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                  Estoque
-                </p>
-                <p className={`mt-2 text-2xl font-display font-bold uppercase tracking-tight ${isLowStock ? 'text-[#FF453A]' : stockQty === 0 ? 'text-destructive' : 'text-white'}`}>
-                  {stockQty > 0 ? `${stockQty} un.` : 'Esgotado'}
-                </p>
+                <Disclosure title="Guia de medidas">
+                  <SizeGuideTable />
+                  <p className="mt-3 text-xs">As medidas podem variar de 1 a 2 cm.</p>
+                </Disclosure>
               </div>
             </motion.div>
           </div>
         </div>
       </div>
 
-      {/* Size Guide Modal */}
+      {related.length > 0 && (
+        <ProductShelf
+          eyebrow={team ? `Mais do ${team.name}` : 'Combina com você'}
+          title={
+            <>
+              Você também <span className="text-highlight">vai curtir</span>
+            </>
+          }
+          href={team ? `/produtos?liga=${team.league_id}&time=${team.id}` : '/produtos'}
+          products={related}
+        />
+      )}
+
+      {/* Barra de compra fixa no celular. */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-4 py-3 backdrop-blur-xl lg:hidden">
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs text-muted-foreground">{selectedSize ? `Tamanho ${selectedSize}` : 'Escolha o tamanho'}</p>
+            <p className="text-lg font-black tabular-nums">{formatPrice(finalPrice)}</p>
+          </div>
+          <Button size="lg" onClick={handleAddToCart} disabled={stockQty === 0} className="px-6">
+            <ShoppingBag />
+            {stockQty === 0 ? 'Esgotado' : 'Adicionar'}
+          </Button>
+        </div>
+      </div>
+
+      {/* Guia de medidas (portal: fica acima do cabeçalho) */}
+      {createPortal(
       <AnimatePresence>
         {showSizeGuide && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4"
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
             onClick={() => setShowSizeGuide(false)}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              ref={sizeGuideRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="size-guide-title"
+              initial={{ scale: 0.96, opacity: 0, y: 16 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              exit={{ scale: 0.96, opacity: 0, y: 16 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-lg rounded-[2rem] border border-white/10 bg-[#0a0a0a] p-8 shadow-2xl"
+              className="relative w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-2xl sm:p-8"
             >
-              <button
-                onClick={() => setShowSizeGuide(false)}
-                className="absolute right-6 top-6 text-white/50 hover:text-white transition-colors"
-              >
-                ✕
-              </button>
-              <h3 className="text-2xl font-display font-bold uppercase text-white mb-6">Guia de Medidas</h3>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm text-white/70">
-                  <thead>
-                    <tr className="border-b border-white/10 text-primary font-display uppercase tracking-wider">
-                      <th className="pb-3 font-medium">Tamanho</th>
-                      <th className="pb-3 font-medium">Largura (cm)</th>
-                      <th className="pb-3 font-medium">Altura (cm)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-b border-white/5 transition-colors hover:bg-white/[0.02]">
-                      <td className="py-3 font-bold text-white px-2">P</td>
-                      <td className="py-3 px-2">50</td>
-                      <td className="py-3 px-2">69</td>
-                    </tr>
-                    <tr className="border-b border-white/5 transition-colors hover:bg-white/[0.02]">
-                      <td className="py-3 font-bold text-white px-2">M</td>
-                      <td className="py-3 px-2">52</td>
-                      <td className="py-3 px-2">71</td>
-                    </tr>
-                    <tr className="border-b border-white/5 transition-colors hover:bg-white/[0.02]">
-                      <td className="py-3 font-bold text-white px-2">G</td>
-                      <td className="py-3 px-2">54</td>
-                      <td className="py-3 px-2">73</td>
-                    </tr>
-                    <tr className="border-b border-white/5 transition-colors hover:bg-white/[0.02]">
-                      <td className="py-3 font-bold text-white px-2">GG</td>
-                      <td className="py-3 px-2">56</td>
-                      <td className="py-3 px-2">75</td>
-                    </tr>
-                    <tr className="transition-colors hover:bg-white/[0.02]">
-                      <td className="py-3 font-bold text-white px-2">XG</td>
-                      <td className="py-3 px-2">58</td>
-                      <td className="py-3 px-2">77</td>
-                    </tr>
-                  </tbody>
-                </table>
+              <Button variant="ghost" size="icon" onClick={() => setShowSizeGuide(false)} className="absolute right-4 top-4" aria-label="Fechar">
+                <X />
+              </Button>
+              <h2 id="size-guide-title" className="display-title text-4xl">
+                Guia de medidas
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">Meça uma camisa sua deitada e compare.</p>
+              <div className="mt-5">
+                <SizeGuideTable />
               </div>
-              <p className="mt-6 text-xs text-white/40 text-center">
-                * As medidas podem variar de 1 a 2 cm.
-              </p>
+              <p className="mt-4 text-xs text-muted-foreground">As medidas podem variar de 1 a 2 cm.</p>
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+        document.body,
+      )}
     </div>
   )
 }

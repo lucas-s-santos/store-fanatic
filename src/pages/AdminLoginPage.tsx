@@ -29,23 +29,22 @@ export function AdminLoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#030303] px-4" translate="no">
-      <div className="absolute inset-0 grid-overlay pointer-events-none opacity-20" />
+    <div className="flex min-h-screen items-center justify-center bg-background px-4" translate="no">
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#0a0a0a] p-8 shadow-2xl"
+        className="relative w-full max-w-md rounded-2xl border border-white/10 bg-card p-8 shadow-2xl"
       >
         <div className="mb-8 flex flex-col items-center gap-4 text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10">
             <Lock className="h-7 w-7 text-primary" />
           </div>
           <div>
-            <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-primary/70">
+            <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-primary/70">
               Acesso Restrito
             </p>
-            <h1 className="mt-1 text-2xl font-display font-bold uppercase tracking-widest text-white">
+            <h1 className="mt-1 text-2xl font-heading font-bold uppercase tracking-widest text-white">
               Painel Admin
             </h1>
           </div>
@@ -63,7 +62,7 @@ export function AdminLoginPage() {
 
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
-            <label className="mb-2 block font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            <label className="mb-2 block font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
               E-mail Administrativo
             </label>
             <div className="relative">
@@ -80,7 +79,7 @@ export function AdminLoginPage() {
           </div>
 
           <div>
-            <label className="mb-2 block font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            <label className="mb-2 block font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
               Senha
             </label>
             <div className="relative">
