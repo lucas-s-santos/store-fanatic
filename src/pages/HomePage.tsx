@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowRight, QrCode, Shirt, Star, Truck, Users } from 'lucide-react'
 
+import { HowToBuy } from '../components/home/HowToBuy'
 import { JerseyRack, type RackItem } from '../components/home/JerseyRack'
 import { ProductShelf } from '../components/home/ProductShelf'
 import { SectionHeading } from '../components/home/SectionHeading'
@@ -416,6 +417,8 @@ export function HomePage() {
         products={view.europe}
         loading={loading}
       />
+
+      <HowToBuy personalizationPrice={settings.personalization_price} whatsappNumber={settings.whatsapp_number} />
 
       {/* ── Depoimentos e números (só aparecem com dados reais) ── */}
       {(testimonials.length > 0 || visibleStats.length >= 2) && (
