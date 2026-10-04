@@ -1,12 +1,22 @@
 import { Outlet } from 'react-router-dom'
 
+import { cn } from '../../lib/utils'
+import { useShowTabBar } from './nav/useShowTabBar'
+
 import { Header } from './Header'
 import { Footer } from './Footer'
 import { CartDrawer } from './CartDrawer'
 
 export function Layout({ children }: { children?: React.ReactNode }) {
+  const showTabBar = useShowTabBar()
   return (
-    <div className="relative flex min-h-screen flex-col bg-background text-foreground">
+    <div
+      className={cn(
+        'relative flex min-h-screen flex-col bg-background text-foreground',
+        // Espaço para a barra de atalhos do celular não cobrir o rodapé.
+        showTabBar && 'max-lg:pb-[calc(4rem+env(safe-area-inset-bottom))]',
+      )}
+    >
       {/* Luz de estádio no topo; o resto do fundo é a tinta lisa. */}
       <div
         aria-hidden

@@ -35,7 +35,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={{ toast }}>
       {children}
       <div
-        className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3 pointer-events-none"
+        className="pointer-events-none fixed bottom-24 right-4 z-[9999] flex flex-col gap-3 lg:bottom-6 lg:right-6"
         style={{ maxWidth: 'min(380px, calc(100vw - 3rem))' }}
       >
         <AnimatePresence>

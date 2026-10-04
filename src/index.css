@@ -100,6 +100,10 @@
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Curvas de movimento (Emil Kowalski): entrada/saída, movimento na tela, gaveta estilo iOS. */
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 
   --animate-marquee: marquee var(--marquee-duration, 40s) linear infinite;
   --animate-marquee-reverse: marquee var(--marquee-duration, 40s) linear infinite reverse;
@@ -288,6 +292,50 @@
   /* Esmaece as bordas de faixas que rolam sozinhas. */
   .fade-x {
     mask-image: linear-gradient(90deg, transparent, black 6%, black 94%, transparent);
+  }
+
+  /*
+   * Text roll: cada letra sobe e uma cópia entra por baixo, em cascata.
+   * Técnica do Skiper UI #58 (skiper-ui.com), refeita em CSS: transições são
+   * interrompíveis e não criam um componente animado por letra.
+   * Só com mouse e sem "reduzir movimento"; foco por teclado não anima.
+   */
+  .text-roll-track {
+    display: inline-flex;
+    overflow: hidden;
+    line-height: 1.35;
+  }
+
+  .text-roll-char {
+    position: relative;
+    display: inline-block;
+    white-space: pre;
+    transition: transform 260ms var(--ease-in-out-strong);
+    transition-delay: calc(var(--i, 0) * 14ms);
+  }
+
+  .text-roll-char::after {
+    content: attr(data-char);
+    position: absolute;
+    inset-inline: 0;
+    top: 100%;
+  }
+
+  @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    .roll-trigger:hover .text-roll-char {
+      transform: translateY(-100%);
+    }
+  }
+
+  /*
+   * Desfoque progressivo atrás do cabeçalho flutuante (Skiper UI #41): o
+   * conteúdo vai ficando borrado conforme passa por baixo da pílula.
+   */
+  .progressive-blur {
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    background: linear-gradient(to bottom, rgb(9 12 19 / 0.75), rgb(9 12 19 / 0));
+    mask-image: linear-gradient(to bottom, black 55%, transparent);
   }
 
   .marquee-paused,
