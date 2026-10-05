@@ -36,6 +36,8 @@ function App() {
           <Route path="/pedido/:orderId" element={<OrderTrackingPage />} />
           <Route path="/meus-pedidos" element={<MyOrdersPage />} />
           <Route path="/login" element={<AuthPage />} />
+          {/* key: ir daqui para /login recria a página no modo de login */}
+          <Route path="/redefinir-senha" element={<AuthPage key="reset" initialMode="reset" />} />
         </Route>
 
         {/* Admin (Protegido) */}

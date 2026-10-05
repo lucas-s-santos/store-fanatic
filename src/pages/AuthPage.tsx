@@ -12,10 +12,12 @@ import { fetchShowcaseProducts, shuffle } from '../lib/catalog'
 import { supabase } from '../lib/supabase'
 import { cn } from '../lib/utils'
 
-type Mode = 'login' | 'register' | 'forgot'
+type Mode = 'login' | 'register' | 'forgot' | 'reset'
 
 function translateError(msg: string): string {
   if (msg.includes('Invalid login credentials')) return 'E-mail ou senha incorretos.'
+  if (msg.includes('should be different from the old password')) return 'A nova senha precisa ser diferente da atual.'
+  if (msg.includes('Auth session missing')) return 'O link expirou. Peça um novo.'
   if (msg.includes('Email not confirmed')) return 'Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada.'
   if (msg.includes('User already registered')) return 'Este e-mail já possui cadastro. Tente fazer login.'
   if (msg.includes('Password should be at least')) return 'A senha deve ter pelo menos 6 caracteres.'
@@ -162,12 +164,131 @@ function JerseyWall() {
   )
 }
 
-export function AuthPage() {
+/** Aberto pelo link do e-mail de "esqueci a senha": o link já entra na conta, falta gravar a senha nova. */
+function ResetPasswordForm({ onRequestNewLink }: { onRequestNewLink: () => void }) {
+  const navigate = useNavigate()
+  const [status, setStatus] = useState<'checking' | 'ready' | 'invalid' | 'done'>('checking')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    // getSession espera o Supabase terminar de ler o token que veio no link.
+    supabase.auth.getSession().then(({ data }) => setStatus(data.session ? 'ready' : 'invalid'))
+  }, [])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    if (password.length < 6) { setError('A senha deve ter pelo menos 6 caracteres.'); return }
+    if (password !== confirmPassword) { setError('As senhas não coincidem.'); return }
+
+    setLoading(true)
+    const { error: updateError } = await supabase.auth.updateUser({ password })
+    setLoading(false)
+    if (updateError) { setError(translateError(updateError.message)); return }
+    setStatus('done')
+  }
+
+  if (status === 'checking') {
+    return (
+      <div className="flex justify-center py-10">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" aria-label="Carregando" />
+      </div>
+    )
+  }
+
+  if (status === 'invalid') {
+    return (
+      <div role="alert" className="flex flex-col items-center gap-3 rounded-2xl border border-destructive/25 bg-destructive/10 p-6 text-center">
+        <p className="font-bold">Link inválido ou expirado</p>
+        <p className="text-sm text-muted-foreground">
+          O link de recuperação vale por pouco tempo e só pode ser usado uma vez. Peça um novo para continuar.
+        </p>
+        <Button onClick={onRequestNewLink}>Pedir um novo link</Button>
+      </div>
+    )
+  }
+
+  if (status === 'done') {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        role="status"
+        className="flex flex-col items-center gap-3 rounded-2xl border border-success/25 bg-success/10 p-6 text-center"
+      >
+        <CheckCircle2 className="size-10 text-success" aria-hidden />
+        <p className="font-bold">Senha alterada!</p>
+        <p className="text-sm text-muted-foreground">Você já está conectado com a senha nova.</p>
+        <Button variant="ghost" onClick={() => navigate('/')}>
+          Ir para a loja
+        </Button>
+      </motion.div>
+    )
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <Field
+          label="Nova senha"
+          icon={Lock}
+          type={showPassword ? 'text' : 'password'}
+          value={password}
+          onChange={v => { setPassword(v); setError('') }}
+          placeholder="••••••••"
+          autoComplete="new-password"
+          required
+          right={<RevealButton shown={showPassword} onToggle={() => setShowPassword(v => !v)} />}
+        />
+        <PasswordStrength password={password} />
+      </div>
+
+      <div>
+        <Field
+          label="Confirmar nova senha"
+          icon={Lock}
+          type={showConfirm ? 'text' : 'password'}
+          value={confirmPassword}
+          onChange={v => { setConfirmPassword(v); setError('') }}
+          placeholder="••••••••"
+          autoComplete="new-password"
+          required
+          right={<RevealButton shown={showConfirm} onToggle={() => setShowConfirm(v => !v)} />}
+        />
+        {confirmPassword && password !== confirmPassword && (
+          <p className="mt-1.5 text-xs font-medium text-destructive">As senhas não coincidem.</p>
+        )}
+        {confirmPassword && password === confirmPassword && (
+          <p className="mt-1.5 flex items-center gap-1 text-xs font-medium text-success">
+            <CheckCircle2 className="size-3.5" aria-hidden /> Senhas conferem
+          </p>
+        )}
+      </div>
+
+      {error && (
+        <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
+          {error}
+        </p>
+      )}
+
+      <Button type="submit" size="xl" disabled={loading} className="mt-2 w-full">
+        {loading ? <Loader2 className="animate-spin" /> : 'Salvar nova senha'}
+      </Button>
+    </form>
+  )
+}
+
+export function AuthPage({ initialMode = 'login' }: { initialMode?: Mode }) {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const nextUrl = searchParams.get('next') || '/'
 
-  const [mode, setMode] = useState<Mode>('login')
+  const [mode, setMode] = useState<Mode>(initialMode)
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
@@ -222,7 +343,7 @@ export function AuthPage() {
         navigate(nextUrl)
       } else {
         const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/login`,
+          redirectTo: `${window.location.origin}/redefinir-senha`,
         })
         if (resetError) throw new Error(translateError(resetError.message))
         setSuccess('Link enviado! Verifique seu e-mail para redefinir a senha.')
@@ -272,18 +393,33 @@ export function AuthPage() {
                 {mode === 'login' && 'Entrar'}
                 {mode === 'register' && 'Criar conta'}
                 {mode === 'forgot' && 'Recuperar senha'}
+                {mode === 'reset' && 'Nova senha'}
               </h1>
               <p className="mt-3 text-muted-foreground">
                 {mode === 'login' && 'Acompanhe seus pedidos e finalize compras mais rápido.'}
                 {mode === 'register' && 'É grátis e leva menos de um minuto.'}
                 {mode === 'forgot' && 'Informe seu e-mail e enviamos um link para criar uma nova senha.'}
+                {mode === 'reset' && 'Escolha a senha que você vai usar para entrar daqui em diante.'}
               </p>
             </motion.div>
           </AnimatePresence>
 
           <div className="rounded-[2rem] border border-border bg-card p-6 sm:p-8">
             <AnimatePresence mode="wait" custom={mode === 'register' ? 1 : -1}>
-              {mode === 'forgot' ? (
+              {mode === 'reset' ? (
+                /* ── NOVA SENHA (link do e-mail) ── */
+                <motion.div
+                  key="reset"
+                  custom={1}
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.22, ease: 'easeOut' }}
+                >
+                  <ResetPasswordForm onRequestNewLink={() => switchMode('forgot')} />
+                </motion.div>
+              ) : mode === 'forgot' ? (
                 /* ── ESQUECI SENHA ── */
                 <motion.div
                   key="forgot"

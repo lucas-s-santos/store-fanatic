@@ -15,3 +15,12 @@ export const supabase = createClient(supabaseUrl || "http://localhost:54321", su
     storageKey: 'sf-auth',
   },
 })
+
+// O link de "esqueci a senha" abre uma sessão de recuperação. Se o Supabase
+// devolver a pessoa para outra página (endereço fora das Redirect URLs do
+// painel), leva para a tela de nova senha mesmo assim.
+supabase.auth.onAuthStateChange((event) => {
+  if (event === 'PASSWORD_RECOVERY' && window.location.pathname !== '/redefinir-senha') {
+    window.location.replace('/redefinir-senha')
+  }
+})
