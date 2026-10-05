@@ -428,10 +428,19 @@ export function CheckoutPage() {
         await supabase.rpc('increment_coupon_usage', { coupon_code: appliedCoupon.code })
       }
 
-      // 5. Salvar ID para rastreio e limpar carrinho
+      // 5. O banco recalcula o total a partir do catálogo (migration_013);
+      // a tela do PIX mostra o valor gravado, não o calculado aqui.
+      const { data: savedOrder } = await supabase
+        .from('orders')
+        .select('total_amount')
+        .eq('id', orderData.id)
+        .single()
+      const finalTotal = savedOrder?.total_amount != null ? Number(savedOrder.total_amount) : grandTotal
+
+      // 6. Salvar ID para rastreio e limpar carrinho
       sessionStorage.setItem('last_order_id', orderData.id)
       clearCart()
-      setCompletedOrder({ id: orderData.id, grandTotal })
+      setCompletedOrder({ id: orderData.id, grandTotal: finalTotal })
 
     } catch (err) {
       console.error('Erro ao finalizar pedido:', err)

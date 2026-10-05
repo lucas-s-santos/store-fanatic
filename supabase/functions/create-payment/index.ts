@@ -1,6 +1,10 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const MERCADO_PAGO_ACCESS_TOKEN = Deno.env.get('MERCADO_PAGO_ACCESS_TOKEN') || ''
+// Mesma regra do mp-webhook: secret própria (sb_secret_...) ou a injetada.
+const SUPABASE_SERVICE_KEY =
+  Deno.env.get('SF_SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
 const MP_API = 'https://api.mercadopago.com'
 
 const corsHeaders = {
@@ -53,13 +57,29 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
     const notificationUrl = `${supabaseUrl}/functions/v1/mp-webhook`
 
+    // O valor cobrado é o total gravado no pedido (calculado pelo banco,
+    // migration_013), nunca o grand_total enviado pelo navegador.
+    const supabase = createClient(supabaseUrl, SUPABASE_SERVICE_KEY)
+    const { data: order } = await supabase
+      .from('orders')
+      .select('id, total_amount, status')
+      .eq('id', body.order_id)
+      .maybeSingle()
+
+    if (!order || order.status !== 'aguardando_pagamento' || !(Number(order.total_amount) > 0)) {
+      return new Response(
+        JSON.stringify({ error: 'Pedido não encontrado ou não está aguardando pagamento' }),
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const preference = {
       items: [
         {
           id: body.order_id,
           title: body.items_description || `Pedido Store Fanatic #${body.order_id.slice(0, 8)}`,
           quantity: 1,
-          unit_price: Number(body.grand_total.toFixed(2)),
+          unit_price: Number(Number(order.total_amount).toFixed(2)),
           currency_id: 'BRL',
         },
       ],

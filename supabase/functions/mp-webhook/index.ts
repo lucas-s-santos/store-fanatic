@@ -49,6 +49,26 @@ serve(async (req) => {
         orderStatus = 'cancelado'
       }
 
+      // Só marca como pago se o valor recebido cobrir o total gravado no pedido.
+      if (orderStatus === 'pago') {
+        const { data: order } = await supabase
+          .from('orders')
+          .select('total_amount')
+          .eq('id', orderId)
+          .maybeSingle()
+        const paid = Number(payment.transaction_amount ?? 0)
+        if (!order || paid + 0.005 < Number(order.total_amount)) {
+          console.error(`Valor pago (${paid}) não cobre o total do pedido ${orderId}`)
+          await supabase.from('activity_logs').insert({
+            action: 'payment_amount_mismatch',
+            entity_type: 'order',
+            entity_id: orderId,
+            details: { payment_id: paymentId, paid, total: order?.total_amount ?? null },
+          })
+          return new Response('OK', { status: 200 })
+        }
+      }
+
       const { error } = await supabase
         .from('orders')
         .update({
