@@ -24,10 +24,12 @@ export function useAuth() {
       setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const u = session?.user ?? null
       setUser(u)
-      if (u) await fetchRole(u.id)
+      // Consultar o Supabase dentro deste callback trava a biblioteca de login
+      // (ela espera o callback, e a consulta espera por ela). O setTimeout adia.
+      if (u) setTimeout(() => fetchRole(u.id), 0)
       else setIsAdmin(false)
     })
 

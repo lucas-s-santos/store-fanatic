@@ -27,9 +27,10 @@ export function AdminProtectedRoute() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
-      if (session?.user) await checkAdmin(session.user.id)
+      // Mesma regra do useAuth: nada de consulta ao Supabase direto no callback.
+      if (session?.user) setTimeout(() => checkAdmin(session.user.id), 0)
       else setIsAdmin(false)
     })
 
