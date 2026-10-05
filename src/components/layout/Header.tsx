@@ -16,12 +16,13 @@ import { useAuth } from '../../lib/useAuth'
 import { useSettings } from '../../lib/useSettings'
 import { cn, formatPrice } from '../../lib/utils'
 
-const NAV_ITEMS: NavItem[] = [
-  { label: 'Início', to: '/' },
-  { label: 'Camisas', to: '/produtos' },
-  { label: 'Seleções', to: '/produtos?liga=selecoes' },
-  { label: 'Brasileirão', to: '/produtos?liga=brasileirao' },
+// Todas as camisas ficam num lugar só: "Camisas" (mega menu com as ligas).
+const NAV_BEFORE: NavItem[] = [{ label: 'Início', to: '/' }]
+const NAV_AFTER: NavItem[] = [
+  { label: 'Personalizar', to: '/#personalize' },
+  { label: 'Como comprar', to: '/#como-comprar' },
 ]
+const MOBILE_ITEMS: NavItem[] = [...NAV_BEFORE, { label: 'Camisas', to: '/produtos' }, ...NAV_AFTER]
 
 /** A partir daqui o cabeçalho vira a pílula flutuante. */
 const FLOAT_AFTER = 80
@@ -110,10 +111,42 @@ export function Header() {
   }
 
   const isActive = (to: string) => {
-    const [path, query] = to.split('?')
-    if (query) return location.pathname === path && location.search.includes(query)
-    if (path === '/') return location.pathname === '/'
-    return location.pathname.startsWith(path) && !location.search.includes('liga=')
+    const [path, hash] = to.split('#')
+    if (hash) return location.pathname === '/' && location.hash === `#${hash}`
+    if (path === '/') return location.pathname === '/' && !location.hash
+    return location.pathname.startsWith(path)
+  }
+
+  const renderLink = (item: NavItem) => {
+    const active = isActive(item.to)
+    return (
+      <li key={item.to} className="relative" onMouseEnter={() => setHovered(item.to)}>
+        <Link
+          to={item.to}
+          aria-current={active ? 'page' : undefined}
+          className={cn(
+            'roll-trigger relative flex items-center rounded-full px-4 py-2 text-sm font-semibold transition-colors duration-150',
+            active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
+          {hovered === item.to && (
+            <motion.span
+              layoutId="nav-hover"
+              className="absolute inset-0 rounded-full bg-white/[0.07]"
+              transition={{ type: 'spring', duration: 0.3, bounce: 0 }}
+            />
+          )}
+          <TextRoll text={item.label} className="relative" />
+          {active && (
+            <motion.span
+              layoutId="nav-active"
+              className="absolute inset-x-4 bottom-0.5 h-0.5 rounded-full bg-primary"
+              transition={{ type: 'spring', duration: 0.4, bounce: 0.1 }}
+            />
+          )}
+        </Link>
+      </li>
+    )
   }
 
   return (
@@ -172,44 +205,16 @@ export function Header() {
 
               <nav className="ml-4 hidden lg:block" aria-label="Principal" onMouseLeave={() => setHovered(null)}>
                 <ul className="flex items-center">
-                  {NAV_ITEMS.map((item) => {
-                    const active = isActive(item.to)
-                    return (
-                      <li key={item.to} className="relative" onMouseEnter={() => setHovered(item.to)}>
-                        <Link
-                          to={item.to}
-                          aria-current={active ? 'page' : undefined}
-                          className={cn(
-                            'roll-trigger relative flex items-center rounded-full px-4 py-2 text-sm font-semibold transition-colors duration-150',
-                            active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
-                          )}
-                        >
-                          {hovered === item.to && (
-                            <motion.span
-                              layoutId="nav-hover"
-                              className="absolute inset-0 rounded-full bg-white/[0.07]"
-                              transition={{ type: 'spring', duration: 0.3, bounce: 0 }}
-                            />
-                          )}
-                          <TextRoll text={item.label} className="relative" />
-                          {active && (
-                            <motion.span
-                              layoutId="nav-active"
-                              className="absolute inset-x-4 bottom-0.5 h-0.5 rounded-full bg-primary"
-                              transition={{ type: 'spring', duration: 0.4, bounce: 0.1 }}
-                            />
-                          )}
-                        </Link>
-                      </li>
-                    )
-                  })}
+                  {NAV_BEFORE.map(renderLink)}
                   <MegaMenu
                     leagues={leagues}
                     showcase={showcase}
                     teamName={teamName}
-                    highlighted={hovered === 'ligas'}
-                    onHighlight={() => setHovered('ligas')}
+                    active={location.pathname.startsWith('/produtos')}
+                    highlighted={hovered === 'camisas'}
+                    onHighlight={() => setHovered('camisas')}
                   />
+                  {NAV_AFTER.map(renderLink)}
                 </ul>
               </nav>
 
@@ -318,7 +323,7 @@ export function Header() {
         <MobileMenu
           open={menuOpen}
           onClose={closeMenu}
-          items={NAV_ITEMS}
+          items={MOBILE_ITEMS}
           isActive={isActive}
           leagues={leagues}
           showcase={showcase}

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { ArrowRight, ChevronDown, ChevronRight } from 'lucide-react'
+import { ArrowRight, ChevronDown, LayoutGrid } from 'lucide-react'
 
+import { LeagueRow } from '@/components/product/LeagueRow'
 import { optimizedImageUrl } from '@/lib/assets'
 import { displayProductName, productName, type ShowcaseLeague } from '@/lib/catalog'
 import { cn } from '@/lib/utils'
@@ -12,20 +13,24 @@ import type { LeagueShowcase } from './useNavData'
 const EASE_OUT = [0.23, 1, 0.32, 1] as const
 
 /**
- * "Ligas" no menu do desktop: painel largo com as ligas à esquerda e, à
- * direita, camisas e escudos da liga em foco. Passar o mouse prevê, clicar
- * vai para o catálogo. O painel ancora na barra do cabeçalho (o <li> é static).
+ * "Camisas" no menu do desktop: o texto leva ao catálogo; passar o mouse (ou
+ * a setinha, no teclado/toque) abre o painel com as ligas à esquerda e as
+ * camisas e escudos da liga em foco à direita. O painel ancora na barra do
+ * cabeçalho (o <li> é static).
  */
 export function MegaMenu({
   leagues,
   showcase,
   teamName,
+  active = false,
   highlighted = false,
   onHighlight,
 }: {
   leagues: ShowcaseLeague[]
   showcase: Map<string, LeagueShowcase>
   teamName: Map<string, string>
+  /** Página atual é o catálogo. */
+  active?: boolean
   /** Pílula de hover compartilhada com os outros links do menu. */
   highlighted?: boolean
   onHighlight?: () => void
@@ -34,26 +39,30 @@ export function MegaMenu({
   const [activeId, setActiveId] = useState<string | null>(null)
   const openTimer = useRef<number>(undefined)
   const closeTimer = useRef<number>(undefined)
-  const triggerRef = useRef<HTMLButtonElement>(null)
+  const triggerRef = useRef<HTMLDivElement>(null)
+  const toggleRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const preloaded = useRef(false)
   const reduce = useReducedMotion() ?? false
 
   const current = leagues.find((l) => l.id === activeId) ?? leagues[0]
   const data = current ? showcase.get(current.id) : undefined
+  // 4 das 8 camisas em destaque, pulando de duas em duas para variar os times.
+  const picks = (data?.picks ?? []).filter((_, i) => i % 2 === 0).slice(0, 4)
+  const total = [...showcase.values()].reduce((sum, d) => sum + d.count, 0)
 
-  // Pequena intenção de hover para não abrir ao cruzar o mouse pelo menu.
   // Na primeira aproximação do mouse, baixa as fotos de todas as ligas:
   // quando o painel abre (90 ms depois) elas já estão chegando.
   const preload = () => {
     if (preloaded.current || showcase.size === 0) return
     preloaded.current = true
-    for (const data of showcase.values()) {
-      for (const product of data.picks) new Image().src = optimizedImageUrl(product.image_url, 360)
-      for (const team of data.topTeams) if (team.logo_url) new Image().src = optimizedImageUrl(team.logo_url, 64)
+    for (const league of showcase.values()) {
+      league.picks.filter((_, i) => i % 2 === 0).slice(0, 4).forEach((p) => (new Image().src = optimizedImageUrl(p.image_url, 360)))
+      league.topTeams.forEach((t) => t.logo_url && (new Image().src = optimizedImageUrl(t.logo_url, 64)))
     }
   }
 
+  // Pequena intenção de hover para não abrir ao cruzar o mouse pelo menu.
   const scheduleOpen = () => {
     preload()
     window.clearTimeout(closeTimer.current)
@@ -86,29 +95,23 @@ export function MegaMenu({
   const onKeyDown = (event: KeyboardEvent) => {
     if (event.key !== 'Escape' || !open) return
     setOpen(false)
-    triggerRef.current?.focus()
+    toggleRef.current?.focus()
   }
 
-  // Qualquer link clicado dentro do painel fecha o menu.
-  const onPanelClick = (event: MouseEvent) => {
+  // Qualquer link clicado (no painel ou o próprio "Camisas") fecha o menu.
+  const closeOnLink = (event: MouseEvent) => {
     if ((event.target as HTMLElement).closest('a')) setOpen(false)
   }
 
   return (
     <li className="static" onMouseEnter={onHighlight}>
-      <button
+      <div
         ref={triggerRef}
-        type="button"
-        aria-expanded={open}
-        aria-controls="mega-ligas"
-        onClick={() => {
-          preload()
-          setOpen((v) => !v)
-        }}
         onMouseEnter={scheduleOpen}
         onMouseLeave={scheduleClose}
         onKeyDown={onKeyDown}
-        className="roll-trigger relative inline-flex items-center gap-1 rounded-full px-4 py-2 text-sm font-semibold text-muted-foreground transition-colors duration-150 hover:text-foreground aria-expanded:text-foreground"
+        onClick={closeOnLink}
+        className="relative flex items-center rounded-full"
       >
         {highlighted && (
           <motion.span
@@ -117,19 +120,48 @@ export function MegaMenu({
             transition={{ type: 'spring', duration: 0.3, bounce: 0 }}
           />
         )}
-        <TextRoll text="Ligas" className="relative" />
-        <ChevronDown className={cn('relative size-4 transition-transform duration-200', open && 'rotate-180')} aria-hidden />
-      </button>
+        <Link
+          to="/produtos"
+          aria-current={active ? 'page' : undefined}
+          className={cn(
+            'roll-trigger relative flex items-center py-2 pl-4 pr-1 text-sm font-semibold transition-colors duration-150',
+            active || open ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
+          <TextRoll text="Camisas" />
+          {active && (
+            <motion.span
+              layoutId="nav-active"
+              className="absolute bottom-0.5 left-4 right-1 h-0.5 rounded-full bg-primary"
+              transition={{ type: 'spring', duration: 0.4, bounce: 0.1 }}
+            />
+          )}
+        </Link>
+        <button
+          ref={toggleRef}
+          type="button"
+          aria-expanded={open}
+          aria-controls="mega-camisas"
+          aria-label={open ? 'Fechar ligas' : 'Mostrar ligas'}
+          onClick={() => {
+            preload()
+            setOpen((v) => !v)
+          }}
+          className="relative mr-1 flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors duration-150 hover:text-foreground aria-expanded:text-foreground"
+        >
+          <ChevronDown className={cn('size-4 transition-transform duration-200', open && 'rotate-180')} aria-hidden />
+        </button>
+      </div>
 
       <AnimatePresence>
         {open && (
           <motion.div
-            id="mega-ligas"
+            id="mega-camisas"
             ref={panelRef}
             onMouseEnter={cancelClose}
             onMouseLeave={scheduleClose}
             onKeyDown={onKeyDown}
-            onClick={onPanelClick}
+            onClick={closeOnLink}
             initial={reduce ? { opacity: 0 } : { opacity: 0, transform: 'translateY(-6px) scale(0.985)' }}
             animate={{ opacity: 1, transform: 'translateY(0px) scale(1)' }}
             exit={{ opacity: 0, transform: reduce ? 'none' : 'translateY(-4px) scale(0.99)', transition: { duration: 0.12 } }}
@@ -138,49 +170,29 @@ export function MegaMenu({
             className="absolute left-1/2 top-full z-50 w-[min(1100px,calc(100vw-2rem))] -translate-x-1/2 pt-2.5"
           >
             <div className="grid grid-cols-[17rem_1fr] overflow-hidden rounded-3xl border border-white/10 bg-popover/95 shadow-[0_40px_80px_-30px_rgb(0_0_0/0.9)] backdrop-blur-xl">
-              <div className="flex flex-col border-r border-border p-3">
-                <ul className="space-y-0.5">
-                  {leagues.length === 0 &&
-                    Array.from({ length: 6 }).map((_, i) => <li key={i} className="h-14 animate-pulse rounded-2xl bg-muted" />)}
-                  {leagues.map((league) => {
-                    const active = league.id === current?.id
-                    const count = showcase.get(league.id)?.count
-                    return (
-                      <li key={league.id}>
-                        <Link
-                          to={`/produtos?liga=${league.id}`}
-                          onMouseEnter={() => setActiveId(league.id)}
-                          onFocus={() => setActiveId(league.id)}
-                          className={cn(
-                            'flex items-center gap-3 rounded-2xl px-3 py-2.5 transition-colors duration-150',
-                            active ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground',
-                          )}
-                        >
-                          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-paper p-1.5">
-                            {league.logo_url && (
-                              <img src={optimizedImageUrl(league.logo_url, 80)} alt="" className="size-full object-contain" />
-                            )}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-semibold">{league.name}</span>
-                            {count ? <span className="block text-xs text-muted-foreground">{count} camisas</span> : null}
-                          </span>
-                          <ChevronRight
-                            className={cn('size-4 shrink-0 transition-opacity duration-150', active ? 'opacity-100' : 'opacity-0')}
-                            aria-hidden
-                          />
-                        </Link>
-                      </li>
-                    )
-                  })}
-                </ul>
-                <Link
+              <div className="flex flex-col gap-0.5 border-r border-border p-3">
+                <LeagueRow
                   to="/produtos"
-                  className="mt-auto flex items-center justify-center gap-2 rounded-2xl bg-primary/10 px-3 py-3 text-xs font-extrabold uppercase tracking-[0.12em] text-primary transition-colors duration-150 hover:bg-primary/20"
-                >
-                  Todas as camisas
-                  <ArrowRight className="size-3.5" aria-hidden />
-                </Link>
+                  active={false}
+                  icon={<LayoutGrid className="size-4" />}
+                  name="Todas as camisas"
+                  count={total}
+                />
+                <div className="my-1.5 h-px bg-border" />
+                {leagues.length === 0 &&
+                  Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-14 animate-pulse rounded-2xl bg-muted" />)}
+                {leagues.map((league) => (
+                  <LeagueRow
+                    key={league.id}
+                    to={`/produtos?liga=${league.id}`}
+                    active={league.id === current?.id}
+                    logoUrl={league.logo_url}
+                    name={league.name}
+                    count={showcase.get(league.id)?.count}
+                    onMouseEnter={() => setActiveId(league.id)}
+                    onFocus={() => setActiveId(league.id)}
+                  />
+                ))}
               </div>
 
               {current && (
@@ -209,8 +221,8 @@ export function MegaMenu({
                   </div>
 
                   <ul className="mt-5 grid grid-cols-4 gap-3">
-                    {data && data.picks.length > 0
-                      ? data.picks.map((product) => (
+                    {picks.length > 0
+                      ? picks.map((product) => (
                           <li key={product.id}>
                             <Link to={`/produtos/${product.id}`} className="group block">
                               <span className="block overflow-hidden rounded-2xl bg-muted">

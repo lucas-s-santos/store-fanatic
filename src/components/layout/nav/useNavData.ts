@@ -8,10 +8,13 @@ import {
   type ShowcaseTeam,
 } from '@/lib/catalog'
 
+/** Camisas em destaque por liga: a vitrine da home mostra 8, o mega menu 4. */
+const PICKS = 8
+
 export interface LeagueShowcase {
   count: number
   cover?: string
-  /** Uma camisa de cada um dos times com mais modelos. */
+  /** Uma camisa de cada time, espalhando a escolha pela liga. */
   picks: ShowcaseProduct[]
   topTeams: ShowcaseTeam[]
 }
@@ -57,10 +60,10 @@ export function useNavData() {
       // Times empatam em número de modelos; espalhar a escolha pela lista
       // evita mostrar sempre os quatro primeiros da ordem alfabética.
       const withPhotos = leagueTeams.filter((team) => perTeam.has(team.id))
-      const step = Math.max(1, Math.floor(withPhotos.length / 4))
+      const step = Math.max(1, Math.floor(withPhotos.length / PICKS))
       const picks = withPhotos
         .filter((_, index) => index % step === 0)
-        .slice(0, 4)
+        .slice(0, PICKS)
         .map((team) => {
           const options = perTeam.get(team.id) ?? []
           return options.find((p) => p.featured) ?? options[0]

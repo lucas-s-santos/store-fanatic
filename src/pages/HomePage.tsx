@@ -4,8 +4,8 @@ import { motion } from 'framer-motion'
 import { ArrowRight, QrCode, Shirt, Star, Truck, Users } from 'lucide-react'
 
 import { HowToBuy } from '../components/home/HowToBuy'
+import { LeagueShowcase } from '../components/home/LeagueShowcase'
 import { JerseyRack, type RackItem } from '../components/home/JerseyRack'
-import { ProductShelf } from '../components/home/ProductShelf'
 import { SectionHeading } from '../components/home/SectionHeading'
 import { JerseyPreview } from '../components/product/JerseyPreview'
 import { Button } from '../components/ui/button'
@@ -43,7 +43,6 @@ type SiteStat = {
 
 const EASE = [0.16, 1, 0.3, 1] as const
 const RACK_SIZE = 16
-const SHELF_SIZE = 12
 
 /** Entra subindo de leve quando chega na tela. */
 function Reveal({ children, className, delay = 0 }: { children: ReactNode; className?: string; delay?: number }) {
@@ -72,10 +71,10 @@ function onePerTeam(products: ShowcaseProduct[]) {
 }
 
 /**
- * Monta a vitrine uma vez por visita (é aleatória de propósito: a arara e as
- * prateleiras mudam a cada carregamento). Roda no efeito, fora da renderização.
+ * Monta a arara uma vez por visita (aleatória de propósito: as camisas mudam
+ * a cada carregamento). Roda no efeito, fora da renderização.
  */
-function buildShowcase(products: ShowcaseProduct[], leagues: ShowcaseLeague[], teams: ShowcaseTeam[]) {
+function buildShowcase(products: ShowcaseProduct[], teams: ShowcaseTeam[]) {
   const teamNames = new Map(teams.map((team) => [`${team.league_id}:${team.id}`, team.name] as const))
 
   const rack: RackItem[] = onePerTeam(products)
@@ -88,33 +87,14 @@ function buildShowcase(products: ShowcaseProduct[], leagues: ShowcaseLeague[], t
       price: product.price,
     }))
 
-  const tiles = leagues
-    .map((league) => {
-      const items = products.filter((p) => p.league === league.id && p.image_url)
-      const cover = items.find((p) => p.featured) ?? items[Math.floor(Math.random() * items.length)]
-      return { ...league, count: items.length, cover: cover?.image_url }
-    })
-    .filter((tile) => tile.count > 0)
-    .sort((a, b) => b.count - a.count)
-
-  const selecoes = products.filter((p) => p.league === 'selecoes')
-
   return {
     rack,
-    tiles,
-    selecoes: [...selecoes.filter((p) => p.featured), ...onePerTeam(selecoes.filter((p) => !p.featured))].slice(0, SHELF_SIZE),
-    brasileirao: onePerTeam(products.filter((p) => p.league === 'brasileirao')).slice(0, SHELF_SIZE),
-    europe: onePerTeam(products.filter((p) => p.league !== 'brasileirao' && p.league !== 'selecoes')).slice(0, SHELF_SIZE),
     productCount: products.length,
   }
 }
 
 const EMPTY_SHOWCASE: ReturnType<typeof buildShowcase> = {
   rack: [],
-  tiles: [],
-  selecoes: [],
-  brasileirao: [],
-  europe: [],
   productCount: 0,
 }
 
@@ -141,7 +121,7 @@ export function HomePage() {
       const products = productsRes.status === 'fulfilled' ? productsRes.value : []
       const { leagues, teams } = leaguesRes.status === 'fulfilled' ? leaguesRes.value : { leagues: [], teams: [] }
       setLeagues(leagues)
-      setView(buildShowcase(products, leagues, teams))
+      setView(buildShowcase(products, teams))
       if (testimonialsRes.status === 'fulfilled' && testimonialsRes.value.data) {
         setTestimonials(testimonialsRes.value.data as Testimonial[])
       }
@@ -243,87 +223,11 @@ export function HomePage() {
         </motion.div>
       </section>
 
-      {/* ── Compre por liga ── */}
-      {(loading || view.tiles.length > 0) && (
-        <section className="section-shell">
-          <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
-            <Reveal>
-              <SectionHeading
-                eyebrow="Compre por liga"
-                title={
-                  <>
-                    Escolha o <span className="text-highlight">seu campeonato</span>
-                  </>
-                }
-                action={
-                  <Button asChild variant="outline" className="font-bold">
-                    <Link to="/produtos">
-                      Todas as camisas
-                      <ArrowRight />
-                    </Link>
-                  </Button>
-                }
-              />
-            </Reveal>
-          </div>
-
-          <div className="shelf mx-auto max-w-[1440px] auto-cols-[70%] gap-3 scroll-px-4 px-4 sm:auto-cols-[40%] sm:gap-5 sm:scroll-px-6 sm:px-6 lg:auto-cols-[calc((100%-3*1.25rem)/4.2)] lg:scroll-px-8 lg:px-8">
-            {loading
-              ? Array.from({ length: 5 }).map((_, i) => <div key={i} className="aspect-[3/4] animate-pulse rounded-3xl bg-muted" />)
-              : view.tiles.map((tile) => (
-                  <Link
-                    key={tile.id}
-                    to={`/produtos?liga=${tile.id}`}
-                    className="group relative block aspect-[3/4] overflow-hidden rounded-3xl bg-muted ring-1 ring-inset ring-white/[0.06]"
-                  >
-                    {tile.cover && (
-                      <img
-                        src={optimizedImageUrl(tile.cover, 640)}
-                        alt=""
-                        loading="lazy"
-                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out motion-safe:group-hover:scale-[1.06]"
-                      />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/35 to-transparent" />
-
-                    <span className="absolute left-4 top-4 flex size-14 items-center justify-center rounded-2xl bg-paper p-2 shadow-lg">
-                      {tile.logo_url && (
-                        <img src={optimizedImageUrl(tile.logo_url, 120)} alt="" loading="lazy" className="size-full object-contain" />
-                      )}
-                    </span>
-
-                    <div className="absolute inset-x-0 bottom-0 p-5">
-                      <p className="text-xs font-bold uppercase tracking-[0.14em] text-foreground/75">
-                        {tile.country ? `${tile.country} · ` : ''}
-                        {tile.count} camisas
-                      </p>
-                      <h3 className="display-title mt-1.5 text-4xl lg:text-[2.6rem]">{tile.name}</h3>
-                      <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-paper px-4 py-2 text-xs font-extrabold uppercase tracking-[0.1em] text-paper-foreground transition-colors group-hover:bg-primary">
-                        Ver coleção
-                        <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
-                      </span>
-                    </div>
-                  </Link>
-                ))}
-          </div>
-        </section>
-      )}
-
-      <ProductShelf
-        eyebrow="Copa do Mundo 2026"
-        title={
-          <>
-            Rumo à <span className="text-highlight">Copa</span>
-          </>
-        }
-        description="As camisas das seleções que vão entrar em campo no próximo Mundial."
-        href="/produtos?liga=selecoes"
-        products={view.selecoes}
-        loading={loading}
-      />
+      {/* ── Vitrine: todas as camisas num lugar só ── */}
+      <LeagueShowcase />
 
       {/* ── Personalização ── */}
-      <section id="personalize" className="section-shell scroll-mt-24">
+      <section id="personalize" className="section-shell scroll-mt-20">
         <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
           <Reveal>
             <div className="relative overflow-hidden rounded-[2rem] bg-paper text-paper-foreground [&_:focus-visible]:outline-paper-foreground">
@@ -392,31 +296,6 @@ export function HomePage() {
           </Reveal>
         </div>
       </section>
-
-      <ProductShelf
-        eyebrow="Brasileirão"
-        title={
-          <>
-            Os mantos do <span className="text-highlight">Brasil</span>
-          </>
-        }
-        href="/produtos?liga=brasileirao"
-        products={view.brasileirao}
-        loading={loading}
-      />
-
-      <ProductShelf
-        eyebrow="Ligas europeias"
-        title={
-          <>
-            Gigantes da <span className="text-highlight">Europa</span>
-          </>
-        }
-        description="Premier League, La Liga, Serie A, Bundesliga e Ligue 1."
-        href="/produtos"
-        products={view.europe}
-        loading={loading}
-      />
 
       <HowToBuy personalizationPrice={settings.personalization_price} whatsappNumber={settings.whatsapp_number} />
 

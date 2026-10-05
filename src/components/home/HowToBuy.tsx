@@ -119,14 +119,14 @@ export function HowToBuy({ personalizationPrice, whatsappNumber }: { personaliza
   const steps = buildSteps(personalizationPrice)
 
   return (
-    <section className="section-shell" aria-labelledby="como-comprar">
+    <section id="como-comprar" className="section-shell scroll-mt-20" aria-labelledby="como-comprar-titulo">
       <div className="mx-auto grid max-w-[1440px] gap-10 px-4 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16 lg:px-8">
         <div className="lg:sticky lg:top-32 lg:self-start">
           <SectionHeading
             className="mb-0"
             eyebrow="Como comprar"
             title={
-              <span id="como-comprar">
+              <span id="como-comprar-titulo">
                 Simples
                 <br />
                 como um <span className="text-highlight">gol</span>

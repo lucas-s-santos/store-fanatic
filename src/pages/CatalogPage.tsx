@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useSearchParams } from 'react-router-dom'
-import { AnimatePresence } from 'framer-motion'
-import { ChevronRight, RotateCcw, Search, SearchX, X } from 'lucide-react'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { ChevronDown, ChevronRight, LayoutGrid, RotateCcw, Search, SearchX, X } from 'lucide-react'
 
+import { LeagueRow } from '../components/product/LeagueRow'
 import { ProductCard, ProductCardSkeleton } from '../components/product/ProductCard'
 import { QuickViewModal } from '../components/product/QuickViewModal'
 import { Button } from '../components/ui/button'
@@ -16,6 +18,7 @@ import {
   type ShowcaseProduct,
   type ShowcaseTeam,
 } from '../lib/catalog'
+import { useFocusTrap } from '../lib/useFocusTrap'
 import { cn } from '../lib/utils'
 
 const PAGE_SIZE = 24
@@ -36,29 +39,100 @@ function normalizeRouteValue(value: string) {
   return normalizeSearch(value).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 }
 
-function Chip({
-  active,
-  onClick,
-  children,
+/** Lista de ligas: a mesma na barra lateral (desktop) e na folha do celular. */
+function LeagueList({
+  leagues,
+  counts,
+  total,
+  activeId,
+  onSelect,
 }: {
-  active: boolean
-  onClick: () => void
-  children: React.ReactNode
+  leagues: ShowcaseLeague[]
+  counts: Map<string, number>
+  total: number
+  activeId?: string
+  onSelect: (leagueId: string | null) => void
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={cn(
-        'inline-flex h-10 shrink-0 items-center gap-2 rounded-full border pl-1.5 pr-4 text-sm font-semibold transition-colors',
-        active
-          ? 'border-primary bg-primary text-primary-foreground'
-          : 'border-border bg-card text-foreground/85 hover:border-white/25 hover:text-foreground',
+    <div className="flex flex-col gap-0.5">
+      <LeagueRow
+        active={!activeId}
+        aria-pressed={!activeId}
+        icon={<LayoutGrid className="size-4" />}
+        name="Todas as camisas"
+        count={total}
+        onClick={() => onSelect(null)}
+      />
+      <div className="my-1.5 h-px bg-border" />
+      {leagues.length === 0 &&
+        Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-14 animate-pulse rounded-2xl bg-muted" />)}
+      {leagues.map((league) => (
+        <LeagueRow
+          key={league.id}
+          active={league.id === activeId}
+          aria-pressed={league.id === activeId}
+          logoUrl={league.logo_url}
+          name={league.name}
+          count={counts.get(league.id)}
+          onClick={() => onSelect(league.id)}
+        />
+      ))}
+    </div>
+  )
+}
+
+/** Celular: a lista de ligas sobe de baixo, como uma gaveta. */
+function LeagueSheet({ open, onClose, children }: { open: boolean; onClose: () => void; children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const reduce = useReducedMotion() ?? false
+  useFocusTrap(ref, open)
+
+  useEffect(() => {
+    if (!open) return
+    document.body.style.overflow = 'hidden'
+    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && onClose()
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = ''
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open, onClose])
+
+  return createPortal(
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0, transition: { duration: 0.2 } }}
+          onClick={onClose}
+          className="fixed inset-0 z-[60] flex items-end bg-black/70 backdrop-blur-sm lg:hidden"
+        >
+          <motion.div
+            ref={ref}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Escolher liga"
+            initial={reduce ? { opacity: 0 } : { transform: 'translateY(100%)' }}
+            animate={reduce ? { opacity: 1 } : { transform: 'translateY(0%)' }}
+            exit={reduce ? { opacity: 0 } : { transform: 'translateY(100%)', transition: { duration: 0.25, ease: [0.77, 0, 0.175, 1] } }}
+            transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
+            onClick={(event) => event.stopPropagation()}
+            className="max-h-[85dvh] w-full overflow-y-auto rounded-t-3xl border-t border-border bg-popover p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]"
+          >
+            <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-white/20" aria-hidden />
+            <div className="mb-2 flex items-center justify-between px-3">
+              <p className="display-title text-3xl">Ligas</p>
+              <Button variant="ghost" size="icon" onClick={onClose} aria-label="Fechar">
+                <X className="size-5" />
+              </Button>
+            </div>
+            {children}
+          </motion.div>
+        </motion.div>
       )}
-    >
-      {children}
-    </button>
+    </AnimatePresence>,
+    document.body,
   )
 }
 
@@ -71,6 +145,7 @@ export function CatalogPage() {
   const [error, setError] = useState(false)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [quickView, setQuickView] = useState<ShowcaseProduct | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   const leagueParam = searchParams.get('liga') || searchParams.get('league') || ''
@@ -206,6 +281,23 @@ export function CatalogPage() {
     setSearchParams({})
   }
 
+  const selectLeague = (leagueId: string | null) => {
+    updateParams({ liga: leagueId, time: null })
+    setSheetOpen(false)
+  }
+
+  const leagueList = (
+    <LeagueList
+      leagues={leagues}
+      counts={leagueCounts}
+      total={products.length}
+      activeId={activeLeague?.id}
+      onSelect={selectLeague}
+    />
+  )
+
+  const eyebrow = queryParam ? 'Busca' : activeTeam ? activeLeague?.name : activeLeague?.country ?? 'Catálogo'
+
   return (
     <div className="pb-16 pt-[7.25rem] lg:pt-[8.25rem]">
       <AnimatePresence>
@@ -217,6 +309,10 @@ export function CatalogPage() {
           />
         )}
       </AnimatePresence>
+
+      <LeagueSheet open={sheetOpen} onClose={() => setSheetOpen(false)}>
+        {leagueList}
+      </LeagueSheet>
 
       <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
         <nav aria-label="Você está em" className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
@@ -243,209 +339,205 @@ export function CatalogPage() {
           )}
         </nav>
 
-        <div className="mt-4 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex items-end gap-4">
-            {(activeTeam?.logo_url || activeLeague?.logo_url) && !queryParam && (
-              <span
-                className={cn(
-                  'hidden size-20 shrink-0 items-center justify-center rounded-2xl p-2.5 sm:flex',
-                  activeTeam ? 'bg-card ring-1 ring-border' : 'bg-paper',
-                )}
-              >
-                <img
-                  src={optimizedImageUrl(activeTeam?.logo_url ?? activeLeague?.logo_url, 160)}
-                  alt=""
-                  className="size-full object-contain"
-                />
-              </span>
-            )}
-            <div>
-              <h1 className="display-title text-5xl sm:text-6xl lg:text-7xl">{title}</h1>
-              <p className="mt-2 text-sm text-muted-foreground">
-                {loading ? 'Carregando camisas…' : `${filtered.length} ${filtered.length === 1 ? 'camisa' : 'camisas'}`}
-              </p>
-            </div>
-          </div>
+        <div className="mt-6 grid gap-8 lg:grid-cols-[17rem_1fr] lg:gap-10">
+          {/* Ligas na lateral, no mesmo formato do menu "Camisas". */}
+          <aside aria-label="Ligas" className="hidden lg:block">
+            <div className="sticky top-24 rounded-3xl border border-border bg-card p-3">{leagueList}</div>
+          </aside>
 
-          <div className="flex items-center gap-2">
-            <label className="relative flex h-12 min-w-0 flex-1 items-center sm:w-80 sm:flex-none">
-              <span className="sr-only">Buscar camisa</span>
-              <Search className="pointer-events-none absolute left-4 size-4 text-muted-foreground" aria-hidden />
-              <input
-                ref={searchInputRef}
-                type="search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Buscar time ou seleção"
-                className="form-input h-12 rounded-full py-0 pl-11 pr-10 [&::-webkit-search-cancel-button]:hidden"
-              />
-              {query && (
-                <button
-                  type="button"
-                  onClick={() => setQuery('')}
-                  aria-label="Limpar busca"
-                  className="absolute right-2 flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
-                >
-                  <X className="size-4" />
-                </button>
-              )}
-            </label>
-
-            <label className="relative shrink-0">
-              <span className="sr-only">Ordenar por</span>
-              <select
-                value={sort}
-                onChange={(event) => updateParams({ ordem: event.target.value === 'relevancia' ? null : event.target.value }, true)}
-                className="form-input h-12 w-[9.5rem] cursor-pointer appearance-none rounded-full py-0 pl-4 pr-9 text-sm font-semibold sm:w-48"
-              >
-                {SORT_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value} className="bg-popover">
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <ChevronRight className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 rotate-90 text-muted-foreground" aria-hidden />
-            </label>
-          </div>
-        </div>
-      </div>
-
-      {/* Filtros de liga: grudam embaixo do cabeçalho ao rolar. */}
-      <div className="sticky top-16 z-30 mt-8 border-y border-border bg-background/90 backdrop-blur-xl lg:top-[72px]">
-        <div className="shelf mx-auto max-w-[1440px] gap-2 px-4 py-3 sm:px-6 lg:px-8">
-          <Chip active={!activeLeague} onClick={() => updateParams({ liga: null, time: null })}>
-            <span className="ml-2.5">Todas</span>
-          </Chip>
-          {leagues.map((league) => (
-            <Chip
-              key={league.id}
-              active={activeLeague?.id === league.id}
-              onClick={() => updateParams({ liga: league.id, time: null })}
-            >
-              <span className="flex size-7 items-center justify-center rounded-full bg-paper p-1">
-                {league.logo_url && (
-                  <img src={optimizedImageUrl(league.logo_url, 64)} alt="" className="size-full object-contain" loading="lazy" />
-                )}
-              </span>
-              {league.name}
-              {leagueCounts.get(league.id) ? (
-                <span className="text-xs font-medium opacity-60">{leagueCounts.get(league.id)}</span>
-              ) : null}
-            </Chip>
-          ))}
-        </div>
-      </div>
-
-      <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
-        {/* Escudos dos times da liga escolhida. */}
-        {leagueTeams.length > 0 && (
-          <div className="shelf -mx-4 mt-6 auto-cols-[5.5rem] gap-2 px-4 sm:-mx-6 sm:auto-cols-[6.5rem] sm:px-6 lg:-mx-8 lg:px-8">
-            <button
-              type="button"
-              onClick={() => updateParams({ time: null })}
-              aria-pressed={!activeTeam}
-              className="group flex flex-col items-center gap-2 rounded-2xl p-2 text-center"
-            >
-              <span
-                className={cn(
-                  'flex size-16 items-center justify-center rounded-full border-2 text-xs font-extrabold uppercase transition-colors sm:size-[4.5rem]',
-                  !activeTeam ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card group-hover:border-white/30',
-                )}
-              >
-                Todos
-              </span>
-              <span className="text-xs font-semibold text-muted-foreground">Todos os times</span>
-            </button>
-            {leagueTeams.map((team) => {
-              const active = activeTeam?.id === team.id
-              return (
-                <button
-                  key={team.id}
-                  type="button"
-                  onClick={() => updateParams({ time: active ? null : team.id })}
-                  aria-pressed={active}
-                  className="group flex flex-col items-center gap-2 rounded-2xl p-2 text-center"
-                >
+          <div className="min-w-0">
+            <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+              <div className="flex items-end gap-4">
+                {(activeTeam?.logo_url || activeLeague?.logo_url) && !queryParam && (
                   <span
                     className={cn(
-                      'flex size-16 items-center justify-center rounded-full border-2 bg-card p-2.5 transition-[border-color,transform] sm:size-[4.5rem]',
-                      active ? 'border-primary' : 'border-border group-hover:-translate-y-0.5 group-hover:border-white/30',
+                      'hidden size-20 shrink-0 items-center justify-center rounded-2xl p-2.5 sm:flex',
+                      activeTeam ? 'bg-card ring-1 ring-border' : 'bg-paper',
                     )}
                   >
-                    {team.logo_url && (
-                      <img src={optimizedImageUrl(team.logo_url, 128)} alt="" loading="lazy" className="size-full object-contain" />
-                    )}
+                    <img
+                      src={optimizedImageUrl(activeTeam?.logo_url ?? activeLeague?.logo_url, 160)}
+                      alt=""
+                      className="size-full object-contain"
+                    />
                   </span>
-                  <span className={cn('line-clamp-2 text-xs font-semibold leading-tight', active ? 'text-foreground' : 'text-muted-foreground')}>
-                    {team.name}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        )}
-
-        <div className="mt-8">
-          {error ? (
-            <div className="flex min-h-[320px] flex-col items-center justify-center gap-4 rounded-3xl border border-destructive/30 bg-destructive/5 px-6 py-12 text-center">
-              <p className="text-lg font-bold">Não conseguimos carregar o catálogo</p>
-              <p className="text-sm text-muted-foreground">Verifique sua conexão e tente de novo.</p>
-              <Button variant="outline" onClick={() => window.location.reload()}>
-                <RotateCcw />
-                Tentar de novo
-              </Button>
-            </div>
-          ) : loading ? (
-            <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-5 lg:grid-cols-4 2xl:grid-cols-5">
-              {Array.from({ length: 10 }).map((_, index) => (
-                <ProductCardSkeleton key={index} />
-              ))}
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="flex min-h-[340px] flex-col items-center justify-center gap-4 rounded-3xl border border-border bg-card px-6 py-12 text-center">
-              <span className="flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <SearchX className="size-7" aria-hidden />
-              </span>
-              <div>
-                <p className="display-title text-3xl">Nenhuma camisa encontrada</p>
-                <p className="mt-2 text-sm text-muted-foreground">Tente outro nome de time ou veja todas as camisas.</p>
-              </div>
-              {hasFilters && (
-                <Button variant="outline" onClick={clearFilters}>
-                  Ver todas as camisas
-                </Button>
-              )}
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-5 lg:grid-cols-4 2xl:grid-cols-5">
-                {visible.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    eyebrow={activeLeague ? undefined : leagueNames.get(product.league)}
-                    onQuickView={() => setQuickView(product)}
-                  />
-                ))}
-              </div>
-
-              {filtered.length > PAGE_SIZE && (
-              <div className="mx-auto mt-14 flex max-w-xs flex-col items-center gap-4 text-center">
-                <p className="text-sm text-muted-foreground">
-                  Mostrando {visible.length} de {filtered.length} camisas
-                </p>
-                <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
-                  <div className="h-full rounded-full bg-primary transition-[width] duration-500" style={{ width: `${(visible.length / filtered.length) * 100}%` }} />
-                </div>
-                {visible.length < filtered.length && (
-                  <Button variant="outline" size="lg" onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}>
-                    Carregar mais camisas
-                  </Button>
                 )}
+                <div>
+                  {eyebrow && <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">{eyebrow}</p>}
+                  <h1 className="display-title mt-1 text-5xl sm:text-6xl">{title}</h1>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {loading ? 'Carregando camisas…' : `${filtered.length} ${filtered.length === 1 ? 'camisa' : 'camisas'}`}
+                  </p>
+                </div>
               </div>
+
+              <div className="flex items-center gap-2">
+                <label className="relative flex h-12 min-w-0 flex-1 items-center sm:w-72 sm:flex-none">
+                  <span className="sr-only">Buscar camisa</span>
+                  <Search className="pointer-events-none absolute left-4 size-4 text-muted-foreground" aria-hidden />
+                  <input
+                    ref={searchInputRef}
+                    type="search"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Buscar time ou seleção"
+                    className="form-input h-12 rounded-full py-0 pl-11 pr-10 [&::-webkit-search-cancel-button]:hidden"
+                  />
+                  {query && (
+                    <button
+                      type="button"
+                      onClick={() => setQuery('')}
+                      aria-label="Limpar busca"
+                      className="absolute right-2 flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  )}
+                </label>
+
+                <label className="relative shrink-0">
+                  <span className="sr-only">Ordenar por</span>
+                  <select
+                    value={sort}
+                    onChange={(event) => updateParams({ ordem: event.target.value === 'relevancia' ? null : event.target.value }, true)}
+                    className="form-input h-12 w-[9.5rem] cursor-pointer appearance-none rounded-full py-0 pl-4 pr-9 text-sm font-semibold sm:w-44"
+                  >
+                    {SORT_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value} className="bg-popover">
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronRight className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 rotate-90 text-muted-foreground" aria-hidden />
+                </label>
+              </div>
+            </div>
+
+            {/* Celular: um botão com a liga atual abre a lista de baixo para cima. */}
+            <button
+              type="button"
+              onClick={() => setSheetOpen(true)}
+              aria-haspopup="dialog"
+              className="mt-5 flex w-full items-center gap-3 rounded-2xl border border-border bg-card px-3 py-2.5 text-left lg:hidden"
+            >
+              <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-xl p-1.5', activeLeague ? 'bg-paper' : 'bg-primary/15 text-primary')}>
+                {activeLeague?.logo_url ? (
+                  <img src={optimizedImageUrl(activeLeague.logo_url, 80)} alt="" className="size-full object-contain" />
+                ) : (
+                  <LayoutGrid className="size-4" aria-hidden />
+                )}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">Liga</span>
+                <span className="block truncate text-sm font-semibold">{activeLeague?.name ?? 'Todas as camisas'}</span>
+              </span>
+              <ChevronDown className="size-4 text-muted-foreground" aria-hidden />
+            </button>
+
+            {/* Escudos dos times, no mesmo formato do menu. */}
+            {leagueTeams.length > 0 && (
+              <div className="mt-6 flex items-center gap-3 border-y border-border py-4">
+                <p className="shrink-0 text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">Times</p>
+                <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <button
+                    type="button"
+                    onClick={() => updateParams({ time: null })}
+                    aria-pressed={!activeTeam}
+                    className={cn(
+                      'h-11 shrink-0 rounded-full border px-4 text-xs font-extrabold uppercase tracking-wide transition-colors duration-150',
+                      !activeTeam ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card hover:border-white/30',
+                    )}
+                  >
+                    Todos
+                  </button>
+                  {leagueTeams.map((team) => {
+                    const active = activeTeam?.id === team.id
+                    return (
+                      <button
+                        key={team.id}
+                        type="button"
+                        onClick={() => updateParams({ time: active ? null : team.id })}
+                        aria-pressed={active}
+                        aria-label={team.name}
+                        title={team.name}
+                        className={cn(
+                          'flex size-11 shrink-0 items-center justify-center rounded-full border bg-card p-1.5 transition-[border-color,transform,box-shadow] duration-150',
+                          active
+                            ? 'border-primary ring-2 ring-primary/40'
+                            : 'border-border hover:-translate-y-0.5 hover:border-white/30',
+                        )}
+                      >
+                        {team.logo_url && <img src={optimizedImageUrl(team.logo_url, 64)} alt="" loading="lazy" className="size-full object-contain" />}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className="mt-8">
+              {error ? (
+                <div className="flex min-h-[320px] flex-col items-center justify-center gap-4 rounded-3xl border border-destructive/30 bg-destructive/5 px-6 py-12 text-center">
+                  <p className="text-lg font-bold">Não conseguimos carregar o catálogo</p>
+                  <p className="text-sm text-muted-foreground">Verifique sua conexão e tente de novo.</p>
+                  <Button variant="outline" onClick={() => window.location.reload()}>
+                    <RotateCcw />
+                    Tentar de novo
+                  </Button>
+                </div>
+              ) : loading ? (
+                <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-5 xl:grid-cols-4">
+                  {Array.from({ length: 8 }).map((_, index) => (
+                    <ProductCardSkeleton key={index} />
+                  ))}
+                </div>
+              ) : filtered.length === 0 ? (
+                <div className="flex min-h-[340px] flex-col items-center justify-center gap-4 rounded-3xl border border-border bg-card px-6 py-12 text-center">
+                  <span className="flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <SearchX className="size-7" aria-hidden />
+                  </span>
+                  <div>
+                    <p className="display-title text-3xl">Nenhuma camisa encontrada</p>
+                    <p className="mt-2 text-sm text-muted-foreground">Tente outro nome de time ou veja todas as camisas.</p>
+                  </div>
+                  {hasFilters && (
+                    <Button variant="outline" onClick={clearFilters}>
+                      Ver todas as camisas
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-5 xl:grid-cols-4">
+                    {visible.map((product) => (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        eyebrow={activeLeague ? undefined : leagueNames.get(product.league)}
+                        onQuickView={() => setQuickView(product)}
+                      />
+                    ))}
+                  </div>
+
+                  {filtered.length > PAGE_SIZE && (
+                    <div className="mx-auto mt-14 flex max-w-xs flex-col items-center gap-4 text-center">
+                      <p className="text-sm text-muted-foreground">
+                        Mostrando {visible.length} de {filtered.length} camisas
+                      </p>
+                      <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
+                        <div className="h-full rounded-full bg-primary transition-[width] duration-500" style={{ width: `${(visible.length / filtered.length) * 100}%` }} />
+                      </div>
+                      {visible.length < filtered.length && (
+                        <Button variant="outline" size="lg" onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}>
+                          Carregar mais camisas
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
-            </>
-          )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
