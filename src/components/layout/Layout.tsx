@@ -1,12 +1,14 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation, useNavigationType } from 'react-router-dom'
 
+import { IntroDoneContext, shouldPlayIntro } from '../../lib/intro'
 import { cn } from '../../lib/utils'
 import { useShowTabBar } from './nav/useShowTabBar'
 
 import { Header } from './Header'
 import { Footer } from './Footer'
 import { CartDrawer } from './CartDrawer'
+import { SiteIntro } from './SiteIntro'
 
 /**
  * Rolagem entre páginas: links com #seção vão até ela (esperando a seção
@@ -43,7 +45,12 @@ function ScrollManager() {
 
 export function Layout({ children }: { children?: React.ReactNode }) {
   const showTabBar = useShowTabBar()
+  const [intro, setIntro] = useState<'playing' | 'revealing' | 'off'>(() => (shouldPlayIntro() ? 'playing' : 'off'))
+  const revealIntro = useCallback(() => setIntro('revealing'), [])
+  const endIntro = useCallback(() => setIntro('off'), [])
+
   return (
+    <IntroDoneContext.Provider value={intro !== 'playing'}>
     <div
       className={cn(
         'relative flex min-h-screen flex-col bg-background text-foreground',
@@ -69,5 +76,7 @@ export function Layout({ children }: { children?: React.ReactNode }) {
       {/* Sacola global, na raiz para ficar por cima de tudo. */}
       <CartDrawer />
     </div>
+    {intro !== 'off' && <SiteIntro onReveal={revealIntro} onDone={endIntro} />}
+    </IntroDoneContext.Provider>
   )
 }
