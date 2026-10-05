@@ -48,7 +48,10 @@ serve(async (req) => {
       )
     }
 
-    const notificationUrl = `https://cuysmgukyikxdwsladeo.supabase.co/functions/v1/mp-webhook`
+    // Projeto atual (injetado pelo Supabase), não um URL fixo de projeto antigo —
+    // senão o Mercado Pago avisa o pagamento no banco errado.
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+    const notificationUrl = `${supabaseUrl}/functions/v1/mp-webhook`
 
     const preference = {
       items: [

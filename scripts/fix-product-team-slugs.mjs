@@ -6,7 +6,7 @@ import { createClient } from '@supabase/supabase-js'
 import { fileURLToPath } from 'url'
 
 const SUPABASE_URL         = 'https://jynsexowmcznrapapkwc.supabase.co'
-const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp5bnNleG93bWN6bnJhcGFwa3djIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTIzNDAzNiwiZXhwIjoyMDk0ODEwMDM2fQ.0sWt0vuiU4aUjw7Mz1HbUZMmmFnIdM8GDBvLfYfMhkQ'
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY
 
 function slugify(str) {
   return str

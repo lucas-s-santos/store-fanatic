@@ -5,7 +5,7 @@ import { useAuth } from '../lib/useAuth'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import {
   Lock, Loader2, ArrowLeft,
   Tag, Percent, Gift, Copy, Check,
@@ -82,6 +82,7 @@ function PixConfirmation({
   whatsapp: string
 }) {
   const [copied, setCopied] = useState(false)
+  const reduce = useReducedMotion() ?? false
   const shortId = orderId.slice(0, 8).toUpperCase()
   const totalFmt = grandTotal.toFixed(2).replace('.', ',')
 
@@ -113,10 +114,32 @@ function PixConfirmation({
       className="mx-auto w-full max-w-lg"
     >
       <div className="space-y-8 rounded-[2rem] border border-border bg-card px-6 py-10 text-center sm:px-10">
+        {/* Momento raro (uma vez por compra): aqui cabe um pouco de festa. */}
         <div className="flex justify-center">
-          <span className="flex size-20 items-center justify-center rounded-full bg-success/15 text-success">
-            <PackageCheck className="size-9" aria-hidden />
-          </span>
+          <motion.span
+            initial={reduce ? { opacity: 0 } : { opacity: 0, transform: 'scale(0.8)' }}
+            animate={{ opacity: 1, transform: 'scale(1)' }}
+            transition={{ type: 'spring', duration: 0.5, bounce: 0.25, delay: 0.1 }}
+            className="relative flex size-20 items-center justify-center rounded-full bg-success/15 text-success"
+          >
+            {!reduce && (
+              <motion.span
+                aria-hidden
+                className="absolute inset-0 rounded-full border-2 border-success"
+                initial={{ opacity: 0.5, transform: 'scale(1)' }}
+                animate={{ opacity: 0, transform: 'scale(1.7)' }}
+                transition={{ duration: 0.8, delay: 0.45, ease: [0.23, 1, 0.32, 1] }}
+              />
+            )}
+            <svg viewBox="0 0 24 24" className="size-10" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <motion.path
+                d="M5 12.5l4.5 4.5L19 7.5"
+                initial={reduce ? false : { pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 0.4, delay: 0.3, ease: [0.23, 1, 0.32, 1] }}
+              />
+            </svg>
+          </motion.span>
         </div>
 
         <div>
@@ -129,12 +152,18 @@ function PixConfirmation({
 
         <ol className="grid gap-2 text-left text-sm">
           {PIX_STEPS.map((step, i) => (
-            <li key={step} className="flex items-center gap-3 rounded-xl bg-background/60 px-4 py-3">
+            <motion.li
+              key={step}
+              initial={reduce ? { opacity: 0 } : { opacity: 0, transform: 'translateY(8px)' }}
+              animate={{ opacity: 1, transform: 'translateY(0px)' }}
+              transition={{ duration: 0.35, delay: 0.55 + i * 0.06, ease: [0.23, 1, 0.32, 1] }}
+              className="flex items-center gap-3 rounded-xl bg-background/60 px-4 py-3"
+            >
               <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-black text-primary-foreground">
                 {i + 1}
               </span>
               {step}
-            </li>
+            </motion.li>
           ))}
         </ol>
 
@@ -152,10 +181,28 @@ function PixConfirmation({
                 <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">Chave PIX</p>
                 <div className="flex items-center gap-2 rounded-xl border border-input bg-card py-2 pl-4 pr-2">
                   <span className="flex-1 truncate font-mono text-sm">{pixKey}</span>
-                  <Button type="button" size="sm" variant={copied ? 'success' : 'default'} onClick={handleCopy}>
-                    {copied ? <Check /> : <Copy />}
-                    {copied ? 'Copiada!' : 'Copiar'}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={copied ? 'success' : 'default'}
+                    onClick={handleCopy}
+                    className="min-w-[7.25rem] overflow-hidden"
+                  >
+                    <AnimatePresence mode="popLayout" initial={false}>
+                      <motion.span
+                        key={copied ? 'copied' : 'copy'}
+                        initial={{ opacity: 0, filter: 'blur(2px)', transform: reduce ? 'none' : 'translateY(6px)' }}
+                        animate={{ opacity: 1, filter: 'blur(0px)', transform: 'translateY(0px)' }}
+                        exit={{ opacity: 0, filter: 'blur(2px)', transform: reduce ? 'none' : 'translateY(-6px)' }}
+                        transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
+                        className="inline-flex items-center gap-1.5"
+                      >
+                        {copied ? <Check /> : <Copy />}
+                        {copied ? 'Copiada!' : 'Copiar'}
+                      </motion.span>
+                    </AnimatePresence>
                   </Button>
+                  <span className="sr-only" aria-live="polite">{copied ? 'Chave PIX copiada' : ''}</span>
                 </div>
               </div>
             </>

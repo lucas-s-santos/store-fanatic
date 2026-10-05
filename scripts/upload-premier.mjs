@@ -21,7 +21,7 @@ const MAP_OUTPUT    = join(__dirname, '..', 'cloudinary-map-premier.json')
 const CONCURRENT    = 5
 
 const SUPABASE_URL     = 'https://jynsexowmcznrapapkwc.supabase.co'
-const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp5bnNleG93bWN6bnJhcGFwa3djIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTIzNDAzNiwiZXhwIjoyMDk0ODEwMDM2fQ.0sWt0vuiU4aUjw7Mz1HbUZMmmFnIdM8GDBvLfYfMhkQ'
+const SERVICE_ROLE_KEY = process.env.SERVICE_ROLE_KEY
 const LEAGUE_ID        = 'premier-league'
 const PRECO_PADRAO     = 149.99
 

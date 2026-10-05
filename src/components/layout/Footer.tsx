@@ -1,4 +1,6 @@
+import { useRef } from 'react'
 import { Link } from 'react-router-dom'
+import { motion, useMotionTemplate, useReducedMotion, useScroll, useTransform } from 'framer-motion'
 import { Flame, QrCode, Shirt, Truck } from 'lucide-react'
 
 import { Button } from '../ui/button'
@@ -19,6 +21,45 @@ const ACCOUNT_LINKS = [
   { label: 'Meus pedidos', to: '/meus-pedidos' },
   { label: 'Sacola', to: '/carrinho' },
 ]
+
+/**
+ * Letreiro gigante cortado pela borda de baixo. Uma cópia amarela por cima vai
+ * sendo revelada (clip-path) conforme a pessoa chega ao fim da página.
+ */
+/** Px antes do fim em que o letreiro já conta como cheio. */
+const FILL_SLACK = 8
+
+function FillingWordmark() {
+  const ref = useRef<HTMLDivElement>(null)
+  const reduce = useReducedMotion() ?? false
+  // Mede quanto falta para o fim da página (não a posição do letreiro: a
+  // caixa dele passa da borda do rodapé e nunca chegaria ao fim da tela).
+  // Começa a encher quando o letreiro aparece e fecha 100% no fim da rolagem.
+  const { scrollY } = useScroll()
+  const hidden = useTransform(scrollY, (y) => {
+    const root = document.documentElement
+    // clientHeight (não innerHeight) e folga de alguns px: com zoom do sistema
+    // (125%, 150%) a rolagem pode parar em fração de pixel antes do fim.
+    const remaining = root.scrollHeight - root.clientHeight - y - FILL_SLACK
+    const span = ref.current?.offsetHeight || 1
+    return Math.min(Math.max(remaining / span, 0), 1) * 100
+  })
+  // Topo e base negativos: com leading 0.8 as letras passam da caixa da linha
+  // e um recorte "0" cortaria o alto delas (o contorno apareceria por cima).
+  const clipPath = useMotionTemplate`inset(-50% ${hidden}% -50% 0)`
+  const word = 'display-title pointer-events-none -mb-[0.2em] select-none whitespace-nowrap text-center text-[18vw] leading-[0.8]'
+
+  return (
+    <div ref={ref} aria-hidden className="relative">
+      <p className={`${word} text-outline`}>Store Fanatic</p>
+      {!reduce && (
+        <motion.p style={{ clipPath }} className={`${word} absolute inset-x-0 top-0 text-primary`}>
+          Store Fanatic
+        </motion.p>
+      )}
+    </div>
+  )
+}
 
 export function Footer() {
   const { settings } = useSettings()
@@ -111,13 +152,7 @@ export function Footer() {
         </div>
       </div>
 
-      {/* Letreiro gigante, cortado pela borda de baixo. */}
-      <p
-        aria-hidden
-        className="display-title pointer-events-none -mb-[0.2em] select-none whitespace-nowrap text-center text-[18vw] leading-[0.8] text-outline"
-      >
-        Store Fanatic
-      </p>
+      <FillingWordmark />
     </footer>
   )
 }
