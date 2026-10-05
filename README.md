@@ -69,6 +69,7 @@ Antes de considerar a loja pronta, testei o banco usando apenas a chave pública
 | [`010`](supabase/migration_010_funcoes.sql) | A função `execute_sql` permitia rodar SQL arbitrário pela API pública; funções com `search_path` mutável | `execute_sql` trancada; `search_path` fixado em todas as funções |
 | [`011`](supabase/migration_011_politicas_catalogo.sql) | Políticas antigas `FOR ALL USING (true)` deixavam qualquer um escrever no catálogo | Catálogo com leitura pública e escrita só para admin |
 | [`012`](supabase/migration_012_grants_funcoes.sql) | Funções `SECURITY DEFINER` executáveis por qualquer usuário | `EXECUTE` revogado de `PUBLIC`/`anon`; cupom só para usuário logado |
+| [`013`](supabase/migration_013_total_do_pedido_no_servidor.sql) | O total do pedido e o preço de cada item vinham do navegador: dava para gravar uma camisa de R$ 149,90 por R$ 1,00 | Gatilhos recalculam no banco o preço de cada item pelo catálogo, o frete e o cupom; o Pix mostra o total gravado pelo banco |
 
 Os scripts de seed também deixaram de ter chaves no código e passaram a ler tudo de um `.env` local, que é ignorado pelo Git.
 
@@ -93,7 +94,7 @@ npm install
 cp .env.example .env   # preencha VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY
 ```
 
-1. No SQL Editor do Supabase, execute [`supabase/setup-new-project.sql`](supabase/setup-new-project.sql) e depois as migrations de `008` a `012`, nessa ordem.
+1. No SQL Editor do Supabase, execute [`supabase/setup-new-project.sql`](supabase/setup-new-project.sql) e depois as migrations de `008` a `013`, nessa ordem.
 2. Para o pagamento, publique as Edge Functions e configure o token do Mercado Pago:
 
    ```bash
