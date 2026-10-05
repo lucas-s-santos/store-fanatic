@@ -55,7 +55,8 @@ flowchart LR
 ```
 
 - **Frontend:** SPA em React 19 servida pela Vercel. Fala direto com o Supabase usando só a chave pública. Quem decide o que cada usuário pode ler ou escrever é o banco, via Row Level Security.
-- **Pagamento:** o token do Mercado Pago fica apenas nas Edge Functions (Deno), nunca no navegador. O webhook não confia no corpo da notificação: ele busca o pagamento na API do Mercado Pago antes de mudar o status do pedido.
+- **Preço:** o navegador nunca define quanto o pedido custa. Gatilhos no banco recalculam o preço de cada item pelo catálogo, o frete e o cupom, e a tela do Pix mostra o total gravado.
+- **Pagamento:** o token do Mercado Pago fica apenas nas Edge Functions (Deno), nunca no navegador. O webhook não confia no corpo da notificação: ele busca o pagamento na API do Mercado Pago e só marca o pedido como pago se o valor recebido cobrir o total.
 - **Papéis:** o papel de admin fica em `profiles.role` e é protegido por um gatilho (`protect_profile_role`), que impede o próprio usuário de se promover a admin.
 
 ## Segurança: o que auditei e corrigi
