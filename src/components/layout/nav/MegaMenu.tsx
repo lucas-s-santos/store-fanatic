@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { ArrowRight, ChevronDown, LayoutGrid } from 'lucide-react'
 
 import { LeagueRow } from '@/components/product/LeagueRow'
+import { CrestDock } from '@/components/ui/crest-dock'
 import { optimizedImageUrl } from '@/lib/assets'
 import { displayProductName, productName, type ShowcaseLeague } from '@/lib/catalog'
 import { cn } from '@/lib/utils'
@@ -246,10 +247,10 @@ export function MegaMenu({
                   {data && data.topTeams.length > 0 && (
                     <div className="mt-5 flex items-center gap-3 border-t border-border pt-4">
                       <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">Times</p>
-                      <ul className="flex flex-wrap gap-1.5">
+                      <CrestDock className="pt-2">
                         {data.topTeams.map((team) => (
-                          <li key={team.id}>
                             <Link
+                              key={team.id}
                               to={`/produtos?liga=${team.league_id}&time=${team.id}`}
                               title={team.name}
                               aria-label={team.name}
@@ -259,9 +260,8 @@ export function MegaMenu({
                                 <img src={optimizedImageUrl(team.logo_url, 64)} alt="" className="size-full object-contain" />
                               )}
                             </Link>
-                          </li>
                         ))}
-                      </ul>
+                      </CrestDock>
                     </div>
                   )}
                 </motion.div>

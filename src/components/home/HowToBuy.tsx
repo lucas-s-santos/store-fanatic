@@ -5,6 +5,7 @@ import { ArrowRight, QrCode, Ruler, Shirt, Truck, type LucideIcon } from 'lucide
 
 import { JerseyPreview } from '@/components/product/JerseyPreview'
 import { Button } from '@/components/ui/button'
+import { ScrollRevealText } from '@/components/ui/scroll-reveal-text'
 import { WhatsAppIcon, whatsappUrl } from '@/components/ui/whatsapp-icon'
 import { cn, formatPrice } from '@/lib/utils'
 import { SectionHeading } from './SectionHeading'
@@ -127,9 +128,7 @@ export function HowToBuy({ personalizationPrice, whatsappNumber }: { personaliza
             eyebrow="Como comprar"
             title={
               <span id="como-comprar-titulo">
-                Simples
-                <br />
-                como um <span className="text-highlight">gol</span>
+                <ScrollRevealText parts={['Simples', { br: true }, 'como um', { text: 'gol', highlight: true }]} />
               </span>
             }
             description="Você escolhe, paga no PIX e fala direto com a gente pelo WhatsApp. Em quatro passos:"

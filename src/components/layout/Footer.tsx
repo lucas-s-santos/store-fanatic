@@ -1,4 +1,6 @@
+import { useRef } from 'react'
 import { Link } from 'react-router-dom'
+import { motion, useMotionTemplate, useReducedMotion, useScroll, useTransform } from 'framer-motion'
 import { Flame, QrCode, Shirt, Truck } from 'lucide-react'
 
 import { Button } from '../ui/button'
@@ -19,6 +21,31 @@ const ACCOUNT_LINKS = [
   { label: 'Meus pedidos', to: '/meus-pedidos' },
   { label: 'Sacola', to: '/carrinho' },
 ]
+
+/**
+ * Letreiro gigante cortado pela borda de baixo. Uma cópia amarela por cima vai
+ * sendo revelada (clip-path) conforme a pessoa chega ao fim da página.
+ */
+function FillingWordmark() {
+  const ref = useRef<HTMLDivElement>(null)
+  const reduce = useReducedMotion() ?? false
+  // 0 quando o letreiro aparece por baixo, 1 quando a página termina.
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end end'] })
+  const hidden = useTransform(scrollYProgress, [0.1, 1], [100, 0])
+  const clipPath = useMotionTemplate`inset(0 ${hidden}% 0 0)`
+  const word = 'display-title pointer-events-none -mb-[0.2em] select-none whitespace-nowrap text-center text-[18vw] leading-[0.8]'
+
+  return (
+    <div ref={ref} aria-hidden className="relative">
+      <p className={`${word} text-outline`}>Store Fanatic</p>
+      {!reduce && (
+        <motion.p style={{ clipPath }} className={`${word} absolute inset-x-0 top-0 text-highlight`}>
+          Store Fanatic
+        </motion.p>
+      )}
+    </div>
+  )
+}
 
 export function Footer() {
   const { settings } = useSettings()
@@ -111,13 +138,7 @@ export function Footer() {
         </div>
       </div>
 
-      {/* Letreiro gigante, cortado pela borda de baixo. */}
-      <p
-        aria-hidden
-        className="display-title pointer-events-none -mb-[0.2em] select-none whitespace-nowrap text-center text-[18vw] leading-[0.8] text-outline"
-      >
-        Store Fanatic
-      </p>
+      <FillingWordmark />
     </footer>
   )
 }

@@ -8,6 +8,7 @@ import { LeagueRow } from '../components/product/LeagueRow'
 import { ProductCard, ProductCardSkeleton } from '../components/product/ProductCard'
 import { QuickViewModal } from '../components/product/QuickViewModal'
 import { Button } from '../components/ui/button'
+import { CrestDock } from '../components/ui/crest-dock'
 import { optimizedImageUrl } from '../lib/assets'
 import {
   fetchLeaguesAndTeams,
@@ -380,7 +381,7 @@ export function CatalogPage() {
                     type="search"
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Buscar time ou seleção"
+                    placeholder="Buscar camisa"
                     className="form-input h-12 rounded-full py-0 pl-11 pr-10 [&::-webkit-search-cancel-button]:hidden"
                   />
                   {query && (
@@ -438,7 +439,7 @@ export function CatalogPage() {
             {leagueTeams.length > 0 && (
               <div className="mt-6 flex items-center gap-3 border-y border-border py-4">
                 <p className="shrink-0 text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">Times</p>
-                <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <CrestDock className="min-w-0 flex-1 overflow-x-auto pb-1 pt-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   <button
                     type="button"
                     onClick={() => updateParams({ time: null })}
@@ -471,7 +472,7 @@ export function CatalogPage() {
                       </button>
                     )
                   })}
-                </div>
+                </CrestDock>
               </div>
             )}
 

@@ -7,6 +7,8 @@ import { useNavData } from '@/components/layout/nav/useNavData'
 import { LeagueRow } from '@/components/product/LeagueRow'
 import { ProductCard, ProductCardSkeleton } from '@/components/product/ProductCard'
 import { Button } from '@/components/ui/button'
+import { CrestDock } from '@/components/ui/crest-dock'
+import { ScrollRevealText } from '@/components/ui/scroll-reveal-text'
 import { optimizedImageUrl } from '@/lib/assets'
 import { SectionHeading } from './SectionHeading'
 
@@ -39,14 +41,12 @@ export function LeagueShowcase() {
   }
 
   return (
-    <section className="section-shell" aria-labelledby="vitrine-titulo">
+    <section className="section-shell" aria-label="Vitrine: escolha o seu campeonato">
       <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
         <SectionHeading
           eyebrow="Vitrine"
           title={
-            <span id="vitrine-titulo">
-              Escolha o <span className="text-highlight">seu campeonato</span>
-            </span>
+            <ScrollRevealText parts={['Escolha o', { text: 'seu campeonato', highlight: true }]} />
           }
           action={
             <Button asChild variant="outline" className="font-bold">
@@ -122,6 +122,7 @@ export function LeagueShowcase() {
                           key={product.id}
                           product={product}
                           eyebrow={teamName.get(`${product.league}:${product.team}`)}
+                          interactive
                         />
                       ))}
                 </div>
@@ -129,10 +130,10 @@ export function LeagueShowcase() {
                 {data && data.topTeams.length > 0 && (
                   <div className="mt-8 flex flex-wrap items-center gap-3 border-t border-border pt-5">
                     <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">Times</p>
-                    <ul className="flex flex-wrap gap-1.5">
+                    <CrestDock className="flex-wrap pt-2">
                       {data.topTeams.map((team) => (
-                        <li key={team.id}>
                           <Link
+                            key={team.id}
                             to={`/produtos?liga=${team.league_id}&time=${team.id}`}
                             title={team.name}
                             aria-label={team.name}
@@ -140,9 +141,8 @@ export function LeagueShowcase() {
                           >
                             {team.logo_url && <img src={optimizedImageUrl(team.logo_url, 64)} alt="" className="size-full object-contain" loading="lazy" />}
                           </Link>
-                        </li>
                       ))}
-                    </ul>
+                    </CrestDock>
                   </div>
                 )}
               </motion.div>

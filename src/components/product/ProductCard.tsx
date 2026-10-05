@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { optimizedImageSrcSet, optimizedImageUrl } from '@/lib/assets'
 import { displayProductName } from '@/lib/catalog'
+import { TiltViewer } from './TiltViewer'
 import { cn, formatPrice } from '@/lib/utils'
 
 export interface ProductCardData {
@@ -29,12 +30,15 @@ export function ProductCard({
   product,
   eyebrow,
   onQuickView,
+  interactive = false,
   className,
 }: {
   product: ProductCardData
   /** Linha pequena acima do nome, ex.: o time. */
   eyebrow?: string
   onQuickView?: () => void
+  /** Vitrine da home: foto inclina em 3D e ganha o cursor "Ver" (só com mouse). */
+  interactive?: boolean
   className?: string
 }) {
   const [imageFailed, setImageFailed] = useState(false)
@@ -48,61 +52,63 @@ export function ProductCard({
   return (
     <article className={cn('group relative h-full', className)}>
       <Link to={`/produtos/${product.id}`} className="flex h-full flex-col gap-3 rounded-2xl outline-offset-4">
-        <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-muted ring-1 ring-white/[0.06] ring-inset">
-          {imageFailed ? (
-            <div className="flex h-full items-center justify-center">
-              <Shirt className="size-10 text-white/15" strokeWidth={1.5} aria-hidden />
-            </div>
-          ) : (
-            <>
-              <img
-                src={optimizedImageUrl(product.image_url, 640)}
-                srcSet={optimizedImageSrcSet(product.image_url, [320, 480, 640, 960])}
-                sizes={IMAGE_SIZES}
-                alt={name}
-                loading="lazy"
-                decoding="async"
-                onError={() => setImageFailed(true)}
-                className={cn(
-                  'absolute inset-0 h-full w-full object-cover transition-[transform,opacity] duration-700 ease-out motion-safe:group-hover:scale-[1.05]',
-                  altImage && '[@media(hover:hover)]:group-hover:opacity-0',
-                  outOfStock && 'opacity-50 grayscale',
-                )}
-              />
-              {altImage && (
+        <ImageFrame interactive={interactive}>
+          <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-muted ring-1 ring-white/[0.06] ring-inset">
+            {imageFailed ? (
+              <div className="flex h-full items-center justify-center">
+                <Shirt className="size-10 text-white/15" strokeWidth={1.5} aria-hidden />
+              </div>
+            ) : (
+              <>
                 <img
-                  src={optimizedImageUrl(altImage, 640)}
-                  srcSet={optimizedImageSrcSet(altImage, [320, 480, 640, 960])}
+                  src={optimizedImageUrl(product.image_url, 640)}
+                  srcSet={optimizedImageSrcSet(product.image_url, [320, 480, 640, 960])}
                   sizes={IMAGE_SIZES}
-                  alt=""
+                  alt={name}
                   loading="lazy"
                   decoding="async"
-                  className="absolute inset-0 hidden h-full w-full object-cover opacity-0 transition-opacity duration-700 ease-out [@media(hover:hover)]:block [@media(hover:hover)]:group-hover:opacity-100"
+                  onError={() => setImageFailed(true)}
+                  className={cn(
+                    'absolute inset-0 h-full w-full object-cover transition-[transform,opacity] duration-700 ease-out motion-safe:group-hover:scale-[1.05]',
+                    altImage && '[@media(hover:hover)]:group-hover:opacity-0',
+                    outOfStock && 'opacity-50 grayscale',
+                  )}
                 />
-              )}
-            </>
-          )}
+                {altImage && (
+                  <img
+                    src={optimizedImageUrl(altImage, 640)}
+                    srcSet={optimizedImageSrcSet(altImage, [320, 480, 640, 960])}
+                    sizes={IMAGE_SIZES}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className="absolute inset-0 hidden h-full w-full object-cover opacity-0 transition-opacity duration-700 ease-out [@media(hover:hover)]:block [@media(hover:hover)]:group-hover:opacity-100"
+                  />
+                )}
+              </>
+            )}
 
-          <div className="absolute left-2.5 top-2.5 flex flex-col items-start gap-1.5 sm:left-3 sm:top-3">
-            {lowStock && <Badge variant="flame">Últimas unidades</Badge>}
+            <div className="absolute left-2.5 top-2.5 flex flex-col items-start gap-1.5 sm:left-3 sm:top-3">
+              {lowStock && <Badge variant="flame">Últimas unidades</Badge>}
+            </div>
+
+            {outOfStock && (
+              <Badge variant="glass" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 uppercase tracking-wider">
+                Esgotado
+              </Badge>
+            )}
+
+            {/* Faixa "ver camisa" que sobe no hover (só com mouse). */}
+            {!outOfStock && !onQuickView && !interactive && (
+              <span
+                aria-hidden
+                className="absolute inset-x-3 bottom-3 hidden translate-y-3 items-center justify-center rounded-full bg-paper py-2.5 text-xs font-extrabold uppercase tracking-[0.12em] text-paper-foreground opacity-0 transition-all duration-300 [@media(hover:hover)]:flex [@media(hover:hover)]:group-hover:translate-y-0 [@media(hover:hover)]:group-hover:opacity-100"
+              >
+                Ver camisa
+              </span>
+            )}
           </div>
-
-          {outOfStock && (
-            <Badge variant="glass" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 uppercase tracking-wider">
-              Esgotado
-            </Badge>
-          )}
-
-          {/* Faixa "ver camisa" que sobe no hover (só com mouse). */}
-          {!outOfStock && !onQuickView && (
-            <span
-              aria-hidden
-              className="absolute inset-x-3 bottom-3 hidden translate-y-3 items-center justify-center rounded-full bg-paper py-2.5 text-xs font-extrabold uppercase tracking-[0.12em] text-paper-foreground opacity-0 transition-all duration-300 [@media(hover:hover)]:flex [@media(hover:hover)]:group-hover:translate-y-0 [@media(hover:hover)]:group-hover:opacity-100"
-            >
-              Ver camisa
-            </span>
-          )}
-        </div>
+        </ImageFrame>
 
         <div className="flex flex-1 flex-col gap-1 px-0.5">
           {eyebrow && <p className="truncate text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">{eyebrow}</p>}
@@ -124,6 +130,10 @@ export function ProductCard({
       )}
     </article>
   )
+}
+
+function ImageFrame({ interactive, children }: { interactive: boolean; children: React.ReactNode }) {
+  return interactive ? <TiltViewer>{children}</TiltViewer> : <>{children}</>
 }
 
 export function ProductCardSkeleton() {

@@ -7,9 +7,10 @@ import { HowToBuy } from '../components/home/HowToBuy'
 import { LeagueShowcase } from '../components/home/LeagueShowcase'
 import { JerseyRack, type RackItem } from '../components/home/JerseyRack'
 import { SectionHeading } from '../components/home/SectionHeading'
-import { JerseyPreview } from '../components/product/JerseyPreview'
+import { PrintingJersey } from '../components/home/PrintingJersey'
 import { Button } from '../components/ui/button'
 import { Marquee } from '../components/ui/marquee'
+import { ScrollRevealText } from '../components/ui/scroll-reveal-text'
 import { WhatsAppIcon, whatsappUrl } from '../components/ui/whatsapp-icon'
 import { optimizedImageUrl } from '../lib/assets'
 import {
@@ -285,12 +286,7 @@ export function HomePage() {
                   </Button>
                 </div>
 
-                <div className="relative mx-auto w-full max-w-[400px]">
-                  <div aria-hidden className="absolute inset-[12%] rounded-full bg-primary/50 blur-[70px]" />
-                  <div className="relative origin-[50%_0] motion-safe:animate-sway [--sway-duration:6s]">
-                    <JerseyPreview name={jerseyName} number={jerseyNumber} className="drop-shadow-[0_30px_30px_rgb(11_14_21/0.25)]" />
-                  </div>
-                </div>
+                <PrintingJersey name={jerseyName} number={jerseyNumber} typed={Boolean(jerseyName || jerseyNumber)} />
               </div>
             </div>
           </Reveal>
@@ -372,9 +368,7 @@ export function HomePage() {
             <div className="relative grid gap-8 p-7 sm:p-12 lg:grid-cols-[1fr_auto] lg:items-end lg:p-16">
               <div>
                 <h2 className="display-title text-[3.25rem] sm:text-7xl lg:text-[5.5rem]">
-                  Ficou na dúvida
-                  <br />
-                  do tamanho?
+                  <ScrollRevealText parts={['Ficou na dúvida', { br: true }, 'do tamanho?']} />
                 </h2>
                 <p className="mt-4 max-w-lg text-base font-medium leading-7 text-primary-foreground/80">
                   A gente te ajuda pelo WhatsApp com tamanho, prazo de entrega e personalização.
