@@ -20,11 +20,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 
 // ── ANTIGO ────────────────────────────────────────────────────────────────────
 const OLD_URL         = 'https://cuysmgukyikxdwsladeo.supabase.co'
-const OLD_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1eXNtZ3VreWlreGR3c2xhZGVvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTgyNTk4MCwiZXhwIjoyMDkxNDAxOTgwfQ.ZkwhB2yN7KdyVWxijCEl4vVGzdsqdMWHN3RPgdlAZVU'
+const OLD_SERVICE_KEY = process.env.OLD_SERVICE_KEY
 
 // ── NOVO ──────────────────────────────────────────────────────────────────────
 const NEW_URL         = 'https://jynsexowmcznrapapkwc.supabase.co'
-const NEW_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp5bnNleG93bWN6bnJhcGFwa3djIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTIzNDAzNiwiZXhwIjoyMDk0ODEwMDM2fQ.0sWt0vuiU4aUjw7Mz1HbUZMmmFnIdM8GDBvLfYfMhkQ'
+const NEW_SERVICE_KEY = process.env.NEW_SERVICE_KEY
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Tabelas a migrar, na ordem correta (respeita foreign keys)
