@@ -20,9 +20,12 @@ import {
   type ShowcaseTeam,
 } from '../lib/catalog'
 import { useFocusTrap } from '../lib/useFocusTrap'
+import { useMediaQuery } from '../lib/useMediaQuery'
 import { cn } from '../lib/utils'
 
 const PAGE_SIZE = 24
+/** No celular, quantos escudos aparecem antes do "+N times" (cerca de duas linhas). */
+const MOBILE_TEAMS = 10
 
 const SORT_OPTIONS = [
   { value: 'relevancia', label: 'Relevância' },
@@ -147,6 +150,9 @@ export function CatalogPage() {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [quickView, setQuickView] = useState<ShowcaseProduct | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
+  // Liga cujos times estão todos abertos no celular (fecha sozinho ao trocar de liga).
+  const [expandedLeague, setExpandedLeague] = useState<string | null>(null)
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   const leagueParam = searchParams.get('liga') || searchParams.get('league') || ''
@@ -299,6 +305,17 @@ export function CatalogPage() {
 
   const eyebrow = queryParam ? 'Busca' : activeTeam ? activeLeague?.name : activeLeague?.country ?? 'Catálogo'
 
+  // Desktop: todos os escudos, quebrando linha. Celular: duas linhas + "+N times"
+  // (o time escolhido sempre aparece, mesmo se estiver entre os escondidos).
+  const teamsExpanded = isDesktop || expandedLeague === activeLeague?.id
+  const visibleTeams = teamsExpanded
+    ? leagueTeams
+    : [
+        ...leagueTeams.slice(0, MOBILE_TEAMS),
+        ...(activeTeam && leagueTeams.indexOf(activeTeam) >= MOBILE_TEAMS ? [activeTeam] : []),
+      ]
+  const hiddenTeams = leagueTeams.length - visibleTeams.length
+
   return (
     <div className="pb-16 pt-[7.25rem] lg:pt-[8.25rem]">
       <AnimatePresence>
@@ -435,11 +452,14 @@ export function CatalogPage() {
               <ChevronDown className="size-4 text-muted-foreground" aria-hidden />
             </button>
 
-            {/* Escudos dos times, no mesmo formato do menu. */}
+            {/* Escudos dos times, no mesmo formato do menu: todos visíveis, quebrando linha. */}
             {leagueTeams.length > 0 && (
-              <div className="mt-6 flex items-center gap-3 border-y border-border py-4">
-                <p className="shrink-0 text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">Times</p>
-                <CrestDock className="min-w-0 flex-1 overflow-x-auto pb-1 pt-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="mt-6 border-y border-border py-4">
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                  Times <span className="font-semibold normal-case tracking-normal">· {leagueTeams.length}</span>
+                </p>
+                {/* pt e gap-y dão espaço para o escudo crescer no hover sem ser cortado. */}
+                <CrestDock className="mt-1 flex-wrap gap-y-2.5 pt-3">
                   <button
                     type="button"
                     onClick={() => updateParams({ time: null })}
@@ -451,7 +471,7 @@ export function CatalogPage() {
                   >
                     Todos
                   </button>
-                  {leagueTeams.map((team) => {
+                  {visibleTeams.map((team) => {
                     const active = activeTeam?.id === team.id
                     return (
                       <button
@@ -462,16 +482,24 @@ export function CatalogPage() {
                         aria-label={team.name}
                         title={team.name}
                         className={cn(
-                          'flex size-11 shrink-0 items-center justify-center rounded-full border bg-card p-1.5 transition-[border-color,transform,box-shadow] duration-150',
-                          active
-                            ? 'border-primary ring-2 ring-primary/40'
-                            : 'border-border hover:-translate-y-0.5 hover:border-white/30',
+                          'flex size-11 shrink-0 items-center justify-center rounded-full border bg-card p-1.5 transition-[border-color,box-shadow] duration-150',
+                          active ? 'border-primary ring-2 ring-primary/40' : 'border-border hover:border-white/30',
                         )}
                       >
                         {team.logo_url && <img src={optimizedImageUrl(team.logo_url, 64)} alt="" loading="lazy" className="size-full object-contain" />}
                       </button>
                     )
                   })}
+                  {!isDesktop && (hiddenTeams > 0 || expandedLeague === activeLeague?.id) && (
+                    <button
+                      type="button"
+                      onClick={() => setExpandedLeague(hiddenTeams > 0 ? activeLeague?.id ?? null : null)}
+                      aria-expanded={hiddenTeams === 0}
+                      className="h-11 shrink-0 rounded-full border border-dashed border-input px-4 text-xs font-bold text-muted-foreground transition-colors duration-150 hover:text-foreground"
+                    >
+                      {hiddenTeams > 0 ? `+${hiddenTeams} times` : 'Mostrar menos'}
+                    </button>
+                  )}
                 </CrestDock>
               </div>
             )}
