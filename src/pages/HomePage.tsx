@@ -23,6 +23,7 @@ import {
   type ShowcaseProduct,
   type ShowcaseTeam,
 } from '../lib/catalog'
+import { useIntroDone } from '../lib/intro'
 import { supabase } from '../lib/supabase'
 import { useSettings } from '../lib/useSettings'
 import { formatPrice } from '../lib/utils'
@@ -101,6 +102,9 @@ const EMPTY_SHOWCASE: ReturnType<typeof buildShowcase> = {
 
 export function HomePage() {
   const { settings } = useSettings()
+  // Com a abertura na tela, o hero espera a cortina subir para entrar.
+  const introDone = useIntroDone()
+  const enter = introDone ? { opacity: 1, y: 0 } : undefined
   const [view, setView] = useState(EMPTY_SHOWCASE)
   const [leagues, setLeagues] = useState<ShowcaseLeague[]>([])
   const [loading, setLoading] = useState(true)
@@ -155,7 +159,7 @@ export function HomePage() {
             <div>
               <motion.p
                 initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
+                animate={enter}
                 transition={{ duration: 0.6, ease: EASE }}
                 className="eyebrow"
               >
@@ -168,7 +172,7 @@ export function HomePage() {
 
               <motion.h1
                 initial={{ opacity: 0, y: 28 }}
-                animate={{ opacity: 1, y: 0 }}
+                animate={enter}
                 transition={{ duration: 0.8, delay: 0.08, ease: EASE }}
                 className="display-title mt-4 text-[3.35rem] leading-[0.88] sm:text-7xl lg:text-[6.5rem] xl:text-[7.75rem]"
               >
@@ -179,7 +183,7 @@ export function HomePage() {
 
             <motion.div
               initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
+              animate={enter}
               transition={{ duration: 0.7, delay: 0.2, ease: EASE }}
               className="lg:pb-2"
             >
@@ -216,7 +220,7 @@ export function HomePage() {
 
         <motion.div
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          animate={introDone ? { opacity: 1 } : undefined}
           transition={{ duration: 0.9, delay: 0.3 }}
           className="relative mt-10 pb-10 lg:mt-14"
         >
