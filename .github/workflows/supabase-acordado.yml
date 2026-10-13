@@ -1,0 +1,33 @@
+name: Supabase acordado
+
+# O plano gratuito do Supabase pausa o projeto depois de 7 dias sem uso, e o
+# site fica sem camisas até alguém restaurar no painel. Duas consultas por
+# semana dão folga caso o GitHub atrase ou pule um agendamento.
+on:
+  schedule:
+    - cron: '0 12 * * 1,4' # segunda e quinta, 9h de Brasília
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  consulta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .env.example
+          sparse-checkout-cone-mode: false
+
+      - name: Lê uma linha do catálogo
+        run: |
+          # URL e chave publishable vêm do .env.example: as duas já vão no
+          # JavaScript do site, e assim uma troca de chave vale aqui também.
+          set -a; . ./.env.example; set +a
+          # Banco acordando responde 404/5xx por alguns segundos; se continuar
+          # falhando, o job quebra e o GitHub avisa por e-mail.
+          curl --fail --silent --show-error --retry 3 --retry-all-errors --retry-delay 20 \
+            -H "apikey: $VITE_SUPABASE_ANON_KEY" \
+            "$VITE_SUPABASE_URL/rest/v1/leagues?select=id&limit=1"
